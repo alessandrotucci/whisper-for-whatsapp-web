@@ -36,6 +36,9 @@
     progress { width: 100%; height: 8px; margin-top: 6px; accent-color: var(--accent); }
     details { margin-top: 28px; }
     summary { cursor: pointer; font-weight: 600; font-size: 16px; }
+    .upd-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; font-size: 13px; }
+    .upd-bar button { padding: 3px 10px; font-size: 13px; }
+    .upd-last { font-size: 12px; margin: 4px 0 0; }
     .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
     @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
   </style>
@@ -44,6 +47,12 @@
 <main>
   <h1 data-i18n="extName"></h1>
   <p class="muted" data-i18n="opt_tagline"></p>
+  <div class="upd-bar">
+    <span id="updVersions"></span>
+    <button id="checkUpdates" data-i18n="upd_check_now"></button>
+    <span id="updStatus" class="muted"></span>
+  </div>
+  <p class="muted upd-last" id="updLast"></p>
   <div id="updateBox" hidden></div>
 
   <section class="step" id="step1" data-state="active">
@@ -113,10 +122,6 @@
       </div>
       <div class="row"><button id="saveHost" disabled data-i18n="opt_apply"></button> <span id="hostSaved" class="muted"></span></div>
       <div id="hostDetails"></div>
-
-      <h3 data-i18n="upd_section"></h3>
-      <div class="row"><button id="checkUpdates" data-i18n="upd_check_now"></button> <span id="updStatus" class="muted"></span></div>
-      <p class="muted" id="updLast"></p>
 
       <h3 data-i18n="opt_saved_transcripts"></h3>
       <div class="row"><span id="cacheInfo" class="muted"></span> <button id="clearCache" data-i18n="opt_clear_cache"></button></div>

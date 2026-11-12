@@ -64,6 +64,7 @@ async function checkHost() {
     $('hostMissing').hidden = true;
     setStep('step1', 'done');
     fillAdvanced(p);
+    send({ cmd: 'updateInfo' }).then(showLastCheck);
     if (r.downloading) downloading = r.downloading;
     await loadModels();
   } else {
@@ -333,8 +334,12 @@ $('clearCache').addEventListener('click', async () => {
 
 // ---------- aggiornamenti ----------
 
+// Riga in cima alla pagina: versioni installate, "Controlla ora" e ora dell'ultimo controllo.
+// L'avviso, se c'è, compare subito sotto (update-ui.js).
 function showLastCheck(info) {
-  $('updLast').textContent = info && info.checkedAt ? t('upd_last_check', new Date(info.checkedAt).toLocaleString()) : '';
+  if (!info) return;
+  $('updVersions').textContent = t('upd_versions', info.current.extension, info.current.host || t('upd_unknown'));
+  $('updLast').textContent = info.checkedAt ? t('upd_last_check', new Date(info.checkedAt).toLocaleString()) : '';
 }
 
 $('checkUpdates').addEventListener('click', async () => {

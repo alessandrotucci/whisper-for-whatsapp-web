@@ -496,5 +496,8 @@
   },
   "upd_unknown": {
     "message": "non installato"
+  },
+  "upd_versions": {
+    "message": "Estensione $1 · componente locale $2"
   }
 }

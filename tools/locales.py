@@ -175,6 +175,7 @@ M = {
     "upd_check_failed": ("Controllo non riuscito: $1", "Check failed: $1"),
     "upd_last_check": ("Ultimo controllo: $1. Si controlla da solo una volta al giorno.", "Last check: $1. It checks by itself once a day."),
     "upd_unknown": ("non installato", "not installed"),
+    "upd_versions": ("Estensione $1 · componente locale $2", "Extension $1 · local component $2"),
 }
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "extension", "_locales")
