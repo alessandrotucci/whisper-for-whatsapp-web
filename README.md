@@ -6,6 +6,8 @@ sotto ogni vocale. L'audio non lascia la macchina: nessun servizio cloud, nessun
 
 - Trascrizione automatica dei vocali in arrivo, in qualsiasi chat.
 - Pulsante **Trascrivi** sotto ogni vocale, anche quelli arrivati prima dell'installazione.
+- Copia con Ctrl+C: selezionando più messaggi, i vocali trascritti finiscono negli appunti al loro
+  posto, con ora e mittente come i messaggi scritti.
 - Coda seriale: una trascrizione per volta, anche con più vocali in arrivo insieme e con Chrome ed
   Edge aperti contemporaneamente.
 - Modelli Whisper a scelta (large-v3 predefinito), scaricati dalla pagina dell'estensione o già

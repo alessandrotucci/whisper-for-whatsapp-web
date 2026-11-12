@@ -5,7 +5,8 @@
 //    imposta data-wwt-key (id completo del messaggio), data-wwt-voice ("1"/"0")
 //    e data-wwt-from-me, che content.js usa per costruire l'interfaccia;
 //  - scaricare e decifrare in memoria l'audio di un vocale, su richiesta;
-//  - segnalare i vocali nuovi appena arrivati.
+//  - segnalare i vocali nuovi appena arrivati;
+//  - aggiungere le trascrizioni dei vocali selezionati al testo copiato.
 //
 // Lo scambio con content.js passa da window.postMessage con il campo __wwt:
 // "req" e "res" per richiesta e risposta, "evt" per gli eventi spontanei.
@@ -203,6 +204,132 @@
       duration: m.duration || null,
     }, location.origin);
   }
+
+  // Copia. Con più messaggi selezionati WhatsApp scrive in text/plain un messaggio per riga
+  // logica, ciascuno preceduto dal suo data-pre-plain-text, considera solo i messaggi che lo
+  // hanno (i vocali no) e ferma la propagazione dell'evento. Con un solo messaggio scritto
+  // selezionato scrive il testo senza prefisso; se nella selezione non c'è nessun messaggio
+  // scritto non interviene. Le trascrizioni si inseriscono quindi avvolgendo, in fase di
+  // cattura, il setData del DataTransfer dell'evento, e con i soli vocali selezionati si
+  // scrive il testo in fase di propagazione. Il prefisso dei vocali è quello che WhatsApp
+  // calcola in WAWebMessageBubbleHiddenText.
+  const VOICE_MARK = '🎙 ';
+  let prefixMods;
+  function prefixModules() {
+    if (prefixMods !== undefined) return prefixMods;
+    const clock = tryRequire('WAWebClock');
+    const msgG = tryRequire('WAWebFrontendMsgGetters');
+    const contactG = tryRequire('WAWebContactGetters');
+    const frontContactG = tryRequire('WAWebFrontendContactGetters');
+    const conn = tryRequire('WAWebConnModel');
+    prefixMods = clock && clock.Clock && msgG && contactG && frontContactG && conn && conn.Conn
+      ? { clock: clock.Clock, msgG, contactG, frontContactG, conn: conn.Conn }
+      : null;
+    return prefixMods;
+  }
+
+  function prePlainText(m) {
+    const P = prefixModules();
+    if (!P) return null;
+    const sender = P.msgG.getSenderObj(m);
+    const user = P.frontContactG.getFormattedUser(sender);
+    const name = P.contactG.getIsMe(sender) && P.conn.pushname ? P.conn.pushname : user != null ? user : '';
+    return '[' + P.clock.timeStr(m.t) + '] ' + name + ': ';
+  }
+
+  // Messaggi della selezione in ordine di chat: i messaggi scritti con il loro prefisso, i
+  // vocali trascritti con prefisso e testo. I vocali senza trascrizione non compaiono.
+  function selectedItems(range) {
+    const items = [];
+    for (const row of document.querySelectorAll('#main [role="row"]')) {
+      if (!range.intersectsNode(row)) continue;
+      const msgEl = row.querySelector('[data-id]');
+      if (msgEl && msgEl.getAttribute('data-wwt-voice') === '1') {
+        const textEl = row.querySelector('.wwt-box[data-state="done"] .wwt-final');
+        const m = textEl && WA.Msg.get(msgEl.getAttribute('data-wwt-key'));
+        const pre = m && prePlainText(m);
+        const text = textEl && textEl.textContent.trim();
+        if (pre && text) items.push({ voice: true, pre, text });
+        continue;
+      }
+      const copyable = row.querySelector('[data-pre-plain-text]');
+      if (copyable) items.push({ voice: false, pre: copyable.getAttribute('data-pre-plain-text') });
+    }
+    return items;
+  }
+
+  const voiceLine = (it) => it.pre + VOICE_MARK + it.text;
+
+  // Inserisce le righe dei vocali nel testo di WhatsApp, prima del messaggio scritto che le
+  // segue nella selezione; quelle dopo l'ultimo messaggio scritto vanno in coda.
+  function mergeCopied(s, items) {
+    const texts = items.filter((it) => !it.voice);
+    if (texts.length === 1 && !s.startsWith(texts[0].pre)) s = texts[0].pre + s;
+    const pos = new Map();
+    let from = 0;
+    for (const it of texts) {
+      const p = s.indexOf(it.pre, from);
+      if (p < 0) continue;
+      pos.set(it, p);
+      from = p + it.pre.length;
+    }
+    const parts = [];
+    let last = 0;
+    let pending = [];
+    for (const it of items) {
+      if (it.voice) {
+        pending.push(voiceLine(it));
+        continue;
+      }
+      const p = pos.get(it);
+      if (p == null || !pending.length) continue;
+      parts.push(s.slice(last, p), pending.join('\n') + '\n');
+      last = p;
+      pending = [];
+    }
+    parts.push(s.slice(last));
+    let out = parts.join('');
+    if (pending.length) out = (out ? out.replace(/\n+$/, '') + '\n' : '') + pending.join('\n');
+    return out;
+  }
+
+  function copyItems() {
+    const sel = window.getSelection();
+    if (!WA || !sel || !sel.rangeCount || sel.isCollapsed) return null;
+    const range = sel.getRangeAt(0);
+    const anchor = range.commonAncestorContainer;
+    const anchorEl = anchor.nodeType === 1 ? anchor : anchor.parentElement;
+    // Una selezione dentro un solo riquadro di trascrizione resta una copia normale.
+    if (anchorEl && anchorEl.closest('.wwt-box')) return null;
+    const items = selectedItems(range);
+    return items.some((it) => it.voice) ? items : null;
+  }
+
+  const wrapped = new WeakSet();
+  window.addEventListener('copy', (e) => {
+    const dt = e.clipboardData;
+    if (!dt || wrapped.has(dt)) return;
+    let items;
+    try { items = copyItems(); } catch (_) { return; }
+    if (!items) return;
+    wrapped.add(dt);
+    const setData = dt.setData;
+    dt.setData = function (type, value) {
+      if (type === 'text/plain' && typeof value === 'string') {
+        try { value = mergeCopied(value, items); } catch (_) { /* resta il testo di WhatsApp */ }
+      }
+      return setData.call(this, type, value);
+    };
+    e.__wwtItems = items;
+  }, true);
+
+  window.addEventListener('copy', (e) => {
+    const items = e.__wwtItems;
+    if (!items || e.defaultPrevented || !e.clipboardData) return;
+    const text = items.filter((it) => it.voice).map(voiceLine).join('\n');
+    DataTransfer.prototype.setData.call(e.clipboardData, 'text/plain', text);
+    e.preventDefault();
+  });
 
   function start() {
     WA = loadModules();

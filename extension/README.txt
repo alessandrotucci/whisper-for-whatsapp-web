@@ -52,6 +52,9 @@ BUONO A SAPERSI
   uscita una versione nuova. Se sì, l'icona mostra una freccia e il
   popup un avviso: premi "Aggiorna" e fa tutto da sola (componente
   locale ed estensione).
+- Copiare: se selezioni più messaggi e premi Ctrl+C, i vocali trascritti
+  finiscono negli appunti al loro posto, con ora e mittente come i
+  messaggi scritti e il simbolo 🎙 davanti al testo.
 - Disinstallare: rimuovi l'estensione dal browser e "Whisper for
   WhatsApp Web" da Impostazioni > App. Il modello scaricato resta in
   %USERPROFILE%\.cache\huggingface\hub e si può cancellare a mano.
@@ -111,6 +114,9 @@ GOOD TO KNOW
   there is one, the icon shows an arrow and the popup a notice: press
   "Update" and it does everything by itself (local component and
   extension).
+- Copying: select several messages and press Ctrl+C, and transcribed
+  voice messages land in the clipboard in their place, with time and
+  sender like text messages and a 🎙 before the text.
 - Uninstalling: remove the extension from the browser and "Whisper for
   WhatsApp Web" from Settings > Apps. The downloaded model stays in
   %USERPROFILE%\.cache\huggingface\hub and can be deleted by hand.

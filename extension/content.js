@@ -196,7 +196,8 @@
         button('↻', t('box_retranscribe_title'), () => requestTranscription(key, true)),
       );
       head.append(actions);
-      box.append(head, el('div', 'wwt-text', st.text || t('box_no_speech')));
+      // wwt-final segna il testo trascritto, che page.js aggiunge al testo copiato.
+      box.append(head, el('div', st.text ? 'wwt-text wwt-final' : 'wwt-text', st.text || t('box_no_speech')));
       return;
     }
 
