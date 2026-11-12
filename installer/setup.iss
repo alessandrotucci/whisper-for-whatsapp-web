@@ -61,6 +61,29 @@ Type: files; Name: "{app}\{#HostName}.json"
 Type: filesandordirs; Name: "{localappdata}\WhisperForWhatsAppWeb"
 
 [Code]
+{ Il componente gira come processo console senza finestre, avviato dal browser:
+  Restart Manager non lo sa chiudere, quindi installazione e disinstallazione lo
+  terminano prima di toccare i file. Una trascrizione in corso finisce in errore e
+  l'estensione la propone di nuovo. }
+procedure StopHost();
+var
+  ResultCode: Integer;
+begin
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM whisper_host.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  StopHost();
+  Result := '';
+end;
+
+function InitializeUninstall(): Boolean;
+begin
+  StopHost();
+  Result := True;
+end;
+
 function JsonEscape(S: String): String;
 begin
   Result := S;
