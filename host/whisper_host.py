@@ -47,7 +47,7 @@ import threading
 import time
 import traceback
 
-HOST_VERSION = "1.3.0"
+HOST_VERSION = "1.3.1"
 FROZEN = getattr(sys, "frozen", False)
 
 
