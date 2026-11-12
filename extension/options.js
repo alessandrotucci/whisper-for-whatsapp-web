@@ -66,15 +66,32 @@ async function checkHost() {
     await loadModels();
   } else {
     hostOk = false;
-    $('hostStatus').className = 'muted';
-    $('hostStatus').textContent = 'Non ancora installato.';
+    showSearching();
     $('hostMissing').hidden = false;
     $('hostError').textContent = explain(r ? r.error : '');
-    setStep('step1', 'active');
+    setStep('step1', 'searching');
     setStep('step2', 'locked');
     setStep('step3', 'locked');
     startPolling();
   }
+}
+
+// Riga di stato del passo 1 mentre il componente manca: indicatore animato e ora dell'ultimo controllo.
+function showSearching() {
+  const el = $('hostStatus');
+  el.className = 'searching';
+  const time = new Date().toLocaleTimeString('it-IT');
+  if (!el.querySelector('.wwt-search-spinner')) {
+    const spinner = document.createElement('span');
+    spinner.className = 'wwt-search-spinner';
+    const text = document.createElement('span');
+    text.className = 'searching-text';
+    text.textContent = 'Cerco il componente locale sul computer…';
+    const last = document.createElement('span');
+    last.className = 'muted searching-time';
+    el.replaceChildren(spinner, text, last);
+  }
+  el.querySelector('.searching-time').textContent = 'ultimo controllo alle ' + time + ', riprovo ogni 3 secondi';
 }
 
 function startPolling() {

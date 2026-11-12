@@ -15,9 +15,9 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
@@ -46,7 +46,7 @@ jobs:
         shell: pwsh
         run: Compress-Archive -Path extension\* -DestinationPath build\installer\whisper-for-whatsapp-web-extension.zip
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: installer
           path: build/installer/*
@@ -56,4 +56,4 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create '${{ github.ref_name }}' (Get-ChildItem build\installer\*).FullName --title '${{ github.ref_name }}' --generate-notes
+        run: gh release create '${{ github.ref_name }}' (Get-ChildItem build\installer\*).FullName --title '${{ github.ref_name }}' --notes-file .github/release-notes.md --generate-notes

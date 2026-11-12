@@ -13,6 +13,19 @@
     .step h2 { margin: 2px 0 6px; font-size: 16px; }
     .step[data-state="done"] > .num { background: var(--ok); border-color: var(--ok); color: var(--bg); }
     .step[data-state="active"] > .num { border-color: var(--accent); color: var(--accent); }
+    .step[data-state="searching"] { border-color: var(--accent); }
+    .step[data-state="searching"] > .num { border-color: var(--accent); color: var(--accent); animation: wwt-pulse 1.6s ease-out infinite; }
+    #hostStatus.searching { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-weight: 600; }
+    #hostStatus .searching-time { font-weight: 400; font-size: 12.5px; }
+    .wwt-search-spinner { width: 16px; height: 16px; border: 2.5px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: wwt-spin 0.8s linear infinite; flex: 0 0 auto; }
+    @keyframes wwt-spin { to { transform: rotate(360deg); } }
+    @keyframes wwt-pulse {
+      0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); }
+      100% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--accent) 0%, transparent); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .wwt-search-spinner, .step[data-state="searching"] > .num { animation: none; }
+    }
     .step[data-state="locked"] { opacity: 0.55; }
     .step[data-state="locked"] .body > :not(h2) { display: none; }
     .models { display: grid; gap: 8px; margin: 10px 0; }
