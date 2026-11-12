@@ -43,7 +43,7 @@ import threading
 import time
 import traceback
 
-HOST_VERSION = "1.2.0"
+HOST_VERSION = "1.2.1"
 FROZEN = getattr(sys, "frozen", False)
 
 
@@ -339,6 +339,70 @@ def pick_folder():
     return path or None
 
 
+class PipeReader:
+    """Legge stdin senza lasciare un thread fermo in ReadFile sulla pipe del browser.
+
+    Su Windows, finché un thread ha una ReadFile sincrona in sospeso su una pipe,
+    GetFileType sulla stessa pipe si blocca fino alla fine della lettura; alcune DLL
+    (OpenBLAS di numpy, per esempio) lo chiamano sugli handle standard mentre si
+    caricano. Il caricamento di una DLL nel thread di lavoro resterebbe quindi fermo
+    fino al messaggio successivo del browser. Qui ReadFile parte solo quando
+    PeekNamedPipe segnala dati disponibili, e completa subito. Se l'handle non è una
+    pipe, la lettura è quella bloccante normale.
+    """
+
+    POLL_S = 0.05
+    ERROR_BROKEN_PIPE = 109
+
+    def __init__(self, fd):
+        self.fd = fd
+        self.peek = None
+        if os.name == "nt":
+            import ctypes
+            import msvcrt
+            from ctypes import wintypes
+
+            k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            peek_fn = k32.PeekNamedPipe
+            peek_fn.argtypes = [wintypes.HANDLE, ctypes.c_void_p, wintypes.DWORD, ctypes.c_void_p,
+                                ctypes.POINTER(wintypes.DWORD), ctypes.c_void_p]
+            peek_fn.restype = wintypes.BOOL
+            handle = msvcrt.get_osfhandle(fd)
+
+            def peek():
+                avail = wintypes.DWORD(0)
+                if peek_fn(handle, None, 0, None, ctypes.byref(avail), None):
+                    return avail.value
+                return -1 if ctypes.get_last_error() == self.ERROR_BROKEN_PIPE else None
+
+            if peek() is not None:
+                self.peek = peek
+
+    def read(self, n):
+        """Fino a n byte; b"" a pipe chiusa."""
+        if self.peek is None:
+            return os.read(self.fd, n)
+        while True:
+            avail = self.peek()
+            if avail is None:
+                return os.read(self.fd, n)
+            if avail < 0:
+                return b""
+            if avail > 0:
+                return os.read(self.fd, min(n, avail))
+            time.sleep(self.POLL_S)
+
+    def read_exact(self, n):
+        """Esattamente n byte, oppure None se la pipe si chiude prima."""
+        out = bytearray()
+        while len(out) < n:
+            chunk = self.read(n - len(out))
+            if not chunk:
+                return None
+            out += chunk
+        return bytes(out)
+
+
 class Host:
     def __init__(self, out, log):
         self.out = out
@@ -362,12 +426,12 @@ class Host:
 
     def reader(self, inp):
         while True:
-            header = inp.read(4)
-            if len(header) < 4:
+            header = inp.read_exact(4)
+            if header is None:
                 break
             (length,) = struct.unpack("<I", header)
-            body = inp.read(length)
-            if len(body) < length:
+            body = inp.read_exact(length)
+            if body is None:
                 break
             try:
                 msg = json.loads(body.decode("utf-8"))
@@ -511,7 +575,7 @@ def run_native():
     host = Host(proto_out, log)
     t = threading.Thread(target=host.worker, daemon=True)
     t.start()
-    host.reader(sys.stdin.buffer)
+    host.reader(PipeReader(0))
     log("stdin chiuso, uscita")
     t.join(timeout=2)
 
