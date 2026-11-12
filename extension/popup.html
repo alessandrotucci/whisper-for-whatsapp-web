@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Whisper locale</title>
+  <link rel="stylesheet" href="ui.css">
+  <style>
+    body { width: 330px; padding: 12px 14px; }
+    .line { margin: 6px 0; }
+    .btns { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+    #queue { max-height: 140px; overflow-y: auto; font-size: 12.5px; margin: 4px 0 0; padding-left: 18px; }
+  </style>
+</head>
+<body>
+  <h1>Whisper locale</h1>
+  <div class="line" id="host">Host: verifica…</div>
+  <div class="line" id="current"></div>
+  <div class="line" id="queueInfo"></div>
+  <ol id="queue"></ol>
+  <label class="check"><input type="checkbox" id="autoIncoming"> <span>Trascrivi in automatico i vocali in arrivo</span></label>
+  <div class="btns">
+    <button class="primary" id="chat">Trascrivi i vocali della chat aperta</button>
+    <button id="clearQueue">Svuota la coda</button>
+    <button id="options">Configurazione e guida</button>
+  </div>
+  <p class="muted" id="msg"></p>
+  <script src="popup.js"></script>
+</body>
+</html>

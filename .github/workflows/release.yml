@@ -1,0 +1,59 @@
+# Costruisce whisper_host.exe (PyInstaller) e l'installer (Inno Setup) su Windows.
+# Un tag v* pubblica una release con l'installer e lo zip dell'estensione;
+# l'avvio manuale costruisce soltanto e lascia i file come artifact.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Dipendenze di build
+        run: python -m pip install --disable-pip-version-check -r host/requirements-build.txt
+
+      - name: whisper_host.exe
+        working-directory: host
+        run: python -m PyInstaller --noconfirm --distpath ../build/dist --workpath ../build/work whisper_host.spec
+
+      - name: Prova dell'eseguibile
+        run: build\dist\whisper_host\whisper_host.exe --info
+
+      - name: Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Installer
+        shell: pwsh
+        run: |
+          $v = '${{ github.ref_name }}'.TrimStart('v')
+          if ($v -notmatch '^\d') { $v = '0.0.0-dev' }
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /Q "/DAppVersion=$v" installer\setup.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC exit $LASTEXITCODE" }
+
+      - name: Zip dell'estensione
+        shell: pwsh
+        run: Compress-Archive -Path extension\* -DestinationPath build\installer\whisper-for-whatsapp-web-extension.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer
+          path: build/installer/*
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create '${{ github.ref_name }}' (Get-ChildItem build\installer\*).FullName --title '${{ github.ref_name }}' --generate-notes

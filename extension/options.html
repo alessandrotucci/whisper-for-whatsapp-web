@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Whisper per WhatsApp Web</title>
+  <link rel="stylesheet" href="ui.css">
+  <style>
+    main { max-width: 820px; margin: 0 auto; padding: 24px 16px 60px; }
+    .step { display: flex; gap: 14px; padding: 14px 16px; margin: 12px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+    .step > .num { flex: 0 0 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 13px; border: 2px solid var(--line); color: var(--muted); }
+    .step > .body { flex: 1; min-width: 0; }
+    .step h2 { margin: 2px 0 6px; font-size: 16px; }
+    .step[data-state="done"] > .num { background: var(--ok); border-color: var(--ok); color: var(--bg); }
+    .step[data-state="active"] > .num { border-color: var(--accent); color: var(--accent); }
+    .step[data-state="locked"] { opacity: 0.55; }
+    .step[data-state="locked"] .body > :not(h2) { display: none; }
+    .models { display: grid; gap: 8px; margin: 10px 0; }
+    .model { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); flex-wrap: wrap; }
+    .model.current { border-color: var(--accent); }
+    .model .name { font-weight: 600; }
+    .model .grow { flex: 1; min-width: 160px; }
+    progress { width: 100%; height: 8px; margin-top: 6px; accent-color: var(--accent); }
+    details { margin-top: 28px; }
+    summary { cursor: pointer; font-weight: 600; font-size: 16px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+    @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Whisper per WhatsApp Web</h1>
+  <p class="muted">Trascrive i vocali sul tuo computer con Whisper: l'audio non lascia la macchina.</p>
+
+  <section class="step" id="step1" data-state="active">
+    <div class="num">1</div>
+    <div class="body">
+      <h2>Componente locale</h2>
+      <p id="hostStatus" class="muted">Verifica in corso…</p>
+      <div id="hostMissing" hidden>
+        <p>Il browser non può far girare Whisper da solo: serve un piccolo programma sul computer. Scaricalo, aprilo e premi <strong>Avanti</strong> fino alla fine. Non servono privilegi di amministratore.</p>
+        <div class="row">
+          <a class="button primary" id="installerLink" href="#" target="_blank" rel="noopener">Scarica l'installer per Windows</a>
+          <span class="muted">Questa pagina si accorge da sola dell'installazione.</span>
+        </div>
+        <p class="muted">Se Windows mostra «Windows ha protetto il PC», premi <em>Ulteriori informazioni</em> e poi <em>Esegui comunque</em>: l'installer non è ancora firmato.</p>
+        <p class="muted" id="hostError"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="step2" data-state="locked">
+    <div class="num">2</div>
+    <div class="body">
+      <h2>Modello</h2>
+      <p class="muted">I modelli già scaricati con faster-whisper vengono trovati da soli. Più grande è il modello, più è accurato e più è lento.</p>
+      <div class="models" id="models"></div>
+      <div class="row">
+        <button id="pickFolder">Usa un modello in un'altra cartella…</button>
+        <span id="modelMsg" class="muted"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="step3" data-state="locked">
+    <div class="num">3</div>
+    <div class="body">
+      <h2>Pronto</h2>
+      <p>Apri o ricarica <a href="https://web.whatsapp.com/" target="_blank" rel="noopener">WhatsApp Web</a>: sotto ogni vocale compare il pulsante <strong>Trascrivi</strong>, e i vocali in arrivo si trascrivono da soli.</p>
+    </div>
+  </section>
+
+  <details id="settingsBox">
+    <summary>Impostazioni</summary>
+    <div class="panel" style="margin-top: 10px">
+      <label class="check"><input type="checkbox" id="autoIncoming"><span>Trascrivi in automatico i vocali <strong>in arrivo</strong>, in qualsiasi chat</span></label>
+      <label class="check"><input type="checkbox" id="autoOutgoing"><span>…anche quelli <strong>inviati da me</strong></span></label>
+      <label class="check"><input type="checkbox" id="autoVisible"><span>Trascrivi in automatico anche i vocali <strong>vecchi</strong> quando compaiono nella chat aperta</span></label>
+      <div class="grid2">
+        <div class="field"><label for="language">Lingua</label>
+          <input type="text" id="language" list="langs" placeholder="vuoto = riconoscimento automatico">
+          <datalist id="langs"><option value="it"><option value="pt"><option value="es"><option value="en"><option value="fr"><option value="de"><option value="zh"></datalist></div>
+        <div class="field"><label for="beamSize">Beam size</label><input type="number" id="beamSize" min="1" max="10"></div>
+      </div>
+      <div class="field"><label for="initialPrompt">Vocabolario / contesto</label>
+        <textarea id="initialPrompt" placeholder="Nomi e termini che Whisper deve riconoscere, separati da virgole"></textarea></div>
+      <label class="check"><input type="checkbox" id="vadFilter"><span>Salta i silenzi (filtro VAD, consigliato)</span></label>
+      <div class="field" style="max-width: 340px"><label for="idleMinutes">Libera la memoria dopo minuti di inattività</label><input type="number" id="idleMinutes" min="1" max="240"></div>
+      <p class="muted">Finché il componente locale è attivo il modello resta in memoria (large-v3: circa 2 GB di RAM) e i vocali successivi partono subito.
+        Le trascrizioni avvengono sempre una per volta, anche tra Chrome ed Edge.</p>
+      <span id="saved" class="ok"></span>
+
+      <h3>Avanzate</h3>
+      <div class="grid2">
+        <div class="field"><label for="hDevice">Dispositivo</label>
+          <select id="hDevice"><option value="cpu">CPU</option><option value="cuda">GPU NVIDIA (CUDA)</option><option value="auto">automatico</option></select></div>
+        <div class="field"><label for="hCompute">Precisione di calcolo</label>
+          <select id="hCompute"><option>int8</option><option>int8_float32</option><option>float32</option><option>float16</option><option>int8_float16</option></select></div>
+        <div class="field"><label for="hThreads">Thread CPU (0 = automatico)</label><input type="number" id="hThreads" min="0" max="64"></div>
+      </div>
+      <div class="row"><button id="saveHost" disabled>Applica</button> <span id="hostSaved" class="muted"></span></div>
+      <div id="hostDetails"></div>
+
+      <h3>Trascrizioni salvate</h3>
+      <div class="row"><span id="cacheInfo" class="muted"></span> <button id="clearCache">Cancella tutte</button></div>
+      <p class="muted">Restano solo in questo browser, legate al messaggio: riaprendo la chat ricompaiono senza ritrascrivere.</p>
+    </div>
+  </details>
+</main>
+<script src="options.js"></script>
+</body>
+</html>

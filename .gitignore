@@ -1,0 +1,7 @@
+keys/*.pem
+build/
+*.log
+__pycache__/
+host/config.json
+host/whisper_host.cmd
+host/transcribe.lock
