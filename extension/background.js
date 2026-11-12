@@ -245,9 +245,7 @@ async function fetchAudio(job) {
 // ---------- coda ----------
 
 async function enqueue(key, { tabId, manual, chat, force }) {
-  await importScripts('update.js');
-
-restore();
+  await restore();
   if (!force) {
     const cached = (await getCached([key]))[key];
     if (cached) return { state: 'done', ...cached };
@@ -350,9 +348,7 @@ function isHostSetupError(message) {
 
 const handlers = {
   async get({ keys }) {
-    await importScripts('update.js');
-
-restore();
+    await restore();
     const cached = await getCached(keys);
     const out = {};
     for (const k of keys) out[k] = cached[k] ? { state: 'done', ...cached[k] } : stateOf(k);
@@ -362,9 +358,7 @@ restore();
     return enqueue(key, { tabId: sender.tab && sender.tab.id, manual, force, chat });
   },
   async autoEnqueue({ key, fromMe, chat, visible }, sender) {
-    await importScripts('update.js');
-
-restore();
+    await restore();
     const wanted = visible ? settings.autoVisible : fromMe ? settings.autoOutgoing : settings.autoIncoming;
     if (!wanted) return null;
     if (visible && fromMe && !settings.autoOutgoing) return null;
@@ -374,15 +368,11 @@ restore();
     return enqueue(key, { tabId, manual: false, chat });
   },
   async cancel({ key }) {
-    await importScripts('update.js');
-
-restore();
+    await restore();
     return cancel(key);
   },
   async status() {
-    await importScripts('update.js');
-
-restore();
+    await restore();
     return {
       queue: queue.map((j) => ({ key: j.key, chat: j.chat, manual: j.manual })),
       current: current && { key: current.key, chat: current.chat, state: current.state, progress: current.progress, startedAt: current.startedAt },
