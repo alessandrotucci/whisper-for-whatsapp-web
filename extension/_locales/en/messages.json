@@ -397,5 +397,104 @@
   },
   "opt_clear_confirm": {
     "message": "Delete all saved transcriptions? They can't be recovered."
+  },
+  "upd_title_ext": {
+    "message": "New extension version"
+  },
+  "upd_title_host": {
+    "message": "New local component version"
+  },
+  "upd_title_both": {
+    "message": "Version $1 is available"
+  },
+  "upd_text_ext": {
+    "message": "Only the extension is updated, then it reloads by itself."
+  },
+  "upd_text_host": {
+    "message": "It installs without any window. A transcription in progress finishes first."
+  },
+  "upd_text_both": {
+    "message": "First the local component, then the extension, which reloads at the end."
+  },
+  "upd_text_manual": {
+    "message": "The installed component can't update itself yet: “Update” downloads the installer, to open as the first time. Then press “Update” again."
+  },
+  "upd_row_ext": {
+    "message": "Extension"
+  },
+  "upd_row_host": {
+    "message": "Local component"
+  },
+  "upd_up_to_date_f": {
+    "message": "$1 · up to date"
+  },
+  "upd_up_to_date_m": {
+    "message": "$1 · up to date"
+  },
+  "upd_button": {
+    "message": "Update"
+  },
+  "upd_notes": {
+    "message": "What's new"
+  },
+  "upd_later": {
+    "message": "Later"
+  },
+  "upd_p_starting": {
+    "message": "Starting the update…"
+  },
+  "upd_p_waiting_queue": {
+    "message": "Waiting for the current transcription to finish…"
+  },
+  "upd_p_host_download": {
+    "message": "Downloading the local component… $1"
+  },
+  "upd_p_host_install": {
+    "message": "Installing the local component…"
+  },
+  "upd_p_ext_download": {
+    "message": "Downloading the extension… $1"
+  },
+  "upd_p_ext_reload": {
+    "message": "Reloading the extension…"
+  },
+  "upd_p_done": {
+    "message": "Update complete."
+  },
+  "upd_p_manual_host": {
+    "message": "Open the downloaded file and complete the installation, then press “Update” again."
+  },
+  "upd_p_error": {
+    "message": "Update failed: $1"
+  },
+  "upd_err_host_timeout": {
+    "message": "the updated component is not responding"
+  },
+  "upd_err_running": {
+    "message": "update already running"
+  },
+  "upd_err_no_folder": {
+    "message": "no updatable extension folder: replace it by hand with the release zip"
+  },
+  "upd_section": {
+    "message": "Updates"
+  },
+  "upd_check_now": {
+    "message": "Check now"
+  },
+  "upd_checking": {
+    "message": "Checking…"
+  },
+  "upd_none": {
+    "message": "Everything up to date: extension $1, local component $2."
+  },
+  "upd_check_failed": {
+    "message": "Check failed: $1"
+  },
+  "upd_last_check": {
+    "message": "Last check: $1. It checks by itself once a day."
+  },
+  "upd_unknown": {
+    "message": "not installed"
   }
 }

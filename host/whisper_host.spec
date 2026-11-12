@@ -14,7 +14,7 @@ a = Analysis(
     pathex=[],
     binaries=binaries,
     datas=datas,
-    hiddenimports=["huggingface_hub", "tokenizers"],
+    hiddenimports=["huggingface_hub", "tokenizers", "updater"],
     excludes=["tkinter", "matplotlib", "IPython", "pytest", "torch"],
     noarchive=False,
 )

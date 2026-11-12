@@ -44,6 +44,7 @@
 <main>
   <h1 data-i18n="extName"></h1>
   <p class="muted" data-i18n="opt_tagline"></p>
+  <div id="updateBox" hidden></div>
 
   <section class="step" id="step1" data-state="active">
     <div class="num">1</div>
@@ -113,6 +114,10 @@
       <div class="row"><button id="saveHost" disabled data-i18n="opt_apply"></button> <span id="hostSaved" class="muted"></span></div>
       <div id="hostDetails"></div>
 
+      <h3 data-i18n="upd_section"></h3>
+      <div class="row"><button id="checkUpdates" data-i18n="upd_check_now"></button> <span id="updStatus" class="muted"></span></div>
+      <p class="muted" id="updLast"></p>
+
       <h3 data-i18n="opt_saved_transcripts"></h3>
       <div class="row"><span id="cacheInfo" class="muted"></span> <button id="clearCache" data-i18n="opt_clear_cache"></button></div>
       <p class="muted" data-i18n="opt_cache_note"></p>
@@ -121,5 +126,6 @@
 </main>
 <script src="i18n.js"></script>
 <script src="options.js"></script>
+<script src="update-ui.js"></script>
 </body>
 </html>

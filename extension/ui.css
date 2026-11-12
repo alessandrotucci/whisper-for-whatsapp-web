@@ -103,3 +103,12 @@ a.button {
   font-weight: 600;
 }
 a.button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+
+.upd { border: 1px solid var(--accent); border-radius: 8px; padding: 10px 12px; margin: 10px 0; background: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
+.upd-title { font-weight: 600; color: var(--accent); }
+.upd-text { margin: 4px 0 6px; font-size: 13px; color: var(--muted); }
+.upd-row { font-size: 13px; margin: 2px 0; }
+.upd-status { margin: 8px 0 0; font-size: 13px; }
+.upd-actions { display: flex; gap: 12px; align-items: center; margin-top: 10px; font-size: 13px; }
+.upd-actions a { color: var(--muted); }
+.upd-actions button.link { margin-left: auto; border: none; background: none; padding: 0; color: var(--muted); font-size: 13px; }

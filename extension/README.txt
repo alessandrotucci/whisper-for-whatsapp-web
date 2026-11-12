@@ -48,9 +48,10 @@ BUONO A SAPERSI
 
 - All'avvio il browser può proporre di disattivare le estensioni in
   modalità sviluppatore: lasciala attiva.
-- Aggiornare: scarica il nuovo zip, sostituisci il contenuto della
-  cartella e premi "Ricarica" sull'estensione. Se la nuova versione
-  contiene un installer diverso, la pagina dell'estensione lo propone.
+- Aggiornare: l'estensione controlla da sola una volta al giorno se è
+  uscita una versione nuova. Se sì, l'icona mostra una freccia e il
+  popup un avviso: premi "Aggiorna" e fa tutto da sola (componente
+  locale ed estensione).
 - Disinstallare: rimuovi l'estensione dal browser e "Whisper for
   WhatsApp Web" da Impostazioni > App. Il modello scaricato resta in
   %USERPROFILE%\.cache\huggingface\hub e si può cancellare a mano.
@@ -106,9 +107,10 @@ GOOD TO KNOW
 
 - At startup the browser may offer to disable developer-mode
   extensions: keep it enabled.
-- Updating: download the new zip, replace the folder contents and click
-  "Reload" on the extension. If the new version ships a different
-  installer, the extension page offers it.
+- Updating: the extension checks once a day for a new version. When
+  there is one, the icon shows an arrow and the popup a notice: press
+  "Update" and it does everything by itself (local component and
+  extension).
 - Uninstalling: remove the extension from the browser and "Whisper for
   WhatsApp Web" from Settings > Apps. The downloaded model stays in
   %USERPROFILE%\.cache\huggingface\hub and can be deleted by hand.

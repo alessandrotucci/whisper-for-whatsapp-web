@@ -14,6 +14,10 @@ Richieste (il campo "rid", se presente, torna nella risposta):
   {"type": "transcribe", "id": "...", "audio": "<base64>", "language": "pt"|null,
    "initial_prompt": "...", "beam_size": 5, "vad_filter": true}
   {"type": "cancel", "id": "..."}
+  {"type": "update_host", "url": "..."}              -> update_progress..., update_host_started
+  {"type": "update_extension", "url": "...", "ext_id": "...", "expect": "1.3.0"}
+                                                     -> update_progress..., update_extension_done
+  {"type": "extension_dirs", "ext_id": "..."}        -> extension_dirs
 
 Eventi di una trascrizione (campo "id"):
   status (waiting_lock | loading_model | transcribing), partial, result, error
@@ -43,7 +47,7 @@ import threading
 import time
 import traceback
 
-HOST_VERSION = "1.2.1"
+HOST_VERSION = "1.3.0"
 FROZEN = getattr(sys, "frozen", False)
 
 
@@ -451,7 +455,12 @@ class Host:
             self.cancelled.add(msg.get("id"))
         elif kind == "pick_folder":
             threading.Thread(target=self.do_pick_folder, args=(msg,), daemon=True).start()
-        elif kind in ("transcribe", "set_config", "download_model"):
+        elif kind == "extension_dirs":
+            import updater
+
+            dirs = [{"browser": b, "profile": p, "path": d, "release": m} for b, p, d, m in updater.extension_dirs(msg.get("ext_id"))]
+            self.reply(msg, {"type": "extension_dirs", "dirs": dirs})
+        elif kind in ("transcribe", "set_config", "download_model", "update_host", "update_extension"):
             self.jobs.put(msg)
         else:
             self.reply(msg, {"type": "error", "id": msg.get("id"), "message": "tipo sconosciuto: %s" % kind})
@@ -475,6 +484,10 @@ class Host:
                     self.apply_config(msg)
                 elif kind == "download_model":
                     self.do_download(msg)
+                elif kind == "update_host":
+                    self.do_update_host(msg)
+                elif kind == "update_extension":
+                    self.do_update_extension(msg)
                 else:
                     self.do_transcribe(msg, lock)
             except Exception as e:  # noqa: BLE001
@@ -514,6 +527,29 @@ class Host:
             self.send({"type": "error", "id": job_id, "message": "%s: %s" % (type(e).__name__, e)})
         finally:
             self.cancelled.discard(job_id)
+
+    def update_progress(self, msg, stage):
+        def progress(done, total):
+            self.reply(msg, {"type": "update_progress", "stage": stage, "downloaded": done, "total": total})
+
+        return progress
+
+    def do_update_host(self, msg):
+        import updater
+
+        self.log("aggiornamento del componente da %s" % msg.get("url"))
+        pid = updater.start_installer(msg.get("url"), self.update_progress(msg, "host"))
+        self.log("installer avviato, pid %s" % pid)
+        self.reply(msg, {"type": "update_host_started", "pid": pid})
+
+    def do_update_extension(self, msg):
+        import updater
+
+        self.log("aggiornamento dell'estensione da %s" % msg.get("url"))
+        done, skipped = updater.update_extension(
+            msg.get("url"), msg.get("ext_id"), msg.get("expect"), self.update_progress(msg, "extension"))
+        self.log("estensione aggiornata in %s; saltate senza marcatore: %s" % (done, skipped))
+        self.reply(msg, {"type": "update_extension_done", "updated": done, "skipped": skipped})
 
     def do_download(self, msg):
         name = msg.get("name")

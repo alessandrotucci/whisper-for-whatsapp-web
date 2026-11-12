@@ -397,5 +397,104 @@
   },
   "opt_clear_confirm": {
     "message": "Cancellare tutte le trascrizioni salvate? Non si possono recuperare."
+  },
+  "upd_title_ext": {
+    "message": "Nuova versione dell'estensione"
+  },
+  "upd_title_host": {
+    "message": "Nuova versione del componente locale"
+  },
+  "upd_title_both": {
+    "message": "È disponibile la versione $1"
+  },
+  "upd_text_ext": {
+    "message": "Si aggiorna solo l'estensione, poi si ricarica da sola."
+  },
+  "upd_text_host": {
+    "message": "Si installa senza finestre. Se c'è una trascrizione in corso, si aspetta che finisca."
+  },
+  "upd_text_both": {
+    "message": "Prima il componente locale, poi l'estensione, che alla fine si ricarica."
+  },
+  "upd_text_manual": {
+    "message": "Il componente installato non sa ancora aggiornarsi da solo: «Aggiorna» scarica l'installer, da aprire come la prima volta. Poi premi di nuovo «Aggiorna»."
+  },
+  "upd_row_ext": {
+    "message": "Estensione"
+  },
+  "upd_row_host": {
+    "message": "Componente locale"
+  },
+  "upd_up_to_date_f": {
+    "message": "$1 · già aggiornata"
+  },
+  "upd_up_to_date_m": {
+    "message": "$1 · già aggiornato"
+  },
+  "upd_button": {
+    "message": "Aggiorna"
+  },
+  "upd_notes": {
+    "message": "Novità"
+  },
+  "upd_later": {
+    "message": "Più tardi"
+  },
+  "upd_p_starting": {
+    "message": "Avvio l'aggiornamento…"
+  },
+  "upd_p_waiting_queue": {
+    "message": "Aspetto che finisca la trascrizione in corso…"
+  },
+  "upd_p_host_download": {
+    "message": "Scarico il componente locale… $1"
+  },
+  "upd_p_host_install": {
+    "message": "Installo il componente locale…"
+  },
+  "upd_p_ext_download": {
+    "message": "Scarico l'estensione… $1"
+  },
+  "upd_p_ext_reload": {
+    "message": "Ricarico l'estensione…"
+  },
+  "upd_p_done": {
+    "message": "Aggiornamento completato."
+  },
+  "upd_p_manual_host": {
+    "message": "Apri il file scaricato e completa l'installazione, poi premi di nuovo «Aggiorna»."
+  },
+  "upd_p_error": {
+    "message": "Aggiornamento non riuscito: $1"
+  },
+  "upd_err_host_timeout": {
+    "message": "il componente aggiornato non risponde"
+  },
+  "upd_err_running": {
+    "message": "aggiornamento già in corso"
+  },
+  "upd_err_no_folder": {
+    "message": "nessuna cartella dell'estensione aggiornabile: sostituiscila a mano con lo zip della release"
+  },
+  "upd_section": {
+    "message": "Aggiornamenti"
+  },
+  "upd_check_now": {
+    "message": "Controlla ora"
+  },
+  "upd_checking": {
+    "message": "Controllo…"
+  },
+  "upd_none": {
+    "message": "Tutto aggiornato: estensione $1, componente locale $2."
+  },
+  "upd_check_failed": {
+    "message": "Controllo non riuscito: $1"
+  },
+  "upd_last_check": {
+    "message": "Ultimo controllo: $1. Si controlla da solo una volta al giorno."
+  },
+  "upd_unknown": {
+    "message": "non installato"
   }
 }

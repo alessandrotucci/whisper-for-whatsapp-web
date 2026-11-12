@@ -25,6 +25,8 @@ let settings = { ...DEFAULT_SETTINGS };
 let queue = []; // [{key, tabId, manual, chat, addedAt}]
 let current = null; // {key, tabId, chat, state, partial, progress, startedAt}
 let restored = null;
+let updating = false; // aggiornamento in corso: la coda non avvia lavori nuovi
+let updateAvailable = false;
 let lastHostError = null;
 
 // ---------- impostazioni e stato persistente ----------
@@ -210,12 +212,18 @@ function stateOf(key) {
   return null;
 }
 
+// Il badge mostra i vocali in coda; senza coda, una freccia se c'è un aggiornamento.
+function refreshBadge() {
+  const n = queue.length + (current ? 1 : 0);
+  chrome.action.setBadgeText({ text: n ? String(n) : updateAvailable ? '↑' : '' });
+  chrome.action.setBadgeBackgroundColor({ color: n ? '#128c7e' : '#d97706' });
+}
+
 function broadcastQueue() {
   const updates = queue.map((j, i) => ({ key: j.key, state: 'queued', position: i + 1 }));
   if (current) updates.push({ key: current.key, state: current.state, partial: current.partial, progress: current.progress });
   broadcast({ cmd: 'update', updates });
-  chrome.action.setBadgeText({ text: queue.length + (current ? 1 : 0) ? String(queue.length + (current ? 1 : 0)) : '' });
-  chrome.action.setBadgeBackgroundColor({ color: '#128c7e' });
+  refreshBadge();
 }
 
 async function fetchAudio(job) {
@@ -237,7 +245,9 @@ async function fetchAudio(job) {
 // ---------- coda ----------
 
 async function enqueue(key, { tabId, manual, chat, force }) {
-  await restore();
+  await importScripts('update.js');
+
+restore();
   if (!force) {
     const cached = (await getCached([key]))[key];
     if (cached) return { state: 'done', ...cached };
@@ -283,7 +293,7 @@ async function cancel(key) {
 
 let pumping = false;
 async function pump() {
-  if (pumping || current || !queue.length) return;
+  if (pumping || current || !queue.length || updating) return;
   pumping = true;
   clearTimeout(idleTimer);
   const job = queue.shift();
@@ -340,7 +350,9 @@ function isHostSetupError(message) {
 
 const handlers = {
   async get({ keys }) {
-    await restore();
+    await importScripts('update.js');
+
+restore();
     const cached = await getCached(keys);
     const out = {};
     for (const k of keys) out[k] = cached[k] ? { state: 'done', ...cached[k] } : stateOf(k);
@@ -350,7 +362,9 @@ const handlers = {
     return enqueue(key, { tabId: sender.tab && sender.tab.id, manual, force, chat });
   },
   async autoEnqueue({ key, fromMe, chat, visible }, sender) {
-    await restore();
+    await importScripts('update.js');
+
+restore();
     const wanted = visible ? settings.autoVisible : fromMe ? settings.autoOutgoing : settings.autoIncoming;
     if (!wanted) return null;
     if (visible && fromMe && !settings.autoOutgoing) return null;
@@ -360,11 +374,15 @@ const handlers = {
     return enqueue(key, { tabId, manual: false, chat });
   },
   async cancel({ key }) {
-    await restore();
+    await importScripts('update.js');
+
+restore();
     return cancel(key);
   },
   async status() {
-    await restore();
+    await importScripts('update.js');
+
+restore();
     return {
       queue: queue.map((j) => ({ key: j.key, chat: j.chat, manual: j.manual })),
       current: current && { key: current.key, chat: current.chat, state: current.state, progress: current.progress, startedAt: current.startedAt },
@@ -377,6 +395,7 @@ const handlers = {
     try {
       const pong = await hostRequest({ type: 'ping' }, ['pong']);
       scheduleIdleDisconnect();
+      await chrome.storage.local.set({ hostVersion: pong.host_version });
       return { ok: true, pong, downloading };
     } catch (e) {
       return { ok: false, error: e.message, extensionId: chrome.runtime.id };
@@ -458,8 +477,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   return true;
 });
 
-chrome.runtime.onInstalled.addListener((details) => {
+chrome.runtime.onInstalled.addListener(async (details) => {
   if (details.reason === 'install') chrome.runtime.openOptionsPage();
+  if (details.reason !== 'update') return;
+  // Dopo una ricarica lo script delle schede già aperte resta scollegato: lo si
+  // inietta di nuovo. page.js resta quello caricato con la pagina.
+  for (const t of await waTabs()) {
+    chrome.scripting.insertCSS({ target: { tabId: t.id }, files: ['content.css'] }).catch(() => {});
+    chrome.scripting.executeScript({ target: { tabId: t.id }, files: ['content.js'] }).catch(() => {});
+  }
 });
+
+importScripts('update.js');
 
 restore();

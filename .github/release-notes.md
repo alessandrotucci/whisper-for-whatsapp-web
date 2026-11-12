@@ -17,8 +17,9 @@ potente conviene large-v3-turbo.
 5. Apri o ricarica WhatsApp Web: sotto ogni vocale c'è **Trascrivi**, e i vocali in arrivo si
    trascrivono da soli.
 
-Aggiornare: scarica il nuovo zip, sostituisci il contenuto della cartella e premi **Ricarica**
-sull'estensione; se la release contiene un installer nuovo, rilancialo.
+Aggiornare: dalla 1.3.0 l'estensione controlla da sola una volta al giorno e propone **Aggiorna**,
+che aggiorna componente locale ed estensione. Da una versione precedente alla 1.3.0 si passa a mano
+un'ultima volta: nuovo zip nella cartella, **Ricarica** sull'estensione, poi l'installer.
 Disinstallare: rimuovi l'estensione dal browser e il componente da *Impostazioni → App*.
 
 Con la modalità sviluppatore attiva, il browser all'avvio può proporre di disattivare le estensioni

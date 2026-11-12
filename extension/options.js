@@ -331,6 +331,32 @@ $('clearCache').addEventListener('click', async () => {
   cacheInfo();
 });
 
+// ---------- aggiornamenti ----------
+
+function showLastCheck(info) {
+  $('updLast').textContent = info && info.checkedAt ? t('upd_last_check', new Date(info.checkedAt).toLocaleString()) : '';
+}
+
+$('checkUpdates').addEventListener('click', async () => {
+  $('updStatus').className = 'muted';
+  $('updStatus').textContent = t('upd_checking');
+  const r = await send({ cmd: 'checkUpdates' });
+  const info = r && r.info;
+  if (!r || !r.ok) {
+    $('updStatus').className = 'err';
+    $('updStatus').textContent = t('upd_check_failed', r ? r.error : '?');
+  } else if (info.available) {
+    $('updStatus').textContent = '';
+    if (window.wwtUpdateUi) window.wwtUpdateUi.show({ ...info, dismissed: false });
+  } else {
+    $('updStatus').className = 'ok';
+    $('updStatus').textContent = t('upd_none', info.current.extension, info.current.host || t('upd_unknown'));
+  }
+  showLastCheck(info);
+});
+
+send({ cmd: 'updateInfo' }).then(showLastCheck);
+
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden && !hostOk) checkHost();
 });

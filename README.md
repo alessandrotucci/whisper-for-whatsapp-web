@@ -48,6 +48,16 @@ registrato dall'installer in `HKCU\Software\Google\Chrome\NativeMessagingHosts` 
 `%LOCALAPPDATA%\WhisperForWhatsAppWeb`; i modelli nella cache di Hugging Face
 (`%USERPROFILE%\.cache\huggingface\hub`), che la disinstallazione non tocca.
 
+Aggiornamenti: una volta al giorno l'estensione legge dall'API di GitHub l'ultima release e il suo
+`version.json` (versione dell'estensione e del componente) e li confronta con il manifest e con la
+versione dichiarata dal componente. «Aggiorna» fa prima il componente (il componente scarica
+l'installer della release e lo avvia in modalità silenziosa) e poi l'estensione (il componente
+estrae lo zip nelle cartelle da cui Chrome ed Edge la caricano, solo se contengono il `release.json`
+degli zip di release, e l'estensione si ricarica). Il componente scarica solo dagli asset delle
+release di questo repository. `tools/release_check.py`, in CI, blocca una release se tag, manifest,
+`version.json` e `HOST_VERSION` non coincidono, o se `host/` o `installer/` sono cambiati senza
+alzare la versione del componente.
+
 Le trascrizioni restano in `chrome.storage.local`, legate all'id del messaggio. Il componente
 locale resta attivo, col modello in memoria, per alcuni minuti dopo l'ultima trascrizione.
 
