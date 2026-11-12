@@ -28,26 +28,28 @@ function setStep(id, state) {
 
 function fmtBytes(n) {
   if (n == null) return '?';
-  return n >= 1e9 ? (n / 1e9).toFixed(2) + ' GB' : Math.round(n / 1e6) + ' MB';
+  return n >= 1e9
+    ? (n / 1e9).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' GB'
+    : Math.round(n / 1e6).toLocaleString() + ' MB';
 }
 
 function kvTable(rows) {
-  const t = document.createElement('table');
-  t.className = 'kv';
+  const table = document.createElement('table');
+  table.className = 'kv';
   for (const [k, v] of rows) {
-    const tr = t.insertRow();
+    const tr = table.insertRow();
     tr.insertCell().textContent = k;
     tr.insertCell().textContent = v == null ? '' : String(v);
   }
-  return t;
+  return table;
 }
 
 // ---------- passo 1: componente locale ----------
 
 function explain(error) {
   if (/not found/i.test(error)) return '';
-  if (/forbidden/i.test(error)) return "Il componente locale è installato ma non riconosce questa estensione (ID " + chrome.runtime.id + "). Reinstallalo dall'ultima versione.";
-  if (/exited|communicating/i.test(error)) return 'Il componente locale si è chiuso subito: reinstallalo. Il registro degli errori è in %LOCALAPPDATA%\\WhisperForWhatsAppWeb\\whisper_host.log.';
+  if (/forbidden/i.test(error)) return t('opt_err_forbidden', chrome.runtime.id);
+  if (/exited|communicating/i.test(error)) return t('opt_err_exited');
   return error;
 }
 
@@ -58,7 +60,7 @@ async function checkHost() {
     stopPolling();
     const p = r.pong;
     $('hostStatus').className = 'ok';
-    $('hostStatus').textContent = 'Installato (versione ' + p.host_version + ').';
+    $('hostStatus').textContent = t('opt_host_installed', p.host_version);
     $('hostMissing').hidden = true;
     setStep('step1', 'done');
     fillAdvanced(p);
@@ -80,18 +82,18 @@ async function checkHost() {
 function showSearching() {
   const el = $('hostStatus');
   el.className = 'searching';
-  const time = new Date().toLocaleTimeString('it-IT');
+  const time = new Date().toLocaleTimeString();
   if (!el.querySelector('.wwt-search-spinner')) {
     const spinner = document.createElement('span');
     spinner.className = 'wwt-search-spinner';
     const text = document.createElement('span');
     text.className = 'searching-text';
-    text.textContent = 'Cerco il componente locale sul computer…';
+    text.textContent = t('opt_searching');
     const last = document.createElement('span');
     last.className = 'muted searching-time';
     el.replaceChildren(spinner, text, last);
   }
-  el.querySelector('.searching-time').textContent = 'ultimo controllo alle ' + time + ', riprovo ogni 3 secondi';
+  el.querySelector('.searching-time').textContent = t('opt_last_check', time);
 }
 
 function startPolling() {
@@ -110,11 +112,19 @@ $('installerLink').href = INSTALLER_URL;
 
 // ---------- passo 2: modello ----------
 
+// Nota sotto il nome del modello: dal catalogo per i modelli proposti, "cartella" per un percorso.
+const MODEL_NOTES = { 'large-v3': 'note_large_v3', 'large-v3-turbo': 'note_large_v3_turbo', small: 'note_small' };
+function modelNote(m) {
+  if (MODEL_NOTES[m.name]) return t(MODEL_NOTES[m.name]);
+  if (!m.size_gb) return t('note_folder');
+  return '';
+}
+
 async function loadModels() {
   const r = await send({ cmd: 'models' });
   if (!r || !r.ok) {
     $('modelMsg').className = 'err';
-    $('modelMsg').textContent = 'Errore: ' + (r ? r.error : '?');
+    $('modelMsg').textContent = t('opt_error', r ? r.error : '?');
     return;
   }
   if (r.downloading) downloading = r.downloading;
@@ -135,13 +145,14 @@ function renderModels(models) {
       info.className = 'grow';
       const name = document.createElement('div');
       name.className = 'name';
-      name.textContent = m.name + (m.current ? ' · in uso' : '');
+      name.textContent = m.current ? t('opt_model_in_use', m.name) : m.name;
       const sub = document.createElement('div');
       sub.className = 'muted';
       const parts = [];
-      if (m.note) parts.push(m.note);
-      if (m.size_gb) parts.push('≈' + String(m.size_gb).replace('.', ',') + ' GB');
-      parts.push(m.path ? 'sul disco' : 'da scaricare');
+      const note = modelNote(m);
+      if (note) parts.push(note);
+      if (m.size_gb) parts.push(t('opt_size', m.size_gb.toLocaleString()));
+      parts.push(t(m.path ? 'opt_on_disk' : 'opt_to_download'));
       sub.textContent = parts.join(' · ');
       info.append(name, sub);
       if (downloading === m.name) {
@@ -152,13 +163,13 @@ function renderModels(models) {
       row.append(info);
       if (m.path && !m.current) {
         const b = document.createElement('button');
-        b.textContent = 'Usa questo';
+        b.textContent = t('opt_use_this');
         b.addEventListener('click', () => useModel(m.name));
         row.append(b);
       } else if (!m.path && m.size_gb) {
         const b = document.createElement('button');
         b.className = 'primary';
-        b.textContent = downloading === m.name ? 'Download…' : 'Scarica';
+        b.textContent = t(downloading === m.name ? 'opt_downloading' : 'opt_download');
         b.disabled = !!downloading;
         b.addEventListener('click', () => download(m.name));
         row.append(b);
@@ -174,7 +185,7 @@ async function useModel(name) {
   const r = await send({ cmd: 'setHostConfig', config: { model: name } });
   if (!r || !r.ok) {
     $('modelMsg').className = 'err';
-    $('modelMsg').textContent = 'Errore: ' + (r ? r.error : '?');
+    $('modelMsg').textContent = t('opt_error', r ? r.error : '?');
   }
   await loadModels();
 }
@@ -183,12 +194,12 @@ async function download(name) {
   const r = await send({ cmd: 'downloadModel', name });
   if (!r || !r.ok) {
     $('modelMsg').className = 'err';
-    $('modelMsg').textContent = 'Errore: ' + (r ? r.error : '?');
+    $('modelMsg').textContent = t('opt_error', r ? r.error : '?');
     return;
   }
   downloading = name;
   $('modelMsg').className = 'muted';
-  $('modelMsg').textContent = 'Download di ' + name + ' avviato: puoi lasciare aperta questa pagina o chiuderla.';
+  $('modelMsg').textContent = t('opt_download_started', name);
   loadModels();
 }
 
@@ -203,27 +214,28 @@ chrome.runtime.onMessage.addListener((msg) => {
       bar.value = ev.downloaded;
     }
     $('modelMsg').className = 'muted';
-    $('modelMsg').textContent = 'Download di ' + ev.name + ': ' + fmtBytes(ev.downloaded) + (ev.total ? ' di ' + fmtBytes(ev.total) : '');
+    const amount = ev.total ? t('opt_of', fmtBytes(ev.downloaded), fmtBytes(ev.total)) : fmtBytes(ev.downloaded);
+    $('modelMsg').textContent = t('opt_download_progress', ev.name, amount);
   } else if (ev.type === 'download_done') {
     downloading = null;
     $('modelMsg').className = 'ok';
-    $('modelMsg').textContent = 'Modello ' + ev.name + ' scaricato e in uso.';
+    $('modelMsg').textContent = t('opt_download_done', ev.name);
     renderModels(ev.models);
   } else if (ev.type === 'download_error') {
     downloading = null;
     $('modelMsg').className = 'err';
-    $('modelMsg').textContent = 'Download non riuscito: ' + ev.message;
+    $('modelMsg').textContent = t('opt_download_failed', ev.message);
     loadModels();
   }
 });
 
 $('pickFolder').addEventListener('click', async () => {
   $('modelMsg').className = 'muted';
-  $('modelMsg').textContent = 'Scegli la cartella nella finestra di Windows (potrebbe aprirsi dietro al browser)…';
+  $('modelMsg').textContent = t('opt_pick_hint');
   const r = await send({ cmd: 'pickFolder' });
   if (!r || !r.ok) {
     $('modelMsg').className = 'err';
-    $('modelMsg').textContent = 'Errore: ' + (r ? r.error : '?');
+    $('modelMsg').textContent = t('opt_error', r ? r.error : '?');
     return;
   }
   if (!r.path) {
@@ -232,12 +244,12 @@ $('pickFolder').addEventListener('click', async () => {
   }
   if (!r.valid) {
     $('modelMsg').className = 'err';
-    $('modelMsg').textContent = 'In ' + r.path + ' non c\'è un modello faster-whisper (servono model.bin e config.json).';
+    $('modelMsg').textContent = t('opt_pick_invalid', r.path);
     return;
   }
   await useModel(r.path);
   $('modelMsg').className = 'ok';
-  $('modelMsg').textContent = 'In uso il modello in ' + r.path + '.';
+  $('modelMsg').textContent = t('opt_pick_ok', r.path);
 });
 
 // ---------- impostazioni ----------
@@ -263,7 +275,7 @@ function saveSettings() {
       idleMinutes: Math.min(240, Math.max(1, Number($('idleMinutes').value) || 10)),
     };
     await chrome.storage.local.set({ settings: s });
-    $('saved').textContent = 'Impostazioni salvate.';
+    $('saved').textContent = t('opt_saved');
     setTimeout(() => ($('saved').textContent = ''), 1500);
   }, 300);
 }
@@ -280,19 +292,19 @@ function fillAdvanced(p) {
   $('hThreads').value = cfg.cpu_threads || 0;
   $('saveHost').disabled = false;
   $('hostDetails').replaceChildren(kvTable([
-    ['Componente locale', p.host_version + (p.frozen ? '' : ' (da sorgente)')],
-    ['Eseguibile', p.executable],
+    [t('opt_d_component'), p.frozen ? p.host_version : t('opt_d_from_source', p.host_version)],
+    [t('opt_d_exe'), p.executable],
     ['faster-whisper', p.faster_whisper || p.faster_whisper_error],
-    ['ctranslate2', (p.ctranslate2 || '?') + (p.cuda_devices ? ' · GPU CUDA: ' + p.cuda_devices : ' · nessuna GPU CUDA')],
-    ['Modello', cfg.model],
-    ['Cartella del modello', p.model_path || 'non trovata'],
-    ['Dati e registro', p.data_dir],
+    ['ctranslate2', (p.ctranslate2 || '?') + ' · ' + (p.cuda_devices ? t('opt_d_cuda', p.cuda_devices) : t('opt_d_nocuda'))],
+    [t('opt_d_model'), cfg.model],
+    [t('opt_d_model_dir'), p.model_path || t('opt_d_not_found')],
+    [t('opt_d_data'), p.data_dir],
   ]));
 }
 
 $('saveHost').addEventListener('click', async () => {
   $('hostSaved').className = 'muted';
-  $('hostSaved').textContent = 'Applico…';
+  $('hostSaved').textContent = t('opt_applying');
   const r = await send({
     cmd: 'setHostConfig',
     config: {
@@ -302,7 +314,7 @@ $('saveHost').addEventListener('click', async () => {
     },
   });
   $('hostSaved').className = r && r.ok ? 'ok' : 'err';
-  $('hostSaved').textContent = r && r.ok ? 'Applicato: vale dalla prossima trascrizione.' : 'Errore: ' + (r ? r.error : '?');
+  $('hostSaved').textContent = r && r.ok ? t('opt_applied') : t('opt_error', r ? r.error : '?');
   if (r && r.ok) fillAdvanced(r.pong);
 });
 
@@ -310,11 +322,11 @@ $('saveHost').addEventListener('click', async () => {
 
 async function cacheInfo() {
   const s = await send({ cmd: 'cacheStats' });
-  $('cacheInfo').textContent = s ? s.count + ' trascrizioni salvate (' + Math.round(s.bytes / 1024) + ' KB)' : '';
+  $('cacheInfo').textContent = s ? t('opt_cache_info', s.count, Math.round(s.bytes / 1024).toLocaleString()) : '';
 }
 
 $('clearCache').addEventListener('click', async () => {
-  if (!confirm('Cancellare tutte le trascrizioni salvate? Non si possono recuperare.')) return;
+  if (!confirm(t('opt_clear_confirm'))) return;
   await send({ cmd: 'clearCache' });
   cacheInfo();
 });

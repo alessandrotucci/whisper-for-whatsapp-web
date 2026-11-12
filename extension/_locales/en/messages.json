@@ -1,0 +1,401 @@
+{
+  "extName": {
+    "message": "Whisper for WhatsApp Web"
+  },
+  "extDescription": {
+    "message": "Transcribes WhatsApp Web voice messages with a Whisper model running on your own computer."
+  },
+  "lang": {
+    "message": "en"
+  },
+  "box_transcribe": {
+    "message": "Transcribe"
+  },
+  "box_transcribe_title": {
+    "message": "Transcribe this voice message with local Whisper"
+  },
+  "box_transcription": {
+    "message": "Transcription"
+  },
+  "box_copy": {
+    "message": "Copy"
+  },
+  "box_copy_title": {
+    "message": "Copy the text"
+  },
+  "box_copied": {
+    "message": "Copied"
+  },
+  "box_retranscribe_title": {
+    "message": "Transcribe again"
+  },
+  "box_no_speech": {
+    "message": "(no speech detected)"
+  },
+  "box_error": {
+    "message": "Error: $1"
+  },
+  "box_unknown_error": {
+    "message": "unknown"
+  },
+  "box_retry": {
+    "message": "Retry"
+  },
+  "box_configure": {
+    "message": "Set up"
+  },
+  "box_configure_title": {
+    "message": "Open the local component setup"
+  },
+  "box_cancel": {
+    "message": "Cancel"
+  },
+  "state_queued": {
+    "message": "Queued"
+  },
+  "state_queued_pos": {
+    "message": "Queued (#$1)"
+  },
+  "state_downloading": {
+    "message": "Downloading audio…"
+  },
+  "state_waiting": {
+    "message": "Sending to the local component…"
+  },
+  "state_waiting_lock": {
+    "message": "Waiting for another transcription to finish…"
+  },
+  "state_loading_model": {
+    "message": "Loading the model…"
+  },
+  "state_transcribing": {
+    "message": "Transcribing…"
+  },
+  "err_no_wa_tab": {
+    "message": "no WhatsApp Web tab open"
+  },
+  "err_empty_tab_reply": {
+    "message": "empty reply from the WhatsApp Web tab"
+  },
+  "err_host_no_reply": {
+    "message": "the local component is not responding"
+  },
+  "err_host_exited": {
+    "message": "the local component exited"
+  },
+  "err_host_not_installed": {
+    "message": "local component not installed"
+  },
+  "err_busy_transcribing": {
+    "message": "a transcription is running: try again when the queue is empty"
+  },
+  "err_download_running": {
+    "message": "download already running: $1"
+  },
+  "err_wa_not_ready": {
+    "message": "WhatsApp Web is not ready yet"
+  },
+  "err_wa_no_reply": {
+    "message": "WhatsApp Web did not respond"
+  },
+  "err_msg_not_loaded": {
+    "message": "message not loaded in WhatsApp Web: open the chat"
+  },
+  "err_not_voice": {
+    "message": "the message is not a voice message"
+  },
+  "err_audio_unavailable": {
+    "message": "audio not available ($1)"
+  },
+  "err_model_missing": {
+    "message": "model $1 is not on disk: download it from the extension page"
+  },
+  "popup_host_checking": {
+    "message": "Local component: checking…"
+  },
+  "popup_host_ready": {
+    "message": "Ready · $1 · $2"
+  },
+  "popup_host_unreachable": {
+    "message": "Local component unreachable: $1"
+  },
+  "popup_no_reply": {
+    "message": "no response"
+  },
+  "popup_current": {
+    "message": "In progress: $1 ($2)"
+  },
+  "popup_voice": {
+    "message": "voice message"
+  },
+  "popup_idle": {
+    "message": "No transcription in progress."
+  },
+  "popup_queue": {
+    "message": "Queued: $1"
+  },
+  "popup_item_requested": {
+    "message": "$1 (requested)"
+  },
+  "popup_auto": {
+    "message": "Automatically transcribe incoming voice messages"
+  },
+  "popup_chat": {
+    "message": "Transcribe voice messages in the open chat"
+  },
+  "popup_clear": {
+    "message": "Clear the queue"
+  },
+  "popup_options": {
+    "message": "Setup and guide"
+  },
+  "popup_open_wa": {
+    "message": "Open a chat in WhatsApp Web in this tab."
+  },
+  "popup_no_voices": {
+    "message": "No voice messages loaded in the open chat. Scroll up to load more."
+  },
+  "popup_queued_n": {
+    "message": "Voice messages queued: $1."
+  },
+  "popup_all_done": {
+    "message": "All loaded voice messages are already transcribed."
+  },
+  "st_downloading": {
+    "message": "downloading audio"
+  },
+  "st_waiting": {
+    "message": "sending to the local component"
+  },
+  "st_waiting_lock": {
+    "message": "waiting for another transcription"
+  },
+  "st_loading_model": {
+    "message": "loading the model"
+  },
+  "st_transcribing": {
+    "message": "transcribing"
+  },
+  "opt_tagline": {
+    "message": "Transcribes voice messages on your computer with Whisper: the audio never leaves your machine."
+  },
+  "opt_step1": {
+    "message": "Local component"
+  },
+  "opt_checking": {
+    "message": "Checking…"
+  },
+  "opt_searching": {
+    "message": "Looking for the local component on this computer…"
+  },
+  "opt_last_check": {
+    "message": "last check at $1, retrying every 3 seconds"
+  },
+  "opt_host_installed": {
+    "message": "Installed (version $1)."
+  },
+  "opt_host_explain": {
+    "message": "The browser can't run Whisper by itself: it needs a small program on your computer. Download it, open it and click <strong>Next</strong> until it finishes. No administrator rights needed."
+  },
+  "opt_download_installer": {
+    "message": "Download the Windows installer"
+  },
+  "opt_autodetect": {
+    "message": "This page detects the installation automatically."
+  },
+  "opt_smartscreen": {
+    "message": "If Windows shows “Windows protected your PC”, click <em>More info</em> and then <em>Run anyway</em>: the installer is not signed yet."
+  },
+  "opt_err_forbidden": {
+    "message": "The local component is installed but doesn't recognise this extension (ID $1). Reinstall it from the latest version."
+  },
+  "opt_err_exited": {
+    "message": "The local component closed right away: reinstall it. The error log is in %LOCALAPPDATA%\\WhisperForWhatsAppWeb\\whisper_host.log."
+  },
+  "opt_step2": {
+    "message": "Model"
+  },
+  "opt_models_intro": {
+    "message": "Models already downloaded with faster-whisper are found automatically. The bigger the model, the more accurate and the slower it is."
+  },
+  "opt_pick_folder": {
+    "message": "Use a model from another folder…"
+  },
+  "opt_model_in_use": {
+    "message": "$1 · in use"
+  },
+  "opt_on_disk": {
+    "message": "on disk"
+  },
+  "opt_to_download": {
+    "message": "not downloaded"
+  },
+  "opt_use_this": {
+    "message": "Use this"
+  },
+  "opt_download": {
+    "message": "Download"
+  },
+  "opt_downloading": {
+    "message": "Downloading…"
+  },
+  "opt_size": {
+    "message": "≈$1 GB"
+  },
+  "note_large_v3": {
+    "message": "most accurate"
+  },
+  "note_large_v3_turbo": {
+    "message": "much faster, similar accuracy"
+  },
+  "note_small": {
+    "message": "light, less accurate"
+  },
+  "note_folder": {
+    "message": "folder"
+  },
+  "opt_error": {
+    "message": "Error: $1"
+  },
+  "opt_download_started": {
+    "message": "Download of $1 started: you can keep this page open or close it."
+  },
+  "opt_download_progress": {
+    "message": "Downloading $1: $2"
+  },
+  "opt_of": {
+    "message": "$1 of $2"
+  },
+  "opt_download_done": {
+    "message": "Model $1 downloaded and in use."
+  },
+  "opt_download_failed": {
+    "message": "Download failed: $1"
+  },
+  "opt_pick_hint": {
+    "message": "Pick the folder in the Windows dialog (it may open behind the browser)…"
+  },
+  "opt_pick_invalid": {
+    "message": "$1 doesn't contain a faster-whisper model (model.bin and config.json are needed)."
+  },
+  "opt_pick_ok": {
+    "message": "Now using the model in $1."
+  },
+  "opt_step3": {
+    "message": "Ready"
+  },
+  "opt_ready": {
+    "message": "Open or reload <a href=\"https://web.whatsapp.com/\" target=\"_blank\" rel=\"noopener\">WhatsApp Web</a>: every voice message gets a <strong>Transcribe</strong> button, and incoming voice messages are transcribed automatically."
+  },
+  "opt_settings": {
+    "message": "Settings"
+  },
+  "opt_auto_incoming": {
+    "message": "Automatically transcribe <strong>incoming</strong> voice messages, in any chat"
+  },
+  "opt_auto_outgoing": {
+    "message": "…including the ones <strong>I send</strong>"
+  },
+  "opt_auto_visible": {
+    "message": "Also automatically transcribe <strong>older</strong> voice messages when they appear in the open chat"
+  },
+  "opt_language": {
+    "message": "Language"
+  },
+  "opt_language_ph": {
+    "message": "empty = automatic detection"
+  },
+  "opt_beam": {
+    "message": "Beam size"
+  },
+  "opt_prompt": {
+    "message": "Vocabulary / context"
+  },
+  "opt_prompt_ph": {
+    "message": "Names and terms Whisper should recognise, comma separated"
+  },
+  "opt_vad": {
+    "message": "Skip silence (VAD filter, recommended)"
+  },
+  "opt_idle": {
+    "message": "Free memory after minutes of inactivity"
+  },
+  "opt_memory_note": {
+    "message": "While the local component is running the model stays in memory (large-v3: about 2 GB of RAM) and the next voice messages start right away. Transcriptions always run one at a time, even across Chrome and Edge."
+  },
+  "opt_saved": {
+    "message": "Settings saved."
+  },
+  "opt_advanced": {
+    "message": "Advanced"
+  },
+  "opt_device": {
+    "message": "Device"
+  },
+  "opt_device_cpu": {
+    "message": "CPU"
+  },
+  "opt_device_cuda": {
+    "message": "NVIDIA GPU (CUDA)"
+  },
+  "opt_device_auto": {
+    "message": "automatic"
+  },
+  "opt_compute": {
+    "message": "Compute precision"
+  },
+  "opt_threads": {
+    "message": "CPU threads (0 = automatic)"
+  },
+  "opt_apply": {
+    "message": "Apply"
+  },
+  "opt_applying": {
+    "message": "Applying…"
+  },
+  "opt_applied": {
+    "message": "Applied: takes effect from the next transcription."
+  },
+  "opt_d_component": {
+    "message": "Local component"
+  },
+  "opt_d_from_source": {
+    "message": "$1 (from source)"
+  },
+  "opt_d_exe": {
+    "message": "Executable"
+  },
+  "opt_d_cuda": {
+    "message": "CUDA GPUs: $1"
+  },
+  "opt_d_nocuda": {
+    "message": "no CUDA GPU"
+  },
+  "opt_d_model": {
+    "message": "Model"
+  },
+  "opt_d_model_dir": {
+    "message": "Model folder"
+  },
+  "opt_d_not_found": {
+    "message": "not found"
+  },
+  "opt_d_data": {
+    "message": "Data and log"
+  },
+  "opt_saved_transcripts": {
+    "message": "Saved transcriptions"
+  },
+  "opt_cache_info": {
+    "message": "Saved transcriptions: $1 ($2 KB)"
+  },
+  "opt_clear_cache": {
+    "message": "Delete all"
+  },
+  "opt_cache_note": {
+    "message": "They stay in this browser only, tied to the message: reopening the chat shows them again without transcribing."
+  },
+  "opt_clear_confirm": {
+    "message": "Delete all saved transcriptions? They can't be recovered."
+  }
+}

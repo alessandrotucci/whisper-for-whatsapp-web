@@ -11,7 +11,8 @@ sotto ogni vocale. L'audio non lascia la macchina: nessun servizio cloud, nessun
 - Modelli Whisper a scelta (large-v3 predefinito), scaricati dalla pagina dell'estensione o già
   presenti nella cache di faster-whisper.
 
-Solo Windows, per ora. Progetto personale, non affiliato a WhatsApp o Meta.
+Interfaccia in italiano e in inglese, secondo la lingua del browser. Solo Windows, per ora.
+Progetto personale, non affiliato a WhatsApp o Meta.
 
 ## Installazione
 
@@ -68,8 +69,14 @@ in `extension/page.js` e in `placeBox` di `extension/content.js`.
 extension/   estensione MV3 (caricabile così com'è)
 host/        whisper_host.py, spec di PyInstaller, requisiti di build, install.ps1 per lo sviluppo
 installer/   script di Inno Setup
+tools/       generatori: icone e cataloghi delle traduzioni
 .github/     build e release su tag v*
 ```
+
+I testi dell'interfaccia stanno in `tools/locales.py`, una voce (italiano, inglese) per chiave;
+`python tools/locales.py` rigenera `extension/_locales/{it,en}/messages.json`. Le pagine li
+leggono con `t()` e gli attributi `data-i18n*` di `extension/i18n.js`; `page.js` e il componente
+locale segnalano gli errori con codici `E:<nome>`, tradotti in `content.js` con la voce `err_<nome>`.
 
 Build locale (Python 3.12, Inno Setup 6):
 

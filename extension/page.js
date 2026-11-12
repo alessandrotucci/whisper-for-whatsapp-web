@@ -151,21 +151,21 @@
         const mb = m.mediaData && m.mediaData.mediaBlob;
         const b = mb && (typeof mb.forceToBlob === 'function' ? mb.forceToBlob() : mb);
         if (b instanceof Blob) return b;
-        errors.push('downloadMedia: nessun blob');
+        errors.push('downloadMedia: no blob');
       } catch (e) {
         errors.push('downloadMedia: ' + (e && e.message ? e.message : e));
       }
     }
-    throw new Error(errors.join(' | ') || 'audio non disponibile');
+    throw new Error('E:audio_unavailable:' + (errors.join(' | ') || '-'));
   }
 
   async function handleRequest(req) {
-    if (!WA) throw new Error('WhatsApp Web non ancora pronto');
+    if (!WA) throw new Error('E:wa_not_ready');
     switch (req.op) {
       case 'fetchAudio': {
         const m = WA.Msg.get(req.key);
-        if (!m) throw new Error('messaggio non caricato in WhatsApp Web: apri la chat');
-        if (!isVoice(m)) throw new Error('il messaggio non è un vocale');
+        if (!m) throw new Error('E:msg_not_loaded');
+        if (!isVoice(m)) throw new Error('E:not_voice');
         const blob = await downloadAudio(m);
         return { b64: await blobToBase64(blob), mime: blob.type, size: blob.size, duration: m.duration || null };
       }
@@ -178,7 +178,7 @@
       case 'ready':
         return { ready: true };
       default:
-        throw new Error('operazione sconosciuta: ' + req.op);
+        throw new Error('unknown op: ' + req.op);
     }
   }
 

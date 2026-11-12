@@ -9,6 +9,8 @@ ITALIANO
 
 Trascrive i vocali di WhatsApp Web sul tuo computer, con Whisper.
 L'audio non lascia il PC: nessun servizio cloud, nessun account.
+Le pagine dell'estensione sono in italiano se il browser è in italiano,
+in inglese altrimenti.
 
 Requisiti: Windows 10 o 11 a 64 bit, Google Chrome o Microsoft Edge.
 Con il modello large-v3 servono circa 4 GB di RAM liberi; un vocale di
@@ -71,8 +73,8 @@ The large-v3 model needs about 4 GB of free RAM; a one-minute voice
 message takes a couple of minutes on a typical CPU. On a slower PC pick
 large-v3-turbo.
 
-The extension pages are in Italian for now; the steps below name the
-buttons as they appear.
+The extension shows its pages in English, or in Italian when the
+browser is set to Italian.
 
 INSTALLATION
 
@@ -86,19 +88,19 @@ INSTALLATION
    Turn on "Developer mode" (top right in Chrome, left menu in Edge),
    click "Load unpacked" and pick the folder from step 1.
 
-3. The extension page opens. Click "Scarica l'installer per Windows"
-   (download the Windows installer), run the downloaded file and click
-   Next until it finishes. No administrator rights needed.
+3. The extension page opens. Click "Download the Windows installer",
+   run the downloaded file and click Next until it finishes. No
+   administrator rights needed.
    If Windows shows "Windows protected your PC", click "More info" and
    then "Run anyway": the installer is not signed.
 
 4. Go back to the extension page: it detects the component you just
-   installed. Pick a model and click "Scarica" (download): large-v3 is
-   about 3 GB and is downloaded only once.
+   installed. Pick a model and click "Download": large-v3 is about
+   3 GB and is downloaded only once.
 
 5. Open or reload https://web.whatsapp.com : every voice message gets a
-   "Trascrivi" (transcribe) button, and incoming voice messages are
-   transcribed automatically, one at a time.
+   "Transcribe" button, and incoming voice messages are transcribed
+   automatically, one at a time.
 
 GOOD TO KNOW
 
@@ -111,7 +113,7 @@ GOOD TO KNOW
   WhatsApp Web" from Settings > Apps. The downloaded model stays in
   %USERPROFILE%\.cache\huggingface\hub and can be deleted by hand.
 - Settings (language, vocabulary, automatic transcription): extension
-  icon > "Configurazione e guida".
+  icon > "Setup and guide".
 
 Personal project, not affiliated with WhatsApp or Meta.
 https://github.com/alessandrotucci/whisper-for-whatsapp-web

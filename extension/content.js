@@ -13,6 +13,16 @@
   let settings = { autoVisible: false, autoOutgoing: false };
 
   const alive = () => !!(chrome.runtime && chrome.runtime.id);
+  const t = (key, ...subs) => (alive() && chrome.i18n.getMessage(key, subs.map(String))) || key;
+
+  // Gli errori di page.js e del componente locale arrivano come codici "E:<nome>[:dettaglio]",
+  // tradotti qui con la voce err_<nome> del catalogo; il resto si mostra com'è.
+  function errorText(raw) {
+    const m = /E:([a-z_]+)(?::(.*))?/.exec(raw || '');
+    if (!m) return raw || t('box_unknown_error');
+    const text = t('err_' + m[1], m[2] || '');
+    return text === 'err_' + m[1] ? raw : text;
+  }
 
   function send(message) {
     if (!alive()) return Promise.resolve(null);
@@ -36,7 +46,7 @@
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         waiting.delete(reqId);
-        reject(new Error('WhatsApp Web non ha risposto'));
+        reject(new Error(t('err_wa_no_reply')));
       }, timeoutMs);
       waiting.set(reqId, { resolve, reject, timer });
       window.postMessage({ __wwt: 'req', reqId, op, ...data }, location.origin);
@@ -118,12 +128,12 @@
   }
 
   const STATE_LABEL = {
-    queued: 'In coda',
-    downloading: "Scarico l'audio…",
-    waiting: "Invio all'host…",
-    waiting_lock: "In attesa che finisca un'altra trascrizione…",
-    loading_model: 'Carico il modello…',
-    transcribing: 'Trascrivo…',
+    queued: 'state_queued',
+    downloading: 'state_downloading',
+    waiting: 'state_waiting',
+    waiting_lock: 'state_waiting_lock',
+    loading_model: 'state_loading_model',
+    transcribing: 'state_transcribing',
   };
 
   function requestTranscription(key, force) {
@@ -150,45 +160,46 @@
     head.append(el('span', 'wwt-icon', '🎙'));
 
     if (!st.state || st.state === 'none') {
-      head.append(button('Trascrivi', 'Trascrivi questo vocale con Whisper locale', () => requestTranscription(key)));
+      head.append(button(t('box_transcribe'), t('box_transcribe_title'), () => requestTranscription(key)));
       box.append(head);
       return;
     }
 
     if (st.state === 'done') {
       const meta = [st.language, fmtDuration(st.duration)].filter(Boolean).join(' · ');
-      head.append(el('span', 'wwt-label', 'Trascrizione' + (meta ? ' · ' + meta : '')));
+      head.append(el('span', 'wwt-label', t('box_transcription') + (meta ? ' · ' + meta : '')));
       const actions = el('span', 'wwt-actions');
       actions.append(
-        button('Copia', 'Copia il testo', (ev) => {
+        button(t('box_copy'), t('box_copy_title'), (ev) => {
           navigator.clipboard.writeText(st.text || '').then(() => {
-            ev.target.textContent = 'Copiato';
-            setTimeout(() => (ev.target.textContent = 'Copia'), 1200);
+            ev.target.textContent = t('box_copied');
+            setTimeout(() => (ev.target.textContent = t('box_copy')), 1200);
           });
         }),
-        button('↻', 'Trascrivi di nuovo', () => requestTranscription(key, true)),
+        button('↻', t('box_retranscribe_title'), () => requestTranscription(key, true)),
       );
       head.append(actions);
-      box.append(head, el('div', 'wwt-text', st.text || '(nessun parlato riconosciuto)'));
+      box.append(head, el('div', 'wwt-text', st.text || t('box_no_speech')));
       return;
     }
 
     if (st.state === 'error') {
-      head.append(el('span', 'wwt-label wwt-error', 'Errore: ' + (st.error || 'sconosciuto')));
+      const message = st.hostMissing && /not found/i.test(st.error || '') ? t('err_host_not_installed') : errorText(st.error);
+      head.append(el('span', 'wwt-label wwt-error', t('box_error', message)));
       const actions = el('span', 'wwt-actions');
-      actions.append(button('Riprova', null, () => requestTranscription(key)));
-      if (st.hostMissing) actions.append(button('Configura', "Apri la configurazione dell'host", () => send({ cmd: 'openOptions' })));
+      actions.append(button(t('box_retry'), null, () => requestTranscription(key)));
+      if (st.hostMissing) actions.append(button(t('box_configure'), t('box_configure_title'), () => send({ cmd: 'openOptions' })));
       head.append(actions);
       box.append(head);
       return;
     }
 
-    let label = STATE_LABEL[st.state] || st.state;
-    if (st.state === 'queued' && st.position) label += ' (n. ' + st.position + ')';
+    let label = STATE_LABEL[st.state] ? t(STATE_LABEL[st.state]) : st.state;
+    if (st.state === 'queued' && st.position) label = t('state_queued_pos', st.position);
     if (st.state === 'transcribing' && st.progress != null) label += ' ' + Math.round(st.progress * 100) + '%';
     head.append(el('span', 'wwt-spinner'), el('span', 'wwt-label', label));
     const actions = el('span', 'wwt-actions');
-    actions.append(button('Annulla', null, () => send({ cmd: 'cancel', key })));
+    actions.append(button(t('box_cancel'), null, () => send({ cmd: 'cancel', key })));
     head.append(actions);
     box.append(head);
     if (st.partial) box.append(el('div', 'wwt-text wwt-partial', st.partial));

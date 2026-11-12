@@ -43,7 +43,7 @@ import threading
 import time
 import traceback
 
-HOST_VERSION = "1.1.0"
+HOST_VERSION = "1.2.0"
 FROZEN = getattr(sys, "frozen", False)
 
 
@@ -137,6 +137,10 @@ def dir_size(path):
             except OSError:
                 pass
     return total
+
+
+class ModelMissing(RuntimeError):
+    """Il modello configurato non è sul disco; il messaggio è il codice che l'estensione traduce."""
 
 
 class FileLock:
@@ -235,7 +239,7 @@ class Transcriber:
             return
         path = local_model_path(cfg["model"])
         if path is None:
-            raise RuntimeError("modello '%s' non presente sul disco: scaricalo dalla pagina delle opzioni" % cfg["model"])
+            raise ModelMissing("E:model_missing:%s" % cfg["model"])
         from faster_whisper import WhisperModel
 
         self.model = None

@@ -1,29 +1,31 @@
 <!doctype html>
-<html lang="it">
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Whisper locale</title>
+  <title>Whisper for WhatsApp Web</title>
   <link rel="stylesheet" href="ui.css">
   <style>
     body { width: 330px; padding: 12px 14px; }
+    h1 { font-size: 17px; }
     .line { margin: 6px 0; }
     .btns { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
     #queue { max-height: 140px; overflow-y: auto; font-size: 12.5px; margin: 4px 0 0; padding-left: 18px; }
   </style>
 </head>
 <body>
-  <h1>Whisper locale</h1>
-  <div class="line" id="host">Host: verifica…</div>
+  <h1 data-i18n="extName"></h1>
+  <div class="line" id="host" data-i18n="popup_host_checking"></div>
   <div class="line" id="current"></div>
   <div class="line" id="queueInfo"></div>
   <ol id="queue"></ol>
-  <label class="check"><input type="checkbox" id="autoIncoming"> <span>Trascrivi in automatico i vocali in arrivo</span></label>
+  <label class="check"><input type="checkbox" id="autoIncoming"> <span data-i18n="popup_auto"></span></label>
   <div class="btns">
-    <button class="primary" id="chat">Trascrivi i vocali della chat aperta</button>
-    <button id="clearQueue">Svuota la coda</button>
-    <button id="options">Configurazione e guida</button>
+    <button class="primary" id="chat" data-i18n="popup_chat"></button>
+    <button id="clearQueue" data-i18n="popup_clear"></button>
+    <button id="options" data-i18n="popup_options"></button>
   </div>
   <p class="muted" id="msg"></p>
+  <script src="i18n.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

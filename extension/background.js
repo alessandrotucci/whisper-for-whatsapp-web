@@ -84,7 +84,7 @@ function connect() {
   port = chrome.runtime.connectNative(HOST_NAME);
   port.onMessage.addListener(onHostMessage);
   port.onDisconnect.addListener(() => {
-    const err = chrome.runtime.lastError ? chrome.runtime.lastError.message : 'host terminato';
+    const err = chrome.runtime.lastError ? chrome.runtime.lastError.message : chrome.i18n.getMessage('err_host_exited');
     lastHostError = err;
     port = null;
     for (const p of pending.values()) p.reject(new Error(err));
@@ -137,7 +137,7 @@ function hostRequest(message, done, { timeoutMs = 20000, onEvent } = {}) {
     const r = { resolve, reject, onEvent, done, timer: null };
     if (timeoutMs) {
       r.timer = setTimeout(() => {
-        if (requests.delete(rid)) reject(new Error("l'host non risponde"));
+        if (requests.delete(rid)) reject(new Error(chrome.i18n.getMessage('err_host_no_reply')));
       }, timeoutMs);
     }
     requests.set(rid, r);
@@ -221,12 +221,12 @@ function broadcastQueue() {
 async function fetchAudio(job) {
   const tabs = await waTabs();
   const order = [job.tabId, ...tabs.map((t) => t.id).filter((id) => id !== job.tabId)].filter((id) => id != null);
-  let lastErr = new Error('nessuna tab di WhatsApp Web aperta');
+  let lastErr = new Error(chrome.i18n.getMessage('err_no_wa_tab'));
   for (const tabId of order) {
     try {
       const res = await chrome.tabs.sendMessage(tabId, { cmd: 'fetchAudio', key: job.key });
       if (res && res.ok) return res.result;
-      lastErr = new Error((res && res.error) || 'risposta vuota dalla tab');
+      lastErr = new Error((res && res.error) || chrome.i18n.getMessage('err_empty_tab_reply'));
     } catch (e) {
       lastErr = e;
     }
@@ -392,7 +392,7 @@ const handlers = {
     }
   },
   async setHostConfig({ config }) {
-    if (current) return { ok: false, error: 'una trascrizione è in corso: riprova quando la coda è vuota' };
+    if (current) return { ok: false, error: chrome.i18n.getMessage('err_busy_transcribing') };
     try {
       const pong = await hostRequest({ type: 'set_config', config }, ['pong']);
       return { ok: true, pong };
@@ -401,7 +401,7 @@ const handlers = {
     }
   },
   downloadModel({ name }) {
-    if (downloading) return { ok: false, error: 'download già in corso: ' + downloading };
+    if (downloading) return { ok: false, error: chrome.i18n.getMessage('err_download_running', [downloading]) };
     downloading = name;
     clearTimeout(idleTimer);
     hostRequest({ type: 'download_model', name }, ['download_done'], {

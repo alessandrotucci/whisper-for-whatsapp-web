@@ -1,0 +1,401 @@
+{
+  "extName": {
+    "message": "Whisper per WhatsApp Web"
+  },
+  "extDescription": {
+    "message": "Trascrive i vocali di WhatsApp Web con un modello Whisper in esecuzione sul proprio computer."
+  },
+  "lang": {
+    "message": "it"
+  },
+  "box_transcribe": {
+    "message": "Trascrivi"
+  },
+  "box_transcribe_title": {
+    "message": "Trascrivi questo vocale con Whisper locale"
+  },
+  "box_transcription": {
+    "message": "Trascrizione"
+  },
+  "box_copy": {
+    "message": "Copia"
+  },
+  "box_copy_title": {
+    "message": "Copia il testo"
+  },
+  "box_copied": {
+    "message": "Copiato"
+  },
+  "box_retranscribe_title": {
+    "message": "Trascrivi di nuovo"
+  },
+  "box_no_speech": {
+    "message": "(nessun parlato riconosciuto)"
+  },
+  "box_error": {
+    "message": "Errore: $1"
+  },
+  "box_unknown_error": {
+    "message": "sconosciuto"
+  },
+  "box_retry": {
+    "message": "Riprova"
+  },
+  "box_configure": {
+    "message": "Configura"
+  },
+  "box_configure_title": {
+    "message": "Apri la configurazione del componente locale"
+  },
+  "box_cancel": {
+    "message": "Annulla"
+  },
+  "state_queued": {
+    "message": "In coda"
+  },
+  "state_queued_pos": {
+    "message": "In coda (n. $1)"
+  },
+  "state_downloading": {
+    "message": "Scarico l'audio…"
+  },
+  "state_waiting": {
+    "message": "Invio al componente locale…"
+  },
+  "state_waiting_lock": {
+    "message": "In attesa che finisca un'altra trascrizione…"
+  },
+  "state_loading_model": {
+    "message": "Carico il modello…"
+  },
+  "state_transcribing": {
+    "message": "Trascrivo…"
+  },
+  "err_no_wa_tab": {
+    "message": "nessuna scheda di WhatsApp Web aperta"
+  },
+  "err_empty_tab_reply": {
+    "message": "risposta vuota dalla scheda di WhatsApp Web"
+  },
+  "err_host_no_reply": {
+    "message": "il componente locale non risponde"
+  },
+  "err_host_exited": {
+    "message": "il componente locale si è chiuso"
+  },
+  "err_host_not_installed": {
+    "message": "componente locale non installato"
+  },
+  "err_busy_transcribing": {
+    "message": "una trascrizione è in corso: riprova quando la coda è vuota"
+  },
+  "err_download_running": {
+    "message": "download già in corso: $1"
+  },
+  "err_wa_not_ready": {
+    "message": "WhatsApp Web non è ancora pronto"
+  },
+  "err_wa_no_reply": {
+    "message": "WhatsApp Web non ha risposto"
+  },
+  "err_msg_not_loaded": {
+    "message": "messaggio non caricato in WhatsApp Web: apri la chat"
+  },
+  "err_not_voice": {
+    "message": "il messaggio non è un vocale"
+  },
+  "err_audio_unavailable": {
+    "message": "audio non disponibile ($1)"
+  },
+  "err_model_missing": {
+    "message": "il modello $1 non è sul disco: scaricalo dalla pagina dell'estensione"
+  },
+  "popup_host_checking": {
+    "message": "Componente locale: verifica…"
+  },
+  "popup_host_ready": {
+    "message": "Pronto · $1 · $2"
+  },
+  "popup_host_unreachable": {
+    "message": "Componente locale non raggiungibile: $1"
+  },
+  "popup_no_reply": {
+    "message": "nessuna risposta"
+  },
+  "popup_current": {
+    "message": "In corso: $1 ($2)"
+  },
+  "popup_voice": {
+    "message": "vocale"
+  },
+  "popup_idle": {
+    "message": "Nessuna trascrizione in corso."
+  },
+  "popup_queue": {
+    "message": "In coda: $1"
+  },
+  "popup_item_requested": {
+    "message": "$1 (richiesto)"
+  },
+  "popup_auto": {
+    "message": "Trascrivi in automatico i vocali in arrivo"
+  },
+  "popup_chat": {
+    "message": "Trascrivi i vocali della chat aperta"
+  },
+  "popup_clear": {
+    "message": "Svuota la coda"
+  },
+  "popup_options": {
+    "message": "Configurazione e guida"
+  },
+  "popup_open_wa": {
+    "message": "Apri una chat in WhatsApp Web in questa scheda."
+  },
+  "popup_no_voices": {
+    "message": "Nessun vocale caricato nella chat aperta. Scorri verso l'alto per caricarne altri."
+  },
+  "popup_queued_n": {
+    "message": "Vocali messi in coda: $1."
+  },
+  "popup_all_done": {
+    "message": "Tutti i vocali caricati sono già trascritti."
+  },
+  "st_downloading": {
+    "message": "scarico l'audio"
+  },
+  "st_waiting": {
+    "message": "invio al componente locale"
+  },
+  "st_waiting_lock": {
+    "message": "attende un'altra trascrizione"
+  },
+  "st_loading_model": {
+    "message": "carico il modello"
+  },
+  "st_transcribing": {
+    "message": "trascrivo"
+  },
+  "opt_tagline": {
+    "message": "Trascrive i vocali sul tuo computer con Whisper: l'audio non lascia la macchina."
+  },
+  "opt_step1": {
+    "message": "Componente locale"
+  },
+  "opt_checking": {
+    "message": "Verifica in corso…"
+  },
+  "opt_searching": {
+    "message": "Cerco il componente locale sul computer…"
+  },
+  "opt_last_check": {
+    "message": "ultimo controllo alle $1, riprovo ogni 3 secondi"
+  },
+  "opt_host_installed": {
+    "message": "Installato (versione $1)."
+  },
+  "opt_host_explain": {
+    "message": "Il browser non può far girare Whisper da solo: serve un piccolo programma sul computer. Scaricalo, aprilo e premi <strong>Avanti</strong> fino alla fine. Non servono privilegi di amministratore."
+  },
+  "opt_download_installer": {
+    "message": "Scarica l'installer per Windows"
+  },
+  "opt_autodetect": {
+    "message": "Questa pagina si accorge da sola dell'installazione."
+  },
+  "opt_smartscreen": {
+    "message": "Se Windows mostra «Windows ha protetto il PC», premi <em>Ulteriori informazioni</em> e poi <em>Esegui comunque</em>: l'installer non è ancora firmato."
+  },
+  "opt_err_forbidden": {
+    "message": "Il componente locale è installato ma non riconosce questa estensione (ID $1). Reinstallalo dall'ultima versione."
+  },
+  "opt_err_exited": {
+    "message": "Il componente locale si è chiuso subito: reinstallalo. Il registro degli errori è in %LOCALAPPDATA%\\WhisperForWhatsAppWeb\\whisper_host.log."
+  },
+  "opt_step2": {
+    "message": "Modello"
+  },
+  "opt_models_intro": {
+    "message": "I modelli già scaricati con faster-whisper vengono trovati da soli. Più grande è il modello, più è accurato e più è lento."
+  },
+  "opt_pick_folder": {
+    "message": "Usa un modello in un'altra cartella…"
+  },
+  "opt_model_in_use": {
+    "message": "$1 · in uso"
+  },
+  "opt_on_disk": {
+    "message": "sul disco"
+  },
+  "opt_to_download": {
+    "message": "da scaricare"
+  },
+  "opt_use_this": {
+    "message": "Usa questo"
+  },
+  "opt_download": {
+    "message": "Scarica"
+  },
+  "opt_downloading": {
+    "message": "Download…"
+  },
+  "opt_size": {
+    "message": "≈$1 GB"
+  },
+  "note_large_v3": {
+    "message": "il più accurato"
+  },
+  "note_large_v3_turbo": {
+    "message": "molto più veloce, accuratezza vicina"
+  },
+  "note_small": {
+    "message": "leggero, meno accurato"
+  },
+  "note_folder": {
+    "message": "cartella"
+  },
+  "opt_error": {
+    "message": "Errore: $1"
+  },
+  "opt_download_started": {
+    "message": "Download di $1 avviato: puoi lasciare aperta questa pagina o chiuderla."
+  },
+  "opt_download_progress": {
+    "message": "Download di $1: $2"
+  },
+  "opt_of": {
+    "message": "$1 di $2"
+  },
+  "opt_download_done": {
+    "message": "Modello $1 scaricato e in uso."
+  },
+  "opt_download_failed": {
+    "message": "Download non riuscito: $1"
+  },
+  "opt_pick_hint": {
+    "message": "Scegli la cartella nella finestra di Windows (potrebbe aprirsi dietro al browser)…"
+  },
+  "opt_pick_invalid": {
+    "message": "In $1 non c'è un modello faster-whisper (servono model.bin e config.json)."
+  },
+  "opt_pick_ok": {
+    "message": "In uso il modello in $1."
+  },
+  "opt_step3": {
+    "message": "Pronto"
+  },
+  "opt_ready": {
+    "message": "Apri o ricarica <a href=\"https://web.whatsapp.com/\" target=\"_blank\" rel=\"noopener\">WhatsApp Web</a>: sotto ogni vocale compare il pulsante <strong>Trascrivi</strong>, e i vocali in arrivo si trascrivono da soli."
+  },
+  "opt_settings": {
+    "message": "Impostazioni"
+  },
+  "opt_auto_incoming": {
+    "message": "Trascrivi in automatico i vocali <strong>in arrivo</strong>, in qualsiasi chat"
+  },
+  "opt_auto_outgoing": {
+    "message": "…anche quelli <strong>inviati da me</strong>"
+  },
+  "opt_auto_visible": {
+    "message": "Trascrivi in automatico anche i vocali <strong>vecchi</strong> quando compaiono nella chat aperta"
+  },
+  "opt_language": {
+    "message": "Lingua"
+  },
+  "opt_language_ph": {
+    "message": "vuoto = riconoscimento automatico"
+  },
+  "opt_beam": {
+    "message": "Beam size"
+  },
+  "opt_prompt": {
+    "message": "Vocabolario / contesto"
+  },
+  "opt_prompt_ph": {
+    "message": "Nomi e termini che Whisper deve riconoscere, separati da virgole"
+  },
+  "opt_vad": {
+    "message": "Salta i silenzi (filtro VAD, consigliato)"
+  },
+  "opt_idle": {
+    "message": "Libera la memoria dopo minuti di inattività"
+  },
+  "opt_memory_note": {
+    "message": "Finché il componente locale è attivo il modello resta in memoria (large-v3: circa 2 GB di RAM) e i vocali successivi partono subito. Le trascrizioni avvengono sempre una per volta, anche tra Chrome ed Edge."
+  },
+  "opt_saved": {
+    "message": "Impostazioni salvate."
+  },
+  "opt_advanced": {
+    "message": "Avanzate"
+  },
+  "opt_device": {
+    "message": "Dispositivo"
+  },
+  "opt_device_cpu": {
+    "message": "CPU"
+  },
+  "opt_device_cuda": {
+    "message": "GPU NVIDIA (CUDA)"
+  },
+  "opt_device_auto": {
+    "message": "automatico"
+  },
+  "opt_compute": {
+    "message": "Precisione di calcolo"
+  },
+  "opt_threads": {
+    "message": "Thread CPU (0 = automatico)"
+  },
+  "opt_apply": {
+    "message": "Applica"
+  },
+  "opt_applying": {
+    "message": "Applico…"
+  },
+  "opt_applied": {
+    "message": "Applicato: vale dalla prossima trascrizione."
+  },
+  "opt_d_component": {
+    "message": "Componente locale"
+  },
+  "opt_d_from_source": {
+    "message": "$1 (da sorgente)"
+  },
+  "opt_d_exe": {
+    "message": "Eseguibile"
+  },
+  "opt_d_cuda": {
+    "message": "GPU CUDA: $1"
+  },
+  "opt_d_nocuda": {
+    "message": "nessuna GPU CUDA"
+  },
+  "opt_d_model": {
+    "message": "Modello"
+  },
+  "opt_d_model_dir": {
+    "message": "Cartella del modello"
+  },
+  "opt_d_not_found": {
+    "message": "non trovata"
+  },
+  "opt_d_data": {
+    "message": "Dati e registro"
+  },
+  "opt_saved_transcripts": {
+    "message": "Trascrizioni salvate"
+  },
+  "opt_cache_info": {
+    "message": "Trascrizioni salvate: $1 ($2 KB)"
+  },
+  "opt_clear_cache": {
+    "message": "Cancella tutte"
+  },
+  "opt_cache_note": {
+    "message": "Restano solo in questo browser, legate al messaggio: riaprendo la chat ricompaiono senza ritrascrivere."
+  },
+  "opt_clear_confirm": {
+    "message": "Cancellare tutte le trascrizioni salvate? Non si possono recuperare."
+  }
+}
