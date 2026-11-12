@@ -408,13 +408,13 @@
     "message": "Version $1 is available"
   },
   "upd_text_ext": {
-    "message": "Only the extension is updated, then it reloads by itself."
+    "message": "Only the extension is updated, then it reloads by itself along with the WhatsApp Web tabs."
   },
   "upd_text_host": {
     "message": "It installs without any window. A transcription in progress finishes first."
   },
   "upd_text_both": {
-    "message": "First the local component, then the extension, which reloads at the end."
+    "message": "First the local component, then the extension, which reloads at the end along with the WhatsApp Web tabs."
   },
   "upd_text_manual": {
     "message": "The installed component can't update itself yet: “Update” downloads the installer, to open as the first time. Then press “Update” again."

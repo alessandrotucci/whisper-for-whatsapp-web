@@ -408,13 +408,13 @@
     "message": "È disponibile la versione $1"
   },
   "upd_text_ext": {
-    "message": "Si aggiorna solo l'estensione, poi si ricarica da sola."
+    "message": "Si aggiorna solo l'estensione, poi si ricarica da sola insieme alle schede di WhatsApp Web."
   },
   "upd_text_host": {
     "message": "Si installa senza finestre. Se c'è una trascrizione in corso, si aspetta che finisca."
   },
   "upd_text_both": {
-    "message": "Prima il componente locale, poi l'estensione, che alla fine si ricarica."
+    "message": "Prima il componente locale, poi l'estensione, che alla fine si ricarica insieme alle schede di WhatsApp Web."
   },
   "upd_text_manual": {
     "message": "Il componente installato non sa ancora aggiornarsi da solo: «Aggiorna» scarica l'installer, da aprire come la prima volta. Poi premi di nuovo «Aggiorna»."

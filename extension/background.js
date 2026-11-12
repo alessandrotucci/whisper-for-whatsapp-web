@@ -480,12 +480,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 chrome.runtime.onInstalled.addListener(async (details) => {
   if (details.reason === 'install') chrome.runtime.openOptionsPage();
   if (details.reason !== 'update') return;
-  // Dopo una ricarica lo script delle schede già aperte resta scollegato: lo si
-  // inietta di nuovo. page.js resta quello caricato con la pagina.
-  for (const t of await waTabs()) {
-    chrome.scripting.insertCSS({ target: { tabId: t.id }, files: ['content.css'] }).catch(() => {});
-    chrome.scripting.executeScript({ target: { tabId: t.id }, files: ['content.js'] }).catch(() => {});
-  }
+  // Dopo una ricarica gli script delle schede già aperte restano scollegati: le schede
+  // di WhatsApp Web si ricaricano, così content.js e page.js ripartono nella versione nuova.
+  for (const t of await waTabs()) chrome.tabs.reload(t.id).catch(() => {});
 });
 
 importScripts('update.js');

@@ -12,7 +12,24 @@
   const asked = new Set(); // key per cui lo stato è già stato chiesto
   let settings = { autoVisible: false, autoOutgoing: false };
 
-  const alive = () => !!(chrome.runtime && chrome.runtime.id);
+  // Dopo una ricarica dell'estensione questo script resta nella pagina ma scollegato:
+  // chrome.runtime.id può restare valorizzato, getManifest() invece fallisce.
+  let detached = false;
+  const alive = () => {
+    if (detached) return false;
+    try {
+      if (chrome.runtime && chrome.runtime.id && chrome.runtime.getManifest()) return true;
+    } catch (_) { /* contesto invalidato */ }
+    detached = true;
+    stop();
+    return false;
+  };
+  const stoppers = [];
+  function stop() {
+    for (const fn of stoppers.splice(0)) {
+      try { fn(); } catch (_) { /* già fermo */ }
+    }
+  }
   const t = (key, ...subs) => (alive() && chrome.i18n.getMessage(key, subs.map(String))) || key;
 
   // Gli errori di page.js e del componente locale arrivano come codici "E:<nome>[:dettaglio]",
@@ -282,12 +299,14 @@
       try { scan(); } catch (_) { /* il prossimo giro riprova */ }
     }, 150);
   }
-  new MutationObserver(schedule).observe(document.body, {
+  const observer = new MutationObserver(schedule);
+  observer.observe(document.body, {
     childList: true,
     subtree: true,
     attributes: true,
     attributeFilter: ['data-wwt-voice', 'data-wwt-key'],
   });
-  setInterval(schedule, 2000);
+  const timer = setInterval(schedule, 2000);
+  stoppers.push(() => observer.disconnect(), () => clearInterval(timer));
   schedule();
 })();
