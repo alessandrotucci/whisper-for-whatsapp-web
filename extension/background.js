@@ -217,8 +217,25 @@ function hostTranscribe(audioB64, manual, onEvent) {
   return { id, promise };
 }
 
+// Finché ci sono lavori aperti, una chiamata a un'API dell'estensione ogni 20 secondi
+// azzera il timer di inattività del service worker: la porta nativa da sola può restare
+// muta a lungo (modello in caricamento, vocale in coda dietro quelli di un altro browser).
+let keepAliveTimer = null;
+function updateKeepAlive() {
+  const busy = jobs.size > 0 || !!downloading || cudaInstalling || updating;
+  if (busy && !keepAliveTimer) {
+    keepAliveTimer = setInterval(() => {
+      chrome.runtime.getPlatformInfo().catch(() => {});
+    }, 20000);
+  } else if (!busy && keepAliveTimer) {
+    clearInterval(keepAliveTimer);
+    keepAliveTimer = null;
+  }
+}
+
 function scheduleIdleDisconnect() {
   clearTimeout(idleTimer);
+  updateKeepAlive();
   if (!port || jobs.size || downloading || cudaInstalling) return;
   const minutes = Math.max(1, Number(settings.idleMinutes) || 10);
   idleTimer = setTimeout(() => {
@@ -259,6 +276,7 @@ function stateOf(key) {
 
 // Il badge mostra i vocali di questo browser ancora da trascrivere; senza, una freccia se c'è un aggiornamento.
 function refreshBadge() {
+  updateKeepAlive();
   const n = jobs.size;
   chrome.action.setBadgeText({ text: n ? String(n) : updateAvailable ? '↑' : '' });
   chrome.action.setBadgeBackgroundColor({ color: n ? '#128c7e' : '#d97706' });
@@ -525,7 +543,7 @@ const handlers = {
   downloadModel({ name }) {
     if (downloading) return { ok: false, error: chrome.i18n.getMessage('err_download_running', [downloading]) };
     downloading = name;
-    clearTimeout(idleTimer);
+    scheduleIdleDisconnect();
     hostRequest({ type: 'download_model', name }, ['download_done'], {
       timeoutMs: 0,
       onEvent: (ev) => notifyPages({ cmd: 'hostEvent', event: ev }),
@@ -541,7 +559,7 @@ const handlers = {
   cudaInstall() {
     if (cudaInstalling) return { ok: false, error: chrome.i18n.getMessage('err_cuda_running') };
     cudaInstalling = true;
-    clearTimeout(idleTimer);
+    scheduleIdleDisconnect();
     hostRequest({ type: 'cuda_install' }, ['cuda_done'], {
       timeoutMs: 0,
       onEvent: (ev) => notifyPages({ cmd: 'hostEvent', event: ev }),

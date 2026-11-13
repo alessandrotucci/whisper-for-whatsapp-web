@@ -129,6 +129,7 @@ async function applyUpdate() {
   const info = await publishInfo();
   if (!info.available) return { ok: true, nothing: true };
   updating = true;
+  updateKeepAlive();
   try {
     if (hostBusy() || fetching) progress('waiting_queue');
     await waitIdleQueue();
@@ -181,6 +182,7 @@ async function applyUpdate() {
     return { ok: false, error: e.message };
   } finally {
     updating = false;
+    updateKeepAlive();
     pumpFetch();
   }
 }

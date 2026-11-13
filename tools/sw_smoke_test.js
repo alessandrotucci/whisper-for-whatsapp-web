@@ -36,6 +36,7 @@ function makeChrome(preset) {
       onInstalled: ev('installed'),
       getManifest: () => JSON.parse(fs.readFileSync(path.join(extDir, 'manifest.json'), 'utf8')),
       id: 'smoke-test',
+      getPlatformInfo: async () => ({ os: 'win' }),
       sendMessage: async () => {},
       lastError: null,
       connectNative: () => ({ onMessage: ev('native'), onDisconnect: { addListener() {} }, postMessage: (m) => posted.push(m), disconnect() {} }),
