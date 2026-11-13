@@ -123,6 +123,7 @@ Java_io_github_alessandrotucci_whisperwa_WhisperLib_nativeTranscribe(
     params.abort_callback_user_data = nullptr;
 
     cancel_requested.store(false);
+    whisper_reset_timings(ctx);
     jsize n = env->GetArrayLength(samples);
     jfloat * data = env->GetFloatArrayElements(samples, nullptr);
     int rc = whisper_full(ctx, params, data, n);

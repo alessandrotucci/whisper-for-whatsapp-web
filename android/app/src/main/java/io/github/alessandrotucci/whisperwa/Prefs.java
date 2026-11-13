@@ -38,31 +38,11 @@ public final class Prefs {
     }
 
     /**
-     * Numero di core ad alte prestazioni, almeno 2: i core la cui frequenza massima supera quella
-     * del gruppo più lento. ggml divide il lavoro in parti uguali tra i thread, quindi un thread
-     * su un core lento rallenta tutti gli altri.
+     * Tutti i core, fino a 8: anche sui processori big.LITTLE i core lenti accorciano
+     * l'encoder più di quanto lo rallentino.
      */
     public static int defaultThreads() {
-        int cores = Runtime.getRuntime().availableProcessors();
-        long[] max = new long[cores];
-        long min = Long.MAX_VALUE;
-        try {
-            for (int i = 0; i < cores; i++) {
-                java.io.File f = new java.io.File("/sys/devices/system/cpu/cpu" + i + "/cpufreq/cpuinfo_max_freq");
-                try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader(f))) {
-                    max[i] = Long.parseLong(r.readLine().trim());
-                }
-                min = Math.min(min, max[i]);
-            }
-        } catch (Exception e) {
-            return Math.max(2, Math.min(4, cores - 4));
-        }
-        int fast = 0;
-        for (long m : max) {
-            if (m > min) fast++;
-        }
-        if (fast == 0) fast = Math.min(4, cores);
-        return Math.max(2, fast);
+        return Math.max(1, Math.min(8, Runtime.getRuntime().availableProcessors()));
     }
 
     public static void setThreads(Context context, int n) {

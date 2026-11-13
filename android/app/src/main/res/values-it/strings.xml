@@ -94,7 +94,7 @@
         <item>Tedesco</item>
     </string-array>
     <string name="section_threads">Thread</string>
-    <string name="threads_hint">Core del processore usati per la trascrizione. Di solito 4 è il valore più veloce.</string>
+    <string name="threads_hint">Core del processore usati per la trascrizione. Di solito il valore più veloce è usarli tutti.</string>
     <string name="section_sources">Provenienza dei vocali</string>
     <string name="listener_on">Accesso alle notifiche: attivo</string>
     <string name="listener_off">Accesso alle notifiche: non attivo</string>

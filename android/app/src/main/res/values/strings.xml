@@ -98,7 +98,7 @@
         <item>German</item>
     </string-array>
     <string name="section_threads">Threads</string>
-    <string name="threads_hint">Processor cores used for transcription. Usually 4 is fastest.</string>
+    <string name="threads_hint">Processor cores used for transcription. Usually all cores is fastest.</string>
     <string name="section_sources">Voice message sources</string>
     <string name="listener_on">Notification access: enabled</string>
     <string name="listener_off">Notification access: disabled</string>
