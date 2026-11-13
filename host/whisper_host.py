@@ -905,6 +905,9 @@ class Host:
 
     def dispatch(self, msg):
         kind = msg.get("type")
+        if kind in ("ping", "models"):
+            # config.json può cambiare da un altro relay o a mano: si rilegge a ogni richiesta.
+            self.tr.cfg = load_config()
         if kind == "ping":
             self.reply(msg, dict(type="pong", **self.tr.describe()))
         elif kind == "models":
