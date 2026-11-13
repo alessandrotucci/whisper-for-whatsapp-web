@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings">Impostazioni</string>
+    <string name="share_label">Trascrivi</string>
+    <string name="menu_scan">Cerca vocali nuovi</string>
+    <string name="menu_clear">Cancella tutto</string>
+    <string name="clear_confirm">Cancellare tutte le trascrizioni da questo telefono?</string>
+    <string name="clear_yes">Cancella</string>
+    <string name="empty_list">Qui compaiono le trascrizioni dei vocali in arrivo. Puoi anche condividere un vocale da WhatsApp verso questa app.</string>
+
+    <string name="channel_transcripts">Trascrizioni</string>
+    <string name="channel_progress">Trascrizione in corso e download</string>
+    <string name="channel_problems">Problemi di configurazione</string>
+
+    <string name="empty_transcript">(nessun parlato riconosciuto)</string>
+    <string name="action_copy">Copia</string>
+    <string name="action_cancel">Interrompi</string>
+    <string name="action_retry">Trascrivi di nuovo</string>
+    <string name="action_delete">Elimina</string>
+    <string name="copied">Copiato</string>
+
+    <string name="progress_title">Trascrizione: %1$s</string>
+    <string name="progress_percent">%1$d%%</string>
+    <string name="progress_queue">%1$d%% · altri %2$d in coda</string>
+
+    <string name="problem_model_title">Nessun modello scaricato</string>
+    <string name="problem_model_text">Ci sono vocali in attesa: apri l\'app e scarica un modello nelle Impostazioni.</string>
+    <string name="problem_folder_title">Cartella dei vocali non disponibile</string>
+    <string name="problem_folder_text">È arrivato un vocale su %1$s, ma l\'app non può leggere la cartella dei vocali. Apri l\'app e scegli la cartella.</string>
+    <string name="error_model_load">Impossibile caricare il modello (file danneggiato o memoria insufficiente)</string>
+    <string name="error_transcribe">Trascrizione fallita o interrotta</string>
+
+    <string name="model_turbo">large-v3-turbo (consigliato)</string>
+    <string name="model_medium">medium</string>
+    <string name="model_small">small (telefoni datati)</string>
+    <string name="model_base">base (il più veloce, il meno preciso)</string>
+
+    <string name="download_title">Download di %1$s</string>
+    <string name="download_cancelled">Download annullato</string>
+    <string name="download_incomplete">Download incompleto</string>
+    <string name="download_bad_hash">Il file scaricato è danneggiato: scaricalo di nuovo</string>
+
+    <string name="share_nothing">Nessun audio da trascrivere</string>
+    <string name="shared_audio">Audio condiviso</string>
+    <plurals name="queued">
+        <item quantity="one">%d vocale in coda</item>
+        <item quantity="other">%d vocali in coda</item>
+    </plurals>
+    <plurals name="pending">
+        <item quantity="one">%d vocale da trascrivere</item>
+        <item quantity="other">%d vocali da trascrivere</item>
+    </plurals>
+
+    <string name="folder_permission_failed">Impossibile mantenere il permesso sulla cartella: sceglila di nuovo</string>
+    <string name="folder_ok">Cartella salvata</string>
+    <string name="folder_unexpected">Cartella salvata, ma non sembra quella dei vocali: controlla che finisca con \"Voice Notes\"</string>
+
+    <string name="setup_notifications">Consenti le notifiche per vedere le trascrizioni.</string>
+    <string name="setup_allow">Consenti</string>
+    <string name="setup_listener">Attiva l\'accesso alle notifiche, così l\'app sa quando arriva un vocale.</string>
+    <string name="setup_open_settings">Apri impostazioni</string>
+    <string name="setup_restricted">Se l\'accesso alle notifiche è disattivato in grigio («impostazione con restrizioni»): apri Info app, menu ⋮, «Consenti impostazioni con restrizioni», poi torna qui.</string>
+    <string name="setup_app_info">Info app</string>
+    <string name="setup_model">Scarica un modello di trascrizione.</string>
+    <string name="setup_download">Scarica</string>
+    <string name="setup_folder">Scegli la cartella dei vocali di %1$s (il selettore si apre lì: tocca «Usa questa cartella»).</string>
+    <string name="setup_choose">Scegli</string>
+    <string name="setup_battery">Togli le limitazioni della batteria, così le trascrizioni finiscono anche a schermo spento.</string>
+
+    <string name="meta_work">trascritto in %1$d s</string>
+    <string name="status_pending">In coda</string>
+    <string name="status_running">Trascrizione in corso…</string>
+    <string name="status_error">Errore: %1$s</string>
+
+    <string name="section_model">Modello</string>
+    <string name="model_hint">I modelli più grandi sono più precisi e più lenti. Il modello resta sul telefono e l\'audio non ne esce mai.</string>
+    <string name="model_delete">Elimina</string>
+    <string name="model_verifying">Verifica del file scaricato…</string>
+    <string name="model_downloading">Download: %1$s di %2$s</string>
+    <string name="model_installed">Installato</string>
+    <string name="model_error">Non installato. Ultimo download: %1$s</string>
+    <string name="model_missing">Non installato</string>
+    <string name="section_language">Lingua</string>
+    <string-array name="language_labels">
+        <item>Automatica</item>
+        <item>Italiano</item>
+        <item>Inglese</item>
+        <item>Portoghese</item>
+        <item>Spagnolo</item>
+        <item>Francese</item>
+        <item>Tedesco</item>
+    </string-array>
+    <string name="section_threads">Thread</string>
+    <string name="threads_hint">Core del processore usati per la trascrizione. Di solito 4 è il valore più veloce.</string>
+    <string name="section_sources">Provenienza dei vocali</string>
+    <string name="listener_on">Accesso alle notifiche: attivo</string>
+    <string name="listener_off">Accesso alle notifiche: non attivo</string>
+    <string name="folder_none">%1$s: cartella non scelta</string>
+    <string name="folder_hint">La cartella è Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Voice Notes (per WhatsApp Business: com.whatsapp.w4b/WhatsApp Business/Media/WhatsApp Business Voice Notes). I vocali già presenti nella cartella non si trascrivono da soli.</string>
+    <string name="section_test">Prova</string>
+    <string name="test_file">Trascrivi un file audio…</string>
+    <string name="section_info">Informazioni</string>
+    <string name="info_version">Versione %1$s</string>
+    <string name="info_cores">Core del processore: %1$d</string>
+</resources>
