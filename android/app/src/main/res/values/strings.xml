@@ -32,6 +32,7 @@
     <string name="problem_background_title">Transcriptions may be interrupted</string>
     <string name="problem_background_text">Android does not let the app keep working in the background. Open the app and remove battery restrictions; on OPPO, OnePlus, realme and Xiaomi phones also allow background activity and auto-launch in the app\'s battery settings.</string>
     <string name="error_model_load">The model could not be loaded (corrupted file or not enough memory)</string>
+    <string name="error_killed">Stopped by the system three times; tap Transcribe again to retry</string>
     <string name="error_transcribe">Transcription failed or stopped</string>
 
     <string name="model_turbo">large-v3-turbo (recommended)</string>
@@ -98,7 +99,8 @@
         <item>German</item>
     </string-array>
     <string name="section_threads">Threads</string>
-    <string name="threads_hint">Processor cores used for transcription. Usually all cores is fastest.</string>
+    <string name="threads_hint">Processor cores used while the app is on screen. Usually all cores is fastest.</string>
+    <string name="threads_bg_hint">Cores used in the background. Some phones (OPPO, OnePlus, realme) stop an app that keeps every core busy while you use the phone: keep this low.</string>
     <string name="section_sources">Voice message sources</string>
     <string name="listener_on">Notification access: enabled</string>
     <string name="listener_off">Notification access: disabled</string>

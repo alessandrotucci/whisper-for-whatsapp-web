@@ -85,6 +85,16 @@
             android:layout_height="wrap_content" />
 
         <TextView
+            style="@style/Hint"
+            android:paddingTop="8dp"
+            android:text="@string/threads_bg_hint" />
+
+        <Spinner
+            android:id="@+id/threads_bg"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView
             style="@style/SectionTitle"
             android:text="@string/section_sources" />
 

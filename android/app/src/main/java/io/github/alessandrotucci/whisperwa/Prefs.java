@@ -49,6 +49,18 @@ public final class Prefs {
         sp(context).edit().putInt("threads", n).apply();
     }
 
+    /**
+     * Thread con l'app non visibile. Alcuni sistemi (ColorOS) uccidono anche un servizio in
+     * primo piano che tiene occupati tutti i core mentre l'utente fa altro.
+     */
+    public static int backgroundThreads(Context context) {
+        return sp(context).getInt("threads_bg", Math.min(2, defaultThreads()));
+    }
+
+    public static void setBackgroundThreads(Context context, int n) {
+        sp(context).edit().putInt("threads_bg", n).apply();
+    }
+
     /** Cartella dei vocali scelta con lo Storage Access Framework per un pacchetto di WhatsApp. */
     public static Uri folder(Context context, String pkg) {
         String s = sp(context).getString("folder." + pkg, null);

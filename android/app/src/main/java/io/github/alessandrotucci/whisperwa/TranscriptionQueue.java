@@ -30,6 +30,7 @@ public final class TranscriptionQueue {
     private static final String TAG = "whisperwa";
     private static final long IDLE_UNLOAD_MS = 3 * 60 * 1000;
     private static final long WAKE_LOCK_MS = 30 * 60 * 1000;
+    private static final int MAX_ATTEMPTS = 3;
 
     private static TranscriptionQueue instance;
 
@@ -139,6 +140,16 @@ public final class TranscriptionQueue {
     }
 
     private void process(Db db, Db.Note note, Models.Model model) {
+        // Un vocale già iniziato MAX_ATTEMPTS volte senza finire ha visto il processo ucciso
+        // ogni volta: si ferma invece di ricominciare all'infinito.
+        if (note.attempts >= MAX_ATTEMPTS) {
+            Log.w(TAG, "troppi tentativi interrotti: " + note.name);
+            db.markError(note.id, app.getString(R.string.error_killed));
+            changed();
+            Notifier.showProblem(app, app.getString(R.string.problem_background_title),
+                    app.getString(R.string.problem_background_text));
+            return;
+        }
         db.markRunning(note.id);
         changed();
         int queued = db.countPending();
@@ -153,8 +164,12 @@ public final class TranscriptionQueue {
                 return;
             }
             int[] last = {-1};
+            boolean visible = App.isVisible();
+            int threads = visible ? Prefs.threads(app) : Prefs.backgroundThreads(app);
+            Log.i(TAG, "inizio " + note.name + ": tentativo " + (note.attempts + 1) + ", thread " + threads
+                    + (visible ? " (app visibile)" : " (app non visibile)"));
             WhisperLib.Result r = WhisperLib.transcribe(ctx, samples, Prefs.language(app),
-                    Prefs.threads(app), percent -> {
+                    threads, percent -> {
                         if (percent != last[0]) {
                             last[0] = percent;
                             Notifier.showProgress(app, note, percent, queued);
@@ -167,7 +182,7 @@ public final class TranscriptionQueue {
                 return;
             }
             Log.i(TAG, "trascritto " + note.name + ": audio " + audioMs + " ms, lavoro " + workMs + " ms, modello "
-                    + model.id + ", thread " + Prefs.threads(app) + ", lingua " + r.language);
+                    + model.id + ", thread " + threads + ", lingua " + r.language);
             db.markDone(note.id, r.text, r.language, audioMs, workMs, model.id);
             deleteLocalCopy(note);
             Db.Note done = db.byId(note.id);

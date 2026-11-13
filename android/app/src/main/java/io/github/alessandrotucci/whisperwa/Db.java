@@ -40,6 +40,7 @@ public final class Db extends SQLiteOpenHelper {
         public long workMs;
         public String model;
         public String error;
+        public int attempts;
 
         /** Mittente e chat in una riga, oppure il nome del file se non si conoscono. */
         public String title() {
@@ -58,7 +59,7 @@ public final class Db extends SQLiteOpenHelper {
     }
 
     private Db(Context context) {
-        super(context, "notes.db", null, 1);
+        super(context, "notes.db", null, 2);
     }
 
     @Override
@@ -78,12 +79,14 @@ public final class Db extends SQLiteOpenHelper {
                 + "audio_ms INTEGER,"
                 + "work_ms INTEGER,"
                 + "model TEXT,"
-                + "error TEXT)");
+                + "error TEXT,"
+                + "attempts INTEGER NOT NULL DEFAULT 0)");
         db.execSQL("CREATE INDEX notes_status ON notes(status, received)");
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        if (oldVersion < 2) db.execSQL("ALTER TABLE notes ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0");
     }
 
     /** Inserisce un vocale in coda; restituisce l'id, oppure -1 se source è già presente. */
@@ -134,11 +137,10 @@ public final class Db extends SQLiteOpenHelper {
         }
     }
 
+    /** Segna la riga in corso e conta il tentativo: un processo ucciso a metà lascia il conto. */
     public void markRunning(long id) {
-        ContentValues v = new ContentValues();
-        v.put("status", RUNNING);
-        v.putNull("error");
-        update(id, v);
+        getWritableDatabase().execSQL("UPDATE notes SET status = " + RUNNING
+                + ", error = NULL, attempts = attempts + 1 WHERE id = ?", new Object[]{id});
     }
 
     public void markDone(long id, String text, String language, long audioMs, long workMs, String model) {
@@ -165,6 +167,7 @@ public final class Db extends SQLiteOpenHelper {
         ContentValues v = new ContentValues();
         v.put("status", PENDING);
         v.putNull("error");
+        v.put("attempts", 0);
         update(id, v);
     }
 
@@ -207,6 +210,7 @@ public final class Db extends SQLiteOpenHelper {
                 n.workMs = c.getLong(c.getColumnIndexOrThrow("work_ms"));
                 n.model = c.getString(c.getColumnIndexOrThrow("model"));
                 n.error = c.getString(c.getColumnIndexOrThrow("error"));
+                n.attempts = c.getInt(c.getColumnIndexOrThrow("attempts"));
                 out.add(n);
             }
         }

@@ -31,6 +31,7 @@
     <string name="problem_background_title">Le trascrizioni possono essere interrotte</string>
     <string name="problem_background_text">Android non lascia lavorare l\'app in background. Apri l\'app e togli le limitazioni della batteria; sui telefoni OPPO, OnePlus, realme e Xiaomi consenti anche l\'attività in background e l\'avvio automatico nelle impostazioni batteria dell\'app.</string>
     <string name="error_model_load">Impossibile caricare il modello (file danneggiato o memoria insufficiente)</string>
+    <string name="error_killed">Interrotta dal sistema tre volte; tocca Trascrivi di nuovo per riprovare</string>
     <string name="error_transcribe">Trascrizione fallita o interrotta</string>
 
     <string name="model_turbo">large-v3-turbo (consigliato)</string>
@@ -94,7 +95,8 @@
         <item>Tedesco</item>
     </string-array>
     <string name="section_threads">Thread</string>
-    <string name="threads_hint">Core del processore usati per la trascrizione. Di solito il valore più veloce è usarli tutti.</string>
+    <string name="threads_hint">Core del processore usati con l\'app sullo schermo. Di solito il valore più veloce è usarli tutti.</string>
+    <string name="threads_bg_hint">Core usati in background. Alcuni telefoni (OPPO, OnePlus, realme) fermano un\'app che tiene occupati tutti i core mentre usi il telefono: tienilo basso.</string>
     <string name="section_sources">Provenienza dei vocali</string>
     <string name="listener_on">Accesso alle notifiche: attivo</string>
     <string name="listener_off">Accesso alle notifiche: non attivo</string>

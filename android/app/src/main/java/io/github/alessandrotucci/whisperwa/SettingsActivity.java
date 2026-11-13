@@ -90,6 +90,11 @@ public final class SettingsActivity extends Activity {
         threads.setSelection(Math.min(options.length, Prefs.threads(this)) - 1);
         threads.setOnItemSelectedListener(new SimpleSelection(pos -> Prefs.setThreads(this, pos + 1)));
 
+        Spinner threadsBg = findViewById(R.id.threads_bg);
+        threadsBg.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, options));
+        threadsBg.setSelection(Math.min(options.length, Prefs.backgroundThreads(this)) - 1);
+        threadsBg.setOnItemSelectedListener(new SimpleSelection(pos -> Prefs.setBackgroundThreads(this, pos + 1)));
+
         findViewById(R.id.btn_folder_whatsapp).setOnClickListener(v ->
                 startActivityForResult(Ui.folderPicker(Packages.WHATSAPP), REQ_FOLDER_WHATSAPP));
         findViewById(R.id.btn_folder_business).setOnClickListener(v ->
