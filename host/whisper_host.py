@@ -1,19 +1,34 @@
 """Host di native messaging che trascrive audio con faster-whisper.
 
-Il browser avvia il processo e gli parla su stdin/stdout con il protocollo di
-native messaging: ogni messaggio è un intero a 32 bit little-endian con la
-lunghezza, seguito da JSON in UTF-8. Il processo resta vivo finché la porta del
-browser è aperta e tiene il modello in memoria tra una richiesta e l'altra.
+Due ruoli, nello stesso eseguibile.
 
-Richieste (il campo "rid", se presente, torna nella risposta):
+Il processo che il browser avvia (relay) parla con il browser su stdin/stdout
+con il protocollo di native messaging: ogni messaggio è un intero a 32 bit
+little-endian con la lunghezza, seguito da JSON in UTF-8. Resta vivo finché la
+porta del browser è aperta. Gestisce da sé configurazione, modelli, download e
+aggiornamenti; le trascrizioni le inoltra al motore.
+
+Il motore ("--engine") è un processo unico per utente e cartella dati, avviato
+dal primo relay che ne ha bisogno e raggiunto su una named pipe con chiave di
+autenticazione. Tiene il modello in memoria e la coda delle trascrizioni di
+tutti i browser: una trascrizione per volta, le richieste manuali prima di
+quelle automatiche, in ordine di arrivo. A ogni cambio della coda manda a ogni
+relay lo stato della coda con le posizioni dei suoi lavori. Si chiude quando
+non ha relay collegati né lavori da ENGINE_IDLE_EXIT_S secondi. Se il motore si
+chiude con lavori in sospeso, il relay ne avvia un altro e li reinvia, al più
+ENGINE_RESUBMIT volte per lavoro.
+
+Richieste del browser (il campo "rid", se presente, torna nella risposta):
   {"type": "ping"}                                   -> pong
   {"type": "models"}                                 -> models
   {"type": "set_config", "config": {...}}            -> pong
   {"type": "download_model", "name": "large-v3"}     -> download_progress..., download_done | error
+  {"type": "cuda_install"}                           -> cuda_progress..., cuda_done | error
   {"type": "pick_folder"}                            -> folder_picked
   {"type": "transcribe", "id": "...", "audio": "<base64>", "language": "pt"|null,
-   "initial_prompt": "...", "beam_size": 5, "vad_filter": true}
+   "initial_prompt": "...", "beam_size": 5, "vad_filter": true, "manual": true}
   {"type": "cancel", "id": "..."}
+  {"type": "queue"}                                  -> queue
   {"type": "update_host", "url": "..."}              -> update_progress..., update_host_started
   {"type": "update_extension", "url": "...", "ext_id": "...", "expect": "1.3.0"}
                                                      -> update_progress..., update_extension_done
@@ -22,32 +37,44 @@ Richieste (il campo "rid", se presente, torna nella risposta):
 Eventi di una trascrizione (campo "id"):
   status (waiting_lock | loading_model | transcribing), partial, result, error
 
-Lavori lunghi (trascrizioni, download, cambi di configurazione) passano da un
-solo thread, in ordine. Un lock su file condiviso tra processi impedisce due
-trascrizioni contemporanee anche quando Chrome ed Edge avviano ciascuno il
-proprio host.
+Stato della coda, in risposta a "queue" e spontaneo a ogni cambio (senza "rid"):
+  {"type": "queue", "length": lavori in coda e in corso di tutti i browser,
+   "waiting": lavori in coda, "others": lavori degli altri browser,
+   "running": null | {"mine": bool, "id": id se è di questo browser},
+   "jobs": [{"id": "...", "position": 1}, ...]}   posizione 1 = il prossimo
 
-I dati (config.json, log, lock) stanno in DATA_DIR: la variabile d'ambiente
-WWT_DATA_DIR, altrimenti %LOCALAPPDATA%\\WhisperForWhatsAppWeb per l'eseguibile
-impacchettato e la cartella dello script quando gira da sorgente.
+Un lock su file impedisce anche a trascrizioni da riga di comando di sovrapporsi
+a quelle del motore.
+
+I dati (config.json, log, lock, chiave del motore, librerie CUDA) stanno in
+DATA_DIR: la variabile d'ambiente WWT_DATA_DIR, altrimenti
+%LOCALAPPDATA%\\WhisperForWhatsAppWeb per l'eseguibile impacchettato e la
+cartella dello script quando gira da sorgente.
 
 Da riga di comando: "--info" stampa lo stato, "--selftest" carica il modello e
-trascrive un secondo di silenzio, "--file PERCORSO [--lang xx]" trascrive un file.
+trascrive un secondo di silenzio, "--file PERCORSO [--lang xx]" trascrive un file,
+"--cuda-install" scarica le librerie CUDA; "--device cpu|cuda|auto" e
+"--compute TIPO" valgono per quella sola esecuzione, senza toccare config.json.
 """
 
 import base64
+import hashlib
 import io
 import json
 import os
 import queue
+import re
 import struct
 import subprocess
 import sys
 import threading
 import time
 import traceback
+from multiprocessing.connection import Client, Listener
 
-HOST_VERSION = "1.3.1"
+import cuda_libs
+
+HOST_VERSION = "1.4.0"
 FROZEN = getattr(sys, "frozen", False)
 
 
@@ -65,6 +92,10 @@ DATA_DIR = _data_dir()
 CONFIG_PATH = os.path.join(DATA_DIR, "config.json")
 LOG_PATH = os.path.join(DATA_DIR, "whisper_host.log")
 LOCK_PATH = os.path.join(DATA_DIR, "transcribe.lock")
+ENGINE_KEY_PATH = os.path.join(DATA_DIR, "engine.key")
+ENGINE_IDLE_EXIT_S = 30
+ENGINE_START_TIMEOUT_S = 30
+ENGINE_RESUBMIT = 2
 
 DEFAULT_CONFIG = {
     "model": "large-v3",
@@ -200,6 +231,7 @@ class Transcriber:
         self.model = None
         self.model_key = None
         self.cfg = load_config()
+        self.cuda_failed = False
 
     def describe(self):
         info = {
@@ -225,6 +257,7 @@ class Transcriber:
             info["cuda_devices"] = ctranslate2.get_cuda_device_count()
         except Exception:  # noqa: BLE001
             pass
+        info["cuda"] = cuda_libs.status(DATA_DIR)
         return info
 
     def models(self):
@@ -236,9 +269,26 @@ class Transcriber:
             out.append({"name": current, "size_gb": None, "note": "cartella", "path": local_model_path(current), "current": True})
         return out
 
+    def device(self):
+        """Dispositivo effettivo: "auto" diventa cuda solo con driver e librerie pronti."""
+        wanted = self.cfg.get("device") or "cpu"
+        if wanted == "cpu" or self.cuda_failed:
+            return "cpu"
+        if wanted == "auto":
+            return "cuda" if cuda_libs.status(DATA_DIR)["usable"] else "cpu"
+        return "cuda"
+
+    def model_key_for(self, device):
+        cfg = self.cfg
+        return (cfg["model"], device, cfg["compute_type"], cfg.get("cpu_threads", 0))
+
+    def model_ready(self):
+        return self.model is not None and self.model_key == self.model_key_for(self.device())
+
     def ensure_model(self):
         cfg = self.cfg
-        key = (cfg["model"], cfg["device"], cfg["compute_type"], cfg.get("cpu_threads", 0))
+        device = self.device()
+        key = self.model_key_for(device)
         if self.model is not None and self.model_key == key:
             return
         path = local_model_path(cfg["model"])
@@ -246,16 +296,39 @@ class Transcriber:
             raise ModelMissing("E:model_missing:%s" % cfg["model"])
         from faster_whisper import WhisperModel
 
+        if device == "cuda":
+            cuda_libs.activate(DATA_DIR)
         self.model = None
         t0 = time.time()
-        self.model = WhisperModel(
-            path,
-            device=cfg["device"],
-            compute_type=cfg["compute_type"],
-            cpu_threads=int(cfg.get("cpu_threads") or 0),
-        )
+        try:
+            self.model = WhisperModel(
+                path,
+                device=device,
+                compute_type=cfg["compute_type"],
+                cpu_threads=int(cfg.get("cpu_threads") or 0),
+            )
+        except Exception as e:  # noqa: BLE001
+            if device != "cuda":
+                raise
+            self.fail_cuda(e)
+            return self.ensure_model()
         self.model_key = key
-        self.log("modello caricato da %s in %.1f s" % (path, time.time() - t0))
+        self.log("modello caricato da %s su %s (%s) in %.1f s" % (path, device, cfg["compute_type"], time.time() - t0))
+
+    def fail_cuda(self, error):
+        """La GPU non funziona: si torna alla CPU fino al prossimo cambio di configurazione."""
+        message = "%s: %s" % (type(error).__name__, error)
+        self.log("GPU non utilizzabile, uso la CPU: %s" % message)
+        cuda_libs.set_last_error(DATA_DIR, message)
+        self.cuda_failed = True
+        self.model = None
+        self.model_key = None
+
+    def reload_config(self):
+        cfg = load_config()
+        if cfg != self.cfg:
+            self.cuda_failed = False
+        self.cfg = cfg
 
     def transcribe(self, audio_bytes, req, on_partial, cancelled):
         cfg = self.cfg
@@ -407,14 +480,396 @@ class PipeReader:
         return bytes(out)
 
 
+def engine_address():
+    """Indirizzo del motore: unico per utente e cartella dati."""
+    tag = hashlib.sha256(os.path.abspath(DATA_DIR).lower().encode("utf-8")).hexdigest()[:10]
+    if os.name == "nt":
+        user = re.sub(r"[^A-Za-z0-9_.-]", "_", os.environ.get("USERNAME") or "user")
+        return r"\\.\pipe\WhisperForWhatsAppWeb-%s-%s" % (user, tag), "AF_PIPE"
+    return os.path.join(DATA_DIR, "engine-%s.sock" % tag), "AF_UNIX"
+
+
+def engine_key():
+    """Chiave di autenticazione condivisa da motore e relay, creata dal primo che la chiede."""
+    os.makedirs(DATA_DIR, exist_ok=True)
+    try:
+        fd = os.open(ENGINE_KEY_PATH, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0), 0o600)
+    except FileExistsError:
+        pass
+    else:
+        with os.fdopen(fd, "wb") as f:
+            f.write(os.urandom(32))
+    for _ in range(50):
+        with open(ENGINE_KEY_PATH, "rb") as f:
+            key = f.read()
+        if len(key) == 32:
+            return key
+        time.sleep(0.05)
+    raise RuntimeError("chiave del motore non valida in %s" % ENGINE_KEY_PATH)
+
+
+def send_json(conn, lock, msg):
+    data = json.dumps(msg, ensure_ascii=False).encode("utf-8")
+    with lock:
+        conn.send_bytes(data)
+
+
+def spawn_engine(log):
+    """Avvia il motore staccato da questo processo e dal job del browser, quando possibile."""
+    args = [sys.executable, "--engine"] if FROZEN else [sys.executable, os.path.abspath(__file__), "--engine"]
+    kwargs = dict(stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True, cwd=DATA_DIR)
+    if os.name != "nt":
+        return subprocess.Popen(args, start_new_session=True, **kwargs).pid
+    base = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
+    try:
+        proc = subprocess.Popen(args, creationflags=base | subprocess.CREATE_BREAKAWAY_FROM_JOB, **kwargs)
+    except OSError:
+        proc = subprocess.Popen(args, creationflags=base, **kwargs)
+    log("motore avviato, pid %s" % proc.pid)
+    return proc.pid
+
+
+class EngineJob:
+    def __init__(self, cid, msg):
+        self.cid = cid
+        self.id = msg.get("id")
+        self.msg = msg
+        self.manual = bool(msg.get("manual"))
+        self.cancelled = False
+
+
+class EngineClient:
+    def __init__(self, cid, conn):
+        self.cid = cid
+        self.conn = conn
+        self.lock = threading.Lock()
+        self.label = ""
+
+
+class Engine:
+    """Coda unica delle trascrizioni e modello condiviso da tutti i relay."""
+
+    def __init__(self, log):
+        self.log = log
+        self.tr = Transcriber(log)
+        self.cond = threading.Condition()
+        self.clients = {}
+        self.waiting = []
+        self.running = None
+        self.seq = 0
+        self.idle_since = time.time()
+
+    # ---------- collegamenti ----------
+
+    def serve(self, listener):
+        while True:
+            try:
+                conn = listener.accept()
+            except Exception as e:  # noqa: BLE001
+                self.log("motore: collegamento rifiutato: %s" % e)
+                continue
+            with self.cond:
+                self.seq += 1
+                client = EngineClient(self.seq, conn)
+                self.clients[client.cid] = client
+                self.idle_since = time.time()
+            threading.Thread(target=self.client_loop, args=(client,), daemon=True).start()
+
+    def client_loop(self, client):
+        try:
+            while True:
+                msg = json.loads(client.conn.recv_bytes().decode("utf-8"))
+                self.handle(client, msg)
+        except (EOFError, OSError, ValueError):
+            pass
+        finally:
+            self.drop(client)
+
+    def drop(self, client):
+        with self.cond:
+            self.clients.pop(client.cid, None)
+            self.waiting = [j for j in self.waiting if j.cid != client.cid]
+            if self.running is not None and self.running.cid == client.cid:
+                self.running.cancelled = True
+            self.idle_since = time.time()
+            self.cond.notify_all()
+        try:
+            client.conn.close()
+        except OSError:
+            pass
+        self.broadcast_queue()
+
+    def send(self, client, msg):
+        try:
+            send_json(client.conn, client.lock, msg)
+        except (OSError, ValueError):
+            pass
+
+    def to_owner(self, job, msg):
+        client = self.clients.get(job.cid)
+        if client is not None:
+            self.send(client, msg)
+
+    # ---------- coda ----------
+
+    def handle(self, client, msg):
+        kind = msg.get("type")
+        if kind == "hello":
+            client.label = str(msg.get("browser") or "")
+        elif kind == "transcribe":
+            job = EngineJob(client.cid, msg)
+            with self.cond:
+                if job.manual:
+                    i = 0
+                    while i < len(self.waiting) and self.waiting[i].manual:
+                        i += 1
+                    self.waiting.insert(i, job)
+                else:
+                    self.waiting.append(job)
+                self.cond.notify_all()
+            self.broadcast_queue()
+        elif kind == "cancel":
+            removed = None
+            with self.cond:
+                for j in self.waiting:
+                    if j.cid == client.cid and j.id == msg.get("id"):
+                        removed = j
+                        break
+                if removed is not None:
+                    self.waiting.remove(removed)
+                elif self.running is not None and self.running.cid == client.cid and self.running.id == msg.get("id"):
+                    self.running.cancelled = True
+            if removed is not None:
+                self.send(client, {"type": "error", "id": removed.id, "message": "annullata", "cancelled": True})
+                self.broadcast_queue()
+        elif kind == "queue":
+            snap = self.snapshot(client.cid)
+            if msg.get("rid") is not None:
+                snap["rid"] = msg["rid"]
+            self.send(client, snap)
+        else:
+            self.send(client, {"type": "error", "id": msg.get("id"), "rid": msg.get("rid"), "message": "tipo sconosciuto: %s" % kind})
+
+    def snapshot(self, cid):
+        with self.cond:
+            run = self.running
+            return {
+                "type": "queue",
+                "length": len(self.waiting) + (1 if run is not None else 0),
+                "waiting": len(self.waiting),
+                "others": sum(1 for j in self.waiting if j.cid != cid) + (1 if run is not None and run.cid != cid else 0),
+                "running": None if run is None else {"mine": run.cid == cid, "id": run.id if run.cid == cid else None},
+                "jobs": [{"id": j.id, "position": i + 1} for i, j in enumerate(self.waiting) if j.cid == cid],
+            }
+
+    def broadcast_queue(self):
+        for client in list(self.clients.values()):
+            self.send(client, self.snapshot(client.cid))
+
+    def worker(self):
+        lock = FileLock(LOCK_PATH)
+        while True:
+            with self.cond:
+                while not self.waiting:
+                    self.cond.wait()
+                job = self.waiting.pop(0)
+                self.running = job
+            self.broadcast_queue()
+            try:
+                self.run_job(job, lock)
+            finally:
+                with self.cond:
+                    self.running = None
+                    self.idle_since = time.time()
+                self.broadcast_queue()
+
+    def run_job(self, job, lock):
+        jid = job.id
+        if job.cancelled:
+            self.to_owner(job, {"type": "error", "id": jid, "message": "annullata", "cancelled": True})
+            return
+        t0 = time.time()
+        try:
+            audio = base64.b64decode(job.msg["audio"])
+            lock.acquire(on_wait=lambda: self.to_owner(job, {"type": "status", "id": jid, "state": "waiting_lock"}))
+            try:
+                res = self.transcribe(job, audio)
+            finally:
+                lock.release()
+            res.update(type="result", id=jid, elapsed=round(time.time() - t0, 2))
+            client = self.clients.get(job.cid)
+            self.log("trascritto %s%s: %.1f s audio in %.1f s su %s" % (
+                jid, " (%s)" % client.label if client is not None and client.label else "",
+                res["duration"], res["elapsed"], res["device"]))
+            self.to_owner(job, res)
+        except InterruptedError:
+            self.to_owner(job, {"type": "error", "id": jid, "message": "annullata", "cancelled": True})
+        except Exception as e:  # noqa: BLE001
+            self.log(traceback.format_exc())
+            self.to_owner(job, {"type": "error", "id": jid, "message": "%s: %s" % (type(e).__name__, e)})
+
+    def transcribe(self, job, audio):
+        """Trascrive sul dispositivo configurato; un errore sulla GPU ripete il lavoro sulla CPU."""
+        jid = job.id
+        while True:
+            self.tr.reload_config()
+            if not self.tr.model_ready():
+                self.to_owner(job, {"type": "status", "id": jid, "state": "loading_model"})
+            self.tr.ensure_model()
+            device = self.tr.model_key[1]
+            self.to_owner(job, {"type": "status", "id": jid, "state": "transcribing"})
+            try:
+                res = self.tr.transcribe(
+                    audio,
+                    job.msg,
+                    lambda text, p: self.to_owner(job, {"type": "partial", "id": jid, "text": text, "progress": p}),
+                    lambda: job.cancelled,
+                )
+            except InterruptedError:
+                raise
+            except Exception as e:  # noqa: BLE001
+                if device != "cuda":
+                    raise
+                self.tr.fail_cuda(e)
+                continue
+            if device == "cuda":
+                cuda_libs.set_last_error(DATA_DIR, None)
+            res["device"] = device
+            return res
+
+    def idle_watch(self):
+        while True:
+            time.sleep(5)
+            with self.cond:
+                idle = not self.clients and not self.waiting and self.running is None
+                since = self.idle_since
+            if idle and time.time() - since >= ENGINE_IDLE_EXIT_S:
+                self.log("motore: nessun collegamento da %d s, uscita" % ENGINE_IDLE_EXIT_S)
+                os._exit(0)
+
+
+class EngineLink:
+    """Collegamento del relay al motore: invia i lavori, inoltra al browser ciò che torna."""
+
+    def __init__(self, host):
+        self.host = host
+        self.log = host.log
+        self.conn = None
+        self.send_lock = threading.Lock()
+        self.state_lock = threading.RLock()
+        self.submitted = {}
+        self.attempts = {}
+
+    def connect(self, spawn=True):
+        with self.state_lock:
+            if self.conn is not None:
+                return self.conn
+            address, family = engine_address()
+            key = engine_key()
+            deadline = time.time() + ENGINE_START_TIMEOUT_S
+            spawned = False
+            while True:
+                try:
+                    conn = Client(address, family=family, authkey=key)
+                    break
+                except OSError:
+                    if not spawn:
+                        return None
+                    if not spawned:
+                        spawn_engine(self.log)
+                        spawned = True
+                    if time.time() > deadline:
+                        raise RuntimeError("E:engine_unavailable")
+                    time.sleep(0.2)
+            self.conn = conn
+            send_json(conn, self.send_lock, {"type": "hello", "browser": self.host.browser})
+            threading.Thread(target=self.reader, args=(conn,), daemon=True).start()
+            return conn
+
+    def send(self, msg, spawn=True):
+        conn = self.connect(spawn)
+        if conn is None:
+            return False
+        send_json(conn, self.send_lock, msg)
+        return True
+
+    def reader(self, conn):
+        try:
+            while True:
+                msg = json.loads(conn.recv_bytes().decode("utf-8"))
+                if msg.get("type") in ("result", "error") and msg.get("id") in self.submitted:
+                    self.submitted.pop(msg["id"], None)
+                    self.attempts.pop(msg["id"], None)
+                self.host.send(msg)
+        except (EOFError, OSError, ValueError):
+            pass
+        with self.state_lock:
+            if self.conn is conn:
+                self.conn = None
+        if not self.host.closing:
+            self.host.engine_q.put(("resubmit", None))
+
+    def submit(self, msg):
+        jid = msg.get("id")
+        self.submitted[jid] = msg
+        self.attempts[jid] = 0
+        try:
+            self.send(msg)
+        except Exception as e:  # noqa: BLE001
+            self.fail(jid, e)
+
+    def fail(self, jid, error):
+        self.submitted.pop(jid, None)
+        self.attempts.pop(jid, None)
+        text = str(error) if str(error).startswith("E:") else "%s: %s" % (type(error).__name__, error)
+        self.host.send({"type": "error", "id": jid, "message": text})
+
+    def resubmit(self):
+        """Il motore si è chiuso: i lavori senza risposta ripartono su un motore nuovo."""
+        pending = list(self.submitted.values())
+        if not pending:
+            return
+        self.log("motore perso con %d lavori in sospeso" % len(pending))
+        for msg in pending:
+            jid = msg.get("id")
+            self.attempts[jid] = self.attempts.get(jid, 0) + 1
+            if self.attempts[jid] > ENGINE_RESUBMIT:
+                self.fail(jid, RuntimeError("E:engine_crashed"))
+                continue
+            try:
+                self.send(msg)
+            except Exception as e:  # noqa: BLE001
+                self.fail(jid, e)
+
+    def cancel(self, msg):
+        if msg.get("id") in self.submitted and self.conn is not None:
+            try:
+                self.send(msg, spawn=False)
+            except Exception:  # noqa: BLE001
+                pass
+
+    def queue(self, msg):
+        try:
+            if self.send({"type": "queue", "rid": msg.get("rid")}, spawn=False):
+                return
+        except Exception:  # noqa: BLE001
+            pass
+        self.host.reply(msg, {"type": "queue", "length": 0, "waiting": 0, "others": 0, "running": None, "jobs": []})
+
+
 class Host:
-    def __init__(self, out, log):
+    """Relay: protocollo del browser, lavori locali, inoltro delle trascrizioni al motore."""
+
+    def __init__(self, out, log, browser=""):
         self.out = out
         self.log = log
+        self.browser = browser
+        self.closing = False
         self.write_lock = threading.Lock()
         self.jobs = queue.Queue()
-        self.cancelled = set()
+        self.engine_q = queue.Queue()
         self.tr = Transcriber(log)
+        self.engine = EngineLink(self)
 
     def send(self, msg):
         data = json.dumps(msg, ensure_ascii=False).encode("utf-8")
@@ -443,7 +898,9 @@ class Host:
                 self.send({"type": "error", "message": "JSON non valido: %s" % e})
                 continue
             self.dispatch(msg)
+        self.closing = True
         self.jobs.put(None)
+        self.engine_q.put(None)
 
     def dispatch(self, msg):
         kind = msg.get("type")
@@ -451,8 +908,6 @@ class Host:
             self.reply(msg, dict(type="pong", **self.tr.describe()))
         elif kind == "models":
             self.reply(msg, {"type": "models", "models": self.tr.models(), "config": self.tr.cfg})
-        elif kind == "cancel":
-            self.cancelled.add(msg.get("id"))
         elif kind == "pick_folder":
             threading.Thread(target=self.do_pick_folder, args=(msg,), daemon=True).start()
         elif kind == "extension_dirs":
@@ -460,10 +915,31 @@ class Host:
 
             dirs = [{"browser": b, "profile": p, "path": d, "release": m} for b, p, d, m in updater.extension_dirs(msg.get("ext_id"))]
             self.reply(msg, {"type": "extension_dirs", "dirs": dirs})
-        elif kind in ("transcribe", "set_config", "download_model", "update_host", "update_extension"):
+        elif kind in ("transcribe", "cancel", "queue"):
+            self.engine_q.put((kind, msg))
+        elif kind in ("set_config", "download_model", "cuda_install", "update_host", "update_extension"):
             self.jobs.put(msg)
         else:
             self.reply(msg, {"type": "error", "id": msg.get("id"), "message": "tipo sconosciuto: %s" % kind})
+
+    def engine_worker(self):
+        """Comunicazioni con il motore in ordine di arrivo, fuori dal thread che legge il browser."""
+        while True:
+            item = self.engine_q.get()
+            if item is None:
+                return
+            kind, msg = item
+            try:
+                if kind == "transcribe":
+                    self.engine.submit(msg)
+                elif kind == "cancel":
+                    self.engine.cancel(msg)
+                elif kind == "queue":
+                    self.engine.queue(msg)
+                elif kind == "resubmit":
+                    self.engine.resubmit()
+            except Exception:  # noqa: BLE001
+                self.log(traceback.format_exc())
 
     def do_pick_folder(self, msg):
         try:
@@ -473,7 +949,6 @@ class Host:
             self.reply(msg, {"type": "error", "message": "selezione cartella: %s" % e})
 
     def worker(self):
-        lock = FileLock(LOCK_PATH)
         while True:
             msg = self.jobs.get()
             if msg is None:
@@ -484,49 +959,15 @@ class Host:
                     self.apply_config(msg)
                 elif kind == "download_model":
                     self.do_download(msg)
+                elif kind == "cuda_install":
+                    self.do_cuda_install(msg)
                 elif kind == "update_host":
                     self.do_update_host(msg)
                 elif kind == "update_extension":
                     self.do_update_extension(msg)
-                else:
-                    self.do_transcribe(msg, lock)
             except Exception as e:  # noqa: BLE001
                 self.log(traceback.format_exc())
                 self.reply(msg, {"type": "error", "id": msg.get("id"), "message": "%s: %s" % (type(e).__name__, e)})
-
-    def do_transcribe(self, msg, lock):
-        job_id = msg.get("id")
-        if job_id in self.cancelled:
-            self.cancelled.discard(job_id)
-            self.send({"type": "error", "id": job_id, "message": "annullata", "cancelled": True})
-            return
-        t0 = time.time()
-        try:
-            audio = base64.b64decode(msg["audio"])
-            lock.acquire(on_wait=lambda: self.send({"type": "status", "id": job_id, "state": "waiting_lock"}))
-            try:
-                if self.tr.model is None:
-                    self.send({"type": "status", "id": job_id, "state": "loading_model"})
-                self.tr.ensure_model()
-                self.send({"type": "status", "id": job_id, "state": "transcribing"})
-                res = self.tr.transcribe(
-                    audio,
-                    msg,
-                    lambda text, p: self.send({"type": "partial", "id": job_id, "text": text, "progress": p}),
-                    lambda: job_id in self.cancelled,
-                )
-            finally:
-                lock.release()
-            res.update(type="result", id=job_id, elapsed=round(time.time() - t0, 2))
-            self.log("trascritto %s: %.1f s audio in %.1f s" % (job_id, res["duration"], res["elapsed"]))
-            self.send(res)
-        except InterruptedError:
-            self.send({"type": "error", "id": job_id, "message": "annullata", "cancelled": True})
-        except Exception as e:  # noqa: BLE001
-            self.log(traceback.format_exc())
-            self.send({"type": "error", "id": job_id, "message": "%s: %s" % (type(e).__name__, e)})
-        finally:
-            self.cancelled.discard(job_id)
 
     def update_progress(self, msg, stage):
         def progress(done, total):
@@ -568,6 +1009,18 @@ class Host:
             self.set_config({"model": name})
         self.reply(msg, {"type": "download_done", "name": name, "path": path, "models": self.tr.models()})
 
+    def do_cuda_install(self, msg):
+        last = [0.0]
+
+        def progress(stage, done, total):
+            now = time.time()
+            if stage != "download" or now - last[0] >= 0.5:
+                last[0] = now
+                self.reply(msg, {"type": "cuda_progress", "stage": stage, "downloaded": done, "total": total})
+
+        cuda_libs.install(DATA_DIR, progress, self.log)
+        self.reply(msg, {"type": "cuda_done", "cuda": cuda_libs.status(DATA_DIR)})
+
     def set_config(self, values):
         cfg = load_config()
         for k, v in (values or {}).items():
@@ -581,12 +1034,13 @@ class Host:
         self.reply(msg, dict(type="pong", **self.tr.describe()))
 
 
-def open_log():
+def open_log(prefix=""):
     os.makedirs(DATA_DIR, exist_ok=True)
     fh = open(LOG_PATH, "a", encoding="utf-8", buffering=1)
+    tag = "[%s] " % prefix if prefix else ""
 
     def log(text):
-        fh.write("%s %s\n" % (time.strftime("%Y-%m-%d %H:%M:%S"), text))
+        fh.write("%s %s%s\n" % (time.strftime("%Y-%m-%d %H:%M:%S"), tag, text))
 
     return fh, log
 
@@ -608,12 +1062,71 @@ def run_native():
     sys.stdout = log_fh
     sys.stderr = log_fh
     log("avvio host %s, %s, argv %s" % (HOST_VERSION, sys.executable, sys.argv[1:]))
-    host = Host(proto_out, log)
-    t = threading.Thread(target=host.worker, daemon=True)
-    t.start()
+    host = Host(proto_out, log, parent_browser())
+    for target in (host.worker, host.engine_worker):
+        threading.Thread(target=target, daemon=True).start()
     host.reader(PipeReader(0))
     log("stdin chiuso, uscita")
-    t.join(timeout=2)
+
+
+def parent_browser():
+    """Nome del browser che ha avviato il relay (chrome, msedge...), dal processo padre."""
+    if os.name != "nt":
+        return ""
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+
+        class PROCESSENTRY32W(ctypes.Structure):
+            _fields_ = [("dwSize", wintypes.DWORD), ("cntUsage", wintypes.DWORD), ("th32ProcessID", wintypes.DWORD),
+                        ("th32DefaultHeapID", ctypes.c_void_p), ("th32ModuleID", wintypes.DWORD),
+                        ("cntThreads", wintypes.DWORD), ("th32ParentProcessID", wintypes.DWORD),
+                        ("pcPriClassBase", ctypes.c_long), ("dwFlags", wintypes.DWORD), ("szExeFile", ctypes.c_wchar * 260)]
+
+        k32.CreateToolhelp32Snapshot.restype = wintypes.HANDLE
+        snap = k32.CreateToolhelp32Snapshot(0x2, 0)
+        entries = {}
+        e = PROCESSENTRY32W()
+        e.dwSize = ctypes.sizeof(e)
+        ok = k32.Process32FirstW(snap, ctypes.byref(e))
+        while ok:
+            entries[e.th32ProcessID] = (e.th32ParentProcessID, e.szExeFile)
+            ok = k32.Process32NextW(snap, ctypes.byref(e))
+        k32.CloseHandle(snap)
+        pid = os.getpid()
+        for _ in range(4):
+            parent = entries.get(pid)
+            if not parent:
+                return ""
+            pid = parent[0]
+            name = entries.get(pid, (0, ""))[1].lower()
+            if name and name not in ("cmd.exe", "conhost.exe"):
+                return name.rsplit(".", 1)[0]
+        return ""
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def run_engine():
+    log_fh, log = open_log("motore")
+    if os.name == "nt":
+        os.dup2(log_fh.fileno(), 1)
+        os.dup2(log_fh.fileno(), 2)
+    sys.stdout = log_fh
+    sys.stderr = log_fh
+    address, family = engine_address()
+    try:
+        listener = Listener(address, family=family, authkey=engine_key())
+    except OSError as e:
+        log("motore già attivo (%s)" % e)
+        return
+    log("avvio motore %s, %s" % (HOST_VERSION, sys.executable))
+    engine = Engine(log)
+    for target in (engine.worker, engine.idle_watch):
+        threading.Thread(target=target, daemon=True).start()
+    engine.serve(listener)
 
 
 def run_cli(argv):
@@ -621,6 +1134,18 @@ def run_cli(argv):
         print(text, file=sys.stderr)
 
     tr = Transcriber(log)
+    for opt in ("--device", "--compute"):
+        if opt in argv:
+            tr.cfg["device" if opt == "--device" else "compute_type"] = argv[argv.index(opt) + 1]
+    if "--cuda-install" in argv:
+        last = [0.0]
+
+        def progress(stage, done, total):
+            if stage != "download" or time.time() - last[0] >= 5:
+                last[0] = time.time()
+                log("CUDA %s: %d / %d MB" % (stage, done // 1000000, total // 1000000))
+
+        cuda_libs.install(DATA_DIR, progress, log)
     print(json.dumps(tr.describe(), indent=2, ensure_ascii=False))
     if "--selftest" in argv:
         import wave
@@ -633,20 +1158,24 @@ def run_cli(argv):
             w.writeframes(b"\x00\x00" * 16000)
         t0 = time.time()
         tr.ensure_model()
-        print("modello caricato in %.1f s" % (time.time() - t0))
+        print("modello caricato su %s in %.1f s" % (tr.model_key[1], time.time() - t0))
         res = tr.transcribe(buf.getvalue(), {"vad_filter": False}, lambda *_: None, lambda: False)
         print("selftest ok:", json.dumps(res, ensure_ascii=False))
     if "--file" in argv:
         path = argv[argv.index("--file") + 1]
         lang = argv[argv.index("--lang") + 1] if "--lang" in argv else None
         tr.ensure_model()
+        t0 = time.time()
         with open(path, "rb") as f:
             res = tr.transcribe(f.read(), {"language": lang}, lambda *_: None, lambda: False)
+        res.update(device=tr.model_key[1], elapsed=round(time.time() - t0, 2))
         print(json.dumps(res, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":
-    if any(a in sys.argv for a in ("--selftest", "--file", "--info")):
+    if "--engine" in sys.argv:
+        run_engine()
+    elif any(a in sys.argv for a in ("--selftest", "--file", "--info", "--cuda-install")):
         run_cli(sys.argv[1:])
     else:
         run_native()

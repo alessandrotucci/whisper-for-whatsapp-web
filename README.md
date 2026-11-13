@@ -8,8 +8,11 @@ sotto ogni vocale. L'audio non lascia la macchina: nessun servizio cloud, nessun
 - Pulsante **Trascrivi** sotto ogni vocale, anche quelli arrivati prima dell'installazione.
 - Copia con Ctrl+C: selezionando più messaggi, i vocali trascritti finiscono negli appunti al loro
   posto, con ora e mittente come i messaggi scritti.
-- Coda seriale: una trascrizione per volta, anche con più vocali in arrivo insieme e con Chrome ed
-  Edge aperti contemporaneamente.
+- Coda unica nel componente locale: una trascrizione per volta, in ordine, anche con più vocali in
+  arrivo insieme e con Chrome ed Edge aperti contemporaneamente, su account WhatsApp diversi. Ogni
+  vocale mostra la sua posizione nella coda comune.
+- GPU NVIDIA facoltativa: la pagina dell'estensione verifica il driver e scarica da sé le librerie
+  CUDA (cuBLAS e cuDNN, circa 1,3 GB), che l'installer non contiene.
 - Modelli Whisper a scelta (large-v3 predefinito), scaricati dalla pagina dell'estensione o già
   presenti nella cache di faster-whisper.
 
@@ -37,10 +40,25 @@ WhatsApp Web ─ page.js (mondo MAIN): moduli interni di WhatsApp, trova i vocal
       │ window.postMessage
    content.js: riquadro sotto il vocale
       │ chrome.runtime
-   background.js (service worker): coda seriale, archivio delle trascrizioni
+   background.js (service worker): audio dalla scheda, archivio delle trascrizioni
       │ native messaging (stdin/stdout)
-   whisper_host.exe: faster-whisper, modello in memoria tra una richiesta e l'altra
+   whisper_host.exe (relay, uno per browser): configurazione, modelli, aggiornamenti
+      │ named pipe con chiave di autenticazione
+   whisper_host.exe --engine (motore, uno per utente): coda unica, faster-whisper, modello in memoria
 ```
+
+Chrome ed Edge avviano ciascuno il proprio processo del componente. Il primo che deve trascrivere
+avvia il motore; gli altri si collegano allo stesso. Il motore tiene una sola copia del modello e
+una sola coda (le richieste fatte a mano prima di quelle automatiche, poi in ordine di arrivo) e a
+ogni cambio manda a ogni browser le posizioni dei suoi vocali. Si chiude 30 secondi dopo l'ultimo
+browser collegato.
+
+GPU: le librerie CUDA si scaricano dai wheel NVIDIA su PyPI (`nvidia-cublas-cu12`,
+`nvidia-cudnn-cu12` della stessa versione di `cudnn64_9.dll` incluso in ctranslate2), con
+dimensione e SHA-256 fissati in `host/cuda_libs.py`, e se ne estraggono le DLL in
+`%LOCALAPPDATA%\WhisperForWhatsAppWeb\cuda`. Il driver NVIDIA non si scarica: è un driver di sistema
+e richiede privilegi di amministratore. Se la GPU fallisce, il motore ripete il lavoro sulla CPU e
+la pagina dell'estensione mostra l'errore.
 
 Un'estensione non può avviare programmi: il componente locale è un host di
 [native messaging](https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging),
@@ -62,6 +80,9 @@ alzare la versione del componente.
 
 Le trascrizioni restano in `chrome.storage.local`, legate all'id del messaggio. Il componente
 locale resta attivo, col modello in memoria, per alcuni minuti dopo l'ultima trascrizione.
+
+Prove: `node tools/sw_smoke_test.js extension` esegue il service worker con le API di Chrome
+simulate e un componente finto; gira in CI prima di ogni release.
 
 L'audio si scarica senza passare dal lettore di WhatsApp. Che questo non invii la conferma di
 ascolto è un'inferenza, non verificata.

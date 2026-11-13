@@ -1,6 +1,6 @@
 // Aggiornamenti di estensione e componente locale dalle release su GitHub.
-// Caricato da background.js con importScripts: usa hostRequest, port, current,
-// queue, updating, updateAvailable, refreshBadge, handlers e notifyPages.
+// Caricato da background.js con importScripts: usa hostRequest, port, hostBusy,
+// fetching, pumpFetch, updating, updateAvailable, refreshBadge, handlers e notifyPages.
 //
 // Controllo: una volta al giorno (allarme "update-check") si leggono l'ultima release
 // e il suo version.json, {"extension": "x.y.z", "host": "x.y.z"}, dall'API di GitHub;
@@ -77,7 +77,7 @@ async function checkForUpdates() {
   };
   // La versione del componente si rilegge solo se è già installato: il ping lo avvia.
   const { hostVersion } = await chrome.storage.local.get('hostVersion');
-  if (hostVersion && !current && !updating) {
+  if (hostVersion && !hostBusy() && !updating) {
     try {
       const pong = await hostRequest({ type: 'ping' }, ['pong']);
       await chrome.storage.local.set({ hostVersion: pong.host_version });
@@ -95,7 +95,7 @@ function progress(stage, extra = {}) {
 }
 
 async function waitIdleQueue() {
-  while (current) await new Promise((r) => setTimeout(r, 1000));
+  while (hostBusy() || fetching) await new Promise((r) => setTimeout(r, 1000));
 }
 
 // Dopo l'avvio dell'installer: il componente vecchio viene terminato, poi un ping deve
@@ -130,7 +130,7 @@ async function applyUpdate() {
   if (!info.available) return { ok: true, nothing: true };
   updating = true;
   try {
-    if (current) progress('waiting_queue');
+    if (hostBusy() || fetching) progress('waiting_queue');
     await waitIdleQueue();
     if (info.needHost) {
       const url = DOWNLOAD + info.tag + '/' + INSTALLER_ASSET;
@@ -181,7 +181,7 @@ async function applyUpdate() {
     return { ok: false, error: e.message };
   } finally {
     updating = false;
-    if (queue.length) pump();
+    pumpFetch();
   }
 }
 

@@ -1,11 +1,13 @@
-// Service worker: coda seriale delle trascrizioni, porta verso l'host nativo, archivio dei risultati.
+// Service worker: lavori di trascrizione del browser, porta verso il componente locale, archivio dei risultati.
 //
-// La coda è unica per il browser e il lavoro parte un elemento per volta: il
-// successivo si avvia solo quando il precedente ha un risultato o un errore.
-// L'audio non sta in coda: lo si chiede alla tab di WhatsApp quando tocca a quel vocale.
+// La coda delle trascrizioni sta nel componente locale ed è unica per tutti i browser
+// del computer: qui un vocale chiesto da trascrivere aspetta solo il proprio audio, che
+// si chiede alla scheda di WhatsApp un vocale per volta e si passa subito al componente.
+// Posizione in coda e stato arrivano dal componente, con i messaggi "queue" e "status".
 //
 // Archivio: chrome.storage.local, chiave "t:<id messaggio>".
-// Coda: chrome.storage.session, così sopravvive al riavvio del service worker.
+// Lavori aperti: chrome.storage.session, così sopravvivono al riavvio del service worker;
+// alla ripartenza tornano tutti in attesa dell'audio e si inviano di nuovo.
 
 const HOST_NAME = 'local.wa_whisper.host';
 const WA_URL = 'https://web.whatsapp.com/*';
@@ -21,9 +23,15 @@ const DEFAULT_SETTINGS = {
   idleMinutes: 10,
 };
 
+// Un lavoro passa per gli stati: queued (attende l'audio, o il turno nel componente,
+// con position), downloading, waiting (inviato), waiting_lock, loading_model, transcribing.
+const PORT_RETRIES = 1; // nuovi invii di un lavoro dopo la chiusura del componente
+const RUNNING_STATES = ['waiting_lock', 'loading_model', 'transcribing'];
+
 let settings = { ...DEFAULT_SETTINGS };
-let queue = []; // [{key, tabId, manual, chat, addedAt}]
-let current = null; // {key, tabId, chat, state, partial, progress, startedAt}
+let jobs = new Map(); // key -> {key, tabId, manual, chat, addedAt, retries, state, hostJobId, position, partial, progress, startedAt}
+let toFetch = []; // chiavi in attesa dell'audio: le richieste manuali in testa
+let hostQueue = null; // ultimo stato della coda del componente
 let restored = null;
 let updating = false; // aggiornamento in corso: la coda non avvia lavori nuovi
 let updateAvailable = false;
@@ -47,20 +55,39 @@ function restore() {
   if (!restored) {
     restored = (async () => {
       await loadSettings();
-      const s = await chrome.storage.session.get(['queue', 'current']);
-      queue = s.queue || [];
-      // Il lavoro in corso al momento del riavvio torna in testa alla coda.
-      if (s.current) queue.unshift({ key: s.current.key, tabId: s.current.tabId, manual: true, chat: s.current.chat, addedAt: Date.now() });
+      const s = await chrome.storage.session.get(['jobs']);
+      for (const j of s.jobs || []) {
+        if (jobs.has(j.key)) continue;
+        jobs.set(j.key, { ...j, retries: j.retries || 0, state: 'queued' });
+        insertToFetch(j.key, j.manual);
+      }
       await persistQueue();
-      pump();
+      broadcastQueue();
+      pumpFetch();
     })();
   }
   return restored;
 }
 
 function persistQueue() {
-  const cur = current && { key: current.key, tabId: current.tabId, chat: current.chat };
-  return chrome.storage.session.set({ queue, current: cur || null });
+  const list = [...jobs.values()].map((j) => ({ key: j.key, tabId: j.tabId, manual: j.manual, chat: j.chat, addedAt: j.addedAt, retries: j.retries }));
+  return chrome.storage.session.set({ jobs: list });
+}
+
+function insertToFetch(key, manual) {
+  if (manual) {
+    let i = 0;
+    while (i < toFetch.length && jobs.get(toFetch[i]) && jobs.get(toFetch[i]).manual) i++;
+    toFetch.splice(i, 0, key);
+  } else {
+    toFetch.push(key);
+  }
+}
+
+// Lavori inviati al componente e non ancora conclusi.
+function hostBusy() {
+  for (const j of jobs.values()) if (j.hostJobId) return true;
+  return false;
 }
 
 async function getCached(keys) {
@@ -79,6 +106,7 @@ let idleTimer = null;
 let jobSeq = 0;
 let ridSeq = 0;
 let downloading = null; // nome del modello in download
+let cudaInstalling = false;
 
 function connect() {
   if (port) return port;
@@ -89,8 +117,13 @@ function connect() {
     const err = chrome.runtime.lastError ? chrome.runtime.lastError.message : chrome.i18n.getMessage('err_host_exited');
     lastHostError = err;
     port = null;
-    for (const p of pending.values()) p.reject(new Error(err));
+    for (const p of pending.values()) {
+      const e = new Error(err);
+      e.portLost = true;
+      p.reject(e);
+    }
     pending.clear();
+    hostQueue = null;
     for (const r of requests.values()) {
       clearTimeout(r.timer);
       r.reject(new Error(err));
@@ -115,6 +148,10 @@ function onHostMessage(msg) {
     } else if (r.onEvent) {
       r.onEvent(msg);
     }
+    return;
+  }
+  if (msg.type === 'queue') {
+    applyHostQueue(msg);
     return;
   }
   const p = msg.id != null ? pending.get(msg.id) : null;
@@ -157,7 +194,7 @@ function notifyPages(message) {
   chrome.runtime.sendMessage(message).catch(() => {});
 }
 
-function hostTranscribe(audioB64, onEvent) {
+function hostTranscribe(audioB64, manual, onEvent) {
   const id = 'j' + Date.now().toString(36) + '-' + (++jobSeq);
   const promise = new Promise((resolve, reject) => {
     pending.set(id, { resolve, reject, onEvent });
@@ -170,6 +207,7 @@ function hostTranscribe(audioB64, onEvent) {
         initial_prompt: settings.initialPrompt || null,
         beam_size: Number(settings.beamSize) || 5,
         vad_filter: !!settings.vadFilter,
+        manual: !!manual,
       });
     } catch (e) {
       pending.delete(id);
@@ -181,10 +219,10 @@ function hostTranscribe(audioB64, onEvent) {
 
 function scheduleIdleDisconnect() {
   clearTimeout(idleTimer);
-  if (!port || current || queue.length || downloading) return;
+  if (!port || jobs.size || downloading || cudaInstalling) return;
   const minutes = Math.max(1, Number(settings.idleMinutes) || 10);
   idleTimer = setTimeout(() => {
-    if (port && !current && !queue.length && !downloading) {
+    if (port && !jobs.size && !downloading && !cudaInstalling) {
       port.disconnect();
       port = null;
     }
@@ -204,26 +242,48 @@ async function broadcast(message) {
 }
 
 function stateOf(key) {
-  if (current && current.key === key) {
-    return { state: current.state, partial: current.partial, progress: current.progress };
+  const j = jobs.get(key);
+  if (!j) return null;
+  const out = { state: j.state, partial: j.partial, progress: j.progress };
+  if (j.state === 'queued') {
+    if (j.position) {
+      out.position = j.position;
+    } else {
+      // In attesa dell'audio: dopo tutto ciò che è già nel componente.
+      const i = toFetch.indexOf(key);
+      if (i >= 0) out.position = (hostQueue ? hostQueue.length : 0) + i + 1;
+    }
   }
-  const i = queue.findIndex((j) => j.key === key);
-  if (i >= 0) return { state: 'queued', position: i + 1 };
-  return null;
+  return out;
 }
 
-// Il badge mostra i vocali in coda; senza coda, una freccia se c'è un aggiornamento.
+// Il badge mostra i vocali di questo browser ancora da trascrivere; senza, una freccia se c'è un aggiornamento.
 function refreshBadge() {
-  const n = queue.length + (current ? 1 : 0);
+  const n = jobs.size;
   chrome.action.setBadgeText({ text: n ? String(n) : updateAvailable ? '↑' : '' });
   chrome.action.setBadgeBackgroundColor({ color: n ? '#128c7e' : '#d97706' });
 }
 
 function broadcastQueue() {
-  const updates = queue.map((j, i) => ({ key: j.key, state: 'queued', position: i + 1 }));
-  if (current) updates.push({ key: current.key, state: current.state, partial: current.partial, progress: current.progress });
-  broadcast({ cmd: 'update', updates });
+  const updates = [...jobs.keys()].map((key) => ({ key, ...stateOf(key) }));
+  if (updates.length) broadcast({ cmd: 'update', updates });
   refreshBadge();
+}
+
+function applyHostQueue(snap) {
+  hostQueue = snap;
+  const pos = new Map((snap.jobs || []).map((j) => [j.id, j.position]));
+  for (const j of jobs.values()) {
+    if (!j.hostJobId) continue;
+    if (pos.has(j.hostJobId)) {
+      j.state = 'queued';
+      j.position = pos.get(j.hostJobId);
+    } else if (j.state === 'queued' || j.state === 'waiting') {
+      j.position = null;
+      if (snap.running && snap.running.mine && snap.running.id === j.hostJobId) j.state = 'loading_model';
+    }
+  }
+  broadcastQueue();
 }
 
 async function fetchAudio(job) {
@@ -242,7 +302,7 @@ async function fetchAudio(job) {
   throw lastErr;
 }
 
-// ---------- coda ----------
+// ---------- lavori ----------
 
 async function enqueue(key, { tabId, manual, chat, force }) {
   await restore();
@@ -252,92 +312,128 @@ async function enqueue(key, { tabId, manual, chat, force }) {
   } else {
     await chrome.storage.local.remove('t:' + key);
   }
-  if (current && current.key === key) return stateOf(key);
-  const existing = queue.findIndex((j) => j.key === key);
-  if (existing >= 0) {
-    if (!manual) return stateOf(key);
-    queue.splice(existing, 1);
+  const existing = jobs.get(key);
+  if (existing) {
+    // Una richiesta manuale porta in testa un vocale che aspetta ancora l'audio.
+    const i = toFetch.indexOf(key);
+    if (manual && !existing.manual && i >= 0) {
+      existing.manual = true;
+      toFetch.splice(i, 1);
+      insertToFetch(key, true);
+      await persistQueue();
+      broadcastQueue();
+    }
+    return stateOf(key);
   }
-  const job = { key, tabId, manual: !!manual, chat: chat || '', addedAt: Date.now() };
-  if (manual) {
-    // Le richieste manuali passano davanti a quelle automatiche, in ordine di arrivo tra loro.
-    let i = 0;
-    while (i < queue.length && queue[i].manual) i++;
-    queue.splice(i, 0, job);
-  } else {
-    queue.push(job);
-  }
+  jobs.set(key, { key, tabId, manual: !!manual, chat: chat || '', addedAt: Date.now(), retries: 0, state: 'queued' });
+  insertToFetch(key, manual);
   await persistQueue();
   broadcastQueue();
-  pump();
+  pumpFetch();
   return stateOf(key);
 }
 
-async function cancel(key) {
-  const i = queue.findIndex((j) => j.key === key);
-  if (i >= 0) {
-    queue.splice(i, 1);
-    await persistQueue();
-    broadcast({ cmd: 'update', updates: [{ key, state: 'none' }] });
-    broadcastQueue();
-    return true;
-  }
-  if (current && current.key === key && current.hostJobId && port) {
-    port.postMessage({ type: 'cancel', id: current.hostJobId });
-    return true;
-  }
-  return false;
+async function dropJob(key, update) {
+  jobs.delete(key);
+  const i = toFetch.indexOf(key);
+  if (i >= 0) toFetch.splice(i, 1);
+  await persistQueue();
+  broadcast({ cmd: 'update', updates: [{ key, ...update }] });
+  broadcastQueue();
+  scheduleIdleDisconnect();
 }
 
-let pumping = false;
-async function pump() {
-  if (pumping || current || !queue.length || updating) return;
-  pumping = true;
-  clearTimeout(idleTimer);
-  const job = queue.shift();
-  current = { ...job, state: 'downloading', partial: '', progress: null, startedAt: Date.now() };
-  pumping = false;
-  await persistQueue();
-  broadcastQueue();
+async function cancel(key) {
+  const j = jobs.get(key);
+  if (!j) return false;
+  if (j.hostJobId && port) {
+    // Il componente risponde con un errore "annullata", che chiude il lavoro.
+    port.postMessage({ type: 'cancel', id: j.hostJobId });
+    return true;
+  }
+  await dropJob(key, { state: 'none' });
+  return true;
+}
+
+// Audio dei vocali in attesa, uno per volta, e invio al componente.
+let fetching = false;
+async function pumpFetch() {
+  if (fetching || updating) return;
+  fetching = true;
   try {
-    connect(); // la porta aperta tiene vivo il service worker anche durante il download
-    const audio = await fetchAudio(job);
-    current.state = 'waiting';
-    broadcastQueue();
-    const { id, promise } = hostTranscribe(audio.b64, (ev) => {
-      if (ev.type === 'status') current.state = ev.state;
-      if (ev.type === 'partial') {
-        current.state = 'transcribing';
-        current.partial = ev.text;
-        current.progress = ev.progress;
-      }
+    while (toFetch.length && !updating) {
+      const key = toFetch.shift();
+      const job = jobs.get(key);
+      if (!job) continue;
+      clearTimeout(idleTimer);
+      job.state = 'downloading';
+      job.position = null;
       broadcastQueue();
-    });
-    current.hostJobId = id;
-    const res = await promise;
-    const record = {
-      text: res.text,
-      language: res.language,
-      duration: res.duration,
-      elapsed: res.elapsed,
-      chat: job.chat,
-      at: Date.now(),
-    };
-    await chrome.storage.local.set({ ['t:' + job.key]: record });
-    broadcast({ cmd: 'update', updates: [{ key: job.key, state: 'done', ...record }] });
-  } catch (e) {
-    const message = e && e.message ? e.message : String(e);
-    broadcast({
-      cmd: 'update',
-      updates: [{ key: job.key, state: e && e.cancelled ? 'none' : 'error', error: message, hostMissing: isHostSetupError(message) }],
-    });
+      try {
+        connect(); // la porta aperta tiene vivo il service worker anche durante il download
+        const audio = await fetchAudio(job);
+        if (jobs.get(key) !== job) continue;
+        submit(job, audio.b64);
+      } catch (e) {
+        if (jobs.get(key) === job) await finishError(job, e);
+      }
+    }
   } finally {
-    current = null;
+    fetching = false;
+    scheduleIdleDisconnect();
+  }
+}
+
+function submit(job, b64) {
+  job.state = 'waiting';
+  const { id, promise } = hostTranscribe(b64, job.manual, (ev) => {
+    if (ev.type === 'status') {
+      job.state = ev.state;
+      job.position = null;
+      if (ev.state !== 'waiting_lock' && !job.startedAt) job.startedAt = Date.now();
+    }
+    if (ev.type === 'partial') {
+      job.state = 'transcribing';
+      job.partial = ev.text;
+      job.progress = ev.progress;
+    }
+    broadcastQueue();
+  });
+  job.hostJobId = id;
+  broadcastQueue();
+  promise.then((res) => finishResult(job, res), (e) => finishError(job, e));
+}
+
+async function finishResult(job, res) {
+  const record = {
+    text: res.text,
+    language: res.language,
+    duration: res.duration,
+    elapsed: res.elapsed,
+    chat: job.chat,
+    at: Date.now(),
+  };
+  await chrome.storage.local.set({ ['t:' + job.key]: record });
+  await dropJob(job.key, { state: 'done', ...record });
+}
+
+async function finishError(job, e) {
+  const message = e && e.message ? e.message : String(e);
+  if (jobs.get(job.key) !== job) return;
+  // Il componente si è chiuso, per esempio durante un aggiornamento: il lavoro riparte.
+  if (e && e.portLost && job.retries < PORT_RETRIES && !isHostSetupError(message)) {
+    job.retries++;
+    job.hostJobId = null;
+    job.state = 'queued';
+    job.partial = '';
+    job.progress = null;
+    insertToFetch(job.key, true);
     await persistQueue();
     broadcastQueue();
-    if (queue.length) pump();
-    else scheduleIdleDisconnect();
+    pumpFetch();
+    return;
   }
+  await dropJob(job.key, { state: e && e.cancelled ? 'none' : 'error', error: message, hostMissing: isHostSetupError(message) });
 }
 
 function isHostSetupError(message) {
@@ -373,13 +469,30 @@ const handlers = {
   },
   async status() {
     await restore();
+    const list = [...jobs.values()];
+    const running = list.find((j) => RUNNING_STATES.includes(j.state));
+    const waiting = list
+      .filter((j) => j !== running)
+      .map((j) => ({ key: j.key, chat: j.chat, manual: j.manual, state: j.state, position: stateOf(j.key).position || null }))
+      .sort((a, b) => (a.position || 1e9) - (b.position || 1e9));
     return {
-      queue: queue.map((j) => ({ key: j.key, chat: j.chat, manual: j.manual })),
-      current: current && { key: current.key, chat: current.chat, state: current.state, progress: current.progress, startedAt: current.startedAt },
+      queue: waiting,
+      current: running && { key: running.key, chat: running.chat, state: running.state, progress: running.progress, startedAt: running.startedAt },
+      host: hostQueue && { length: hostQueue.length, others: hostQueue.others, othersRunning: !!(hostQueue.running && !hostQueue.running.mine) },
       hostConnected: !!port,
       lastHostError,
       settings,
     };
+  },
+  async hostQueue() {
+    try {
+      const snap = await hostRequest({ type: 'queue' }, ['queue']);
+      applyHostQueue(snap);
+      scheduleIdleDisconnect();
+      return { ok: true, queue: snap };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
   },
   async ping() {
     try {
@@ -401,7 +514,7 @@ const handlers = {
     }
   },
   async setHostConfig({ config }) {
-    if (current) return { ok: false, error: chrome.i18n.getMessage('err_busy_transcribing') };
+    if (hostBusy()) return { ok: false, error: chrome.i18n.getMessage('err_busy_transcribing') };
     try {
       const pong = await hostRequest({ type: 'set_config', config }, ['pong']);
       return { ok: true, pong };
@@ -421,6 +534,22 @@ const handlers = {
       .catch((e) => notifyPages({ cmd: 'hostEvent', event: { type: 'download_error', name, message: e.message } }))
       .finally(() => {
         downloading = null;
+        scheduleIdleDisconnect();
+      });
+    return { ok: true };
+  },
+  cudaInstall() {
+    if (cudaInstalling) return { ok: false, error: chrome.i18n.getMessage('err_cuda_running') };
+    cudaInstalling = true;
+    clearTimeout(idleTimer);
+    hostRequest({ type: 'cuda_install' }, ['cuda_done'], {
+      timeoutMs: 0,
+      onEvent: (ev) => notifyPages({ cmd: 'hostEvent', event: ev }),
+    })
+      .then((done) => notifyPages({ cmd: 'hostEvent', event: done }))
+      .catch((e) => notifyPages({ cmd: 'hostEvent', event: { type: 'cuda_error', message: e.message } }))
+      .finally(() => {
+        cudaInstalling = false;
         scheduleIdleDisconnect();
       });
     return { ok: true };
@@ -445,11 +574,12 @@ const handlers = {
     return true;
   },
   async clearQueue() {
-    const keys = queue.map((j) => j.key);
-    queue = [];
-    await persistQueue();
-    broadcast({ cmd: 'update', updates: keys.map((key) => ({ key, state: 'none' })) });
-    broadcastQueue();
+    await restore();
+    // Si tolgono i vocali in attesa; quello in trascrizione arriva in fondo.
+    for (const j of [...jobs.values()]) {
+      if (RUNNING_STATES.includes(j.state)) continue;
+      await cancel(j.key);
+    }
     return true;
   },
   openOptions() {

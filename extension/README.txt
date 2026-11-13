@@ -52,6 +52,12 @@ BUONO A SAPERSI
   uscita una versione nuova. Se sì, l'icona mostra una freccia e il
   popup un avviso: premi "Aggiorna" e fa tutto da sola (componente
   locale ed estensione).
+- Chrome ed Edge insieme: le trascrizioni dei due browser passano da
+  un'unica coda, una per volta, e ogni vocale mostra la sua posizione.
+- GPU NVIDIA: in "Configurazione e guida" > Impostazioni, scegli "GPU
+  NVIDIA (CUDA)". La pagina verifica il driver e scarica le librerie
+  CUDA (circa 1,3 GB, una volta sola). Il driver NVIDIA va installato
+  a parte da nvidia.com.
 - Copiare: se selezioni più messaggi e premi Ctrl+C, i vocali trascritti
   finiscono negli appunti al loro posto, con ora e mittente come i
   messaggi scritti e il simbolo 🎙 davanti al testo.
@@ -114,6 +120,13 @@ GOOD TO KNOW
   there is one, the icon shows an arrow and the popup a notice: press
   "Update" and it does everything by itself (local component and
   extension).
+- Chrome and Edge together: transcriptions from both browsers go
+  through a single queue, one at a time, and each voice message shows
+  its position.
+- NVIDIA GPU: in "Setup and guide" > Settings, choose "NVIDIA GPU
+  (CUDA)". The page checks the driver and downloads the CUDA libraries
+  (about 1.3 GB, once). The NVIDIA driver itself must be installed
+  separately from nvidia.com.
 - Copying: select several messages and press Ctrl+C, and transcribed
   voice messages land in the clipboard in their place, with time and
   sender like text messages and a 🎙 before the text.
