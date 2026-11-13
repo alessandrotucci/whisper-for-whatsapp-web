@@ -1131,6 +1131,13 @@ def run_engine():
 
 
 def run_cli(argv):
+    # Rediretti su file o pipe, stdout e stderr userebbero la codepage ANSI: il JSON esce in UTF-8.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
+
     def log(text):
         print(text, file=sys.stderr)
 
