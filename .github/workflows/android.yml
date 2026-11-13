@@ -1,0 +1,117 @@
+# Costruisce l'APK dell'app Android (android/) e, su un tag android-v*, lo pubblica in una release.
+#
+# Le release Android non diventano mai "latest": estensione e pagina delle opzioni leggono
+# releases/latest per i propri aggiornamenti e per l'installer di Windows, quindi "latest" deve
+# restare una release v*. La release si crea con --latest=false e dopo si verifica che latest
+# sia ancora un tag v*.
+#
+# La firma usa il keystore nei secret ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
+# ANDROID_KEY_ALIAS e ANDROID_KEY_PASSWORD; su un tag l'APK deve essere firmato con il
+# certificato atteso, altrimenti non si installerebbe sopra le versioni precedenti.
+name: android
+
+on:
+  push:
+    tags: ['android-v*']
+    branches: [main]
+    paths:
+      - 'android/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CERT_SHA256: a4a69d6fd5db04e43aa414db83be5376d8f77966b1e745f4691ad94d3961f4d3
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Versione
+        id: version
+        run: |
+          v=$(sed -n 's/^versionName=//p' android/version.properties | tr -d '\r')
+          echo "name=$v" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF" == refs/tags/* ]] && [ "$GITHUB_REF_NAME" != "android-v$v" ]; then
+            echo "::error::tag $GITHUB_REF_NAME diverso da android-v$v (android/version.properties)"
+            exit 1
+          fi
+
+      - name: Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          fi
+
+      - name: APK
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon --stacktrace assembleRelease
+
+      - name: Controllo dell'APK
+        id: apk
+        run: |
+          dir=android/app/build/outputs/apk/release
+          ls -la "$dir"
+          apk=$(ls "$dir"/*.apk | head -1)
+          unzip -l "$apk" | grep 'lib/' || true
+          for lib in libwhisperwa.so libwhisper.so libggml.so libggml-base.so libc++_shared.so libggml-cpu-android_armv8.0_1.so; do
+            unzip -l "$apk" | grep -q "lib/arm64-v8a/$lib" || { echo "::error::manca $lib nell'APK"; exit 1; }
+          done
+          apksigner=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          certs=$("$apksigner" verify --print-certs "$apk" 2>&1 || true)
+          echo "$certs"
+          if [[ "$GITHUB_REF" == refs/tags/* ]] && ! grep -qi "certificate SHA-256 digest: $CERT_SHA256" <<< "$certs"; then
+            echo "::error::APK non firmato con il certificato di release"
+            exit 1
+          fi
+          out="build/WhisperForWhatsApp-android-${{ steps.version.outputs.name }}.apk"
+          mkdir -p build
+          cp "$apk" "$out"
+          echo "path=$out" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: apk
+          path: ${{ steps.apk.outputs.path }}
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/android-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "${{ steps.apk.outputs.path }}" \
+            --title "Android ${{ steps.version.outputs.name }}" \
+            --notes-file android/release-notes.md \
+            --latest=false
+
+      - name: Latest resta una release v*
+        if: startsWith(github.ref, 'refs/tags/android-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
+          echo "latest: $latest"
+          if [[ "$latest" != v* ]]; then
+            prev=$(gh release list --exclude-drafts --exclude-pre-releases --limit 100 --json tagName --jq '[.[].tagName | select(startswith("v"))][0]')
+            echo "::error::latest era $latest; ripristinato $prev"
+            gh release edit "$prev" --latest
+            exit 1
+          fi
