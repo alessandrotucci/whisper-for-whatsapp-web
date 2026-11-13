@@ -4,6 +4,7 @@ import android.app.Notification;
 import android.app.Person;
 import android.os.Bundle;
 import android.os.Parcelable;
+import android.util.Log;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 
@@ -84,6 +85,7 @@ public final class VoiceListener extends NotificationListenerService {
         if (now - time > MAX_AGE_MS) return;
         String key = pkg + '\u0000' + chat + '\u0000' + sender + '\u0000' + time;
         if (!seen.add(key)) return;
+        Log.i("whisperwa", "vocale annunciato: " + pkg + " chat=" + chat + " mittente=" + sender + " ora=" + time);
         if (seen.size() > SEEN_MAX) {
             Iterator<String> it = seen.iterator();
             it.next();

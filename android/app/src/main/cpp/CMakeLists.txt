@@ -1,4 +1,5 @@
-# Libreria JNI dell'app e whisper.cpp, scaricato a un tag fisso e verificato con SHA-256.
+# Libreria JNI dell'app e whisper.cpp, scaricato a un tag fisso, verificato con SHA-256 e
+# modificato da patch_whisper.cmake.
 #
 # ggml è compilato con un backend CPU per ogni famiglia di processori ARM (GGML_CPU_ALL_VARIANTS):
 # all'avvio ggml_backend_load_all_from_path sceglie la variante migliore che il telefono supporta,
@@ -21,6 +22,7 @@ FetchContent_Declare(
     whisper
     URL https://github.com/ggml-org/whisper.cpp/archive/refs/tags/v1.9.5.tar.gz
     URL_HASH SHA256=ff1a9053feb509ff9d7729703355541ae9690073a6b1c40eb692c962e0dc1720
+    PATCH_COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_SOURCE_DIR}/patch_whisper.cmake
 )
 FetchContent_MakeAvailable(whisper)
 

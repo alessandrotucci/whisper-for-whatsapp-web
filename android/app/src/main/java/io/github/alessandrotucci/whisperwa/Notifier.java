@@ -115,7 +115,12 @@ public final class Notifier {
         String text = queued > 1
                 ? context.getString(R.string.progress_queue, percent, queued - 1)
                 : context.getString(R.string.progress_percent, percent);
-        Notification n = new Notification.Builder(context, CH_PROGRESS)
+        context.getSystemService(NotificationManager.class)
+                .notify(ID_PROGRESS, progressNotification(context, title, text, percent));
+    }
+
+    static Notification progressNotification(Context context, String title, String text, int percent) {
+        return new Notification.Builder(context, CH_PROGRESS)
                 .setSmallIcon(R.drawable.ic_stat)
                 .setContentTitle(title)
                 .setContentText(text)
@@ -124,7 +129,6 @@ public final class Notifier {
                 .setOnlyAlertOnce(true)
                 .setContentIntent(openList(context, -1))
                 .build();
-        context.getSystemService(NotificationManager.class).notify(ID_PROGRESS, n);
     }
 
     public static void clearProgress(Context context) {

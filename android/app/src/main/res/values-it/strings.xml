@@ -19,6 +19,7 @@
     <string name="action_delete">Elimina</string>
     <string name="copied">Copiato</string>
 
+    <string name="progress_starting">Trascrizione dei vocali</string>
     <string name="progress_title">Trascrizione: %1$s</string>
     <string name="progress_percent">%1$d%%</string>
     <string name="progress_queue">%1$d%% · altri %2$d in coda</string>
@@ -27,6 +28,8 @@
     <string name="problem_model_text">Ci sono vocali in attesa: apri l\'app e scarica un modello nelle Impostazioni.</string>
     <string name="problem_folder_title">Cartella dei vocali non disponibile</string>
     <string name="problem_folder_text">È arrivato un vocale su %1$s, ma l\'app non può leggere la cartella dei vocali. Apri l\'app e scegli la cartella.</string>
+    <string name="problem_background_title">Le trascrizioni possono essere interrotte</string>
+    <string name="problem_background_text">Android non lascia lavorare l\'app in background. Apri l\'app e togli le limitazioni della batteria; sui telefoni OPPO, OnePlus, realme e Xiaomi consenti anche l\'attività in background e l\'avvio automatico nelle impostazioni batteria dell\'app.</string>
     <string name="error_model_load">Impossibile caricare il modello (file danneggiato o memoria insufficiente)</string>
     <string name="error_transcribe">Trascrizione fallita o interrotta</string>
 
@@ -65,7 +68,7 @@
     <string name="setup_download">Scarica</string>
     <string name="setup_folder">Scegli la cartella dei vocali di %1$s (il selettore si apre lì: tocca «Usa questa cartella»).</string>
     <string name="setup_choose">Scegli</string>
-    <string name="setup_battery">Togli le limitazioni della batteria, così le trascrizioni finiscono anche a schermo spento.</string>
+    <string name="setup_battery">Togli le limitazioni della batteria, così le trascrizioni finiscono anche in background. Sui telefoni OPPO, OnePlus, realme e Xiaomi consenti anche l\'attività in background e l\'avvio automatico nelle impostazioni batteria dell\'app.</string>
 
     <string name="meta_work">trascritto in %1$d s</string>
     <string name="status_pending">In coda</string>

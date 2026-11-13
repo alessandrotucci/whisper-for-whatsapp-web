@@ -20,6 +20,7 @@
     <string name="action_delete">Delete</string>
     <string name="copied">Copied</string>
 
+    <string name="progress_starting">Transcribing voice messages</string>
     <string name="progress_title">Transcribing: %1$s</string>
     <string name="progress_percent">%1$d%%</string>
     <string name="progress_queue">%1$d%% · %2$d more in queue</string>
@@ -28,6 +29,8 @@
     <string name="problem_model_text">Voice messages are waiting: open the app and download a model in Settings.</string>
     <string name="problem_folder_title">Voice notes folder not available</string>
     <string name="problem_folder_text">A voice message arrived on %1$s, but the app cannot read its voice notes folder. Open the app and choose the folder.</string>
+    <string name="problem_background_title">Transcriptions may be interrupted</string>
+    <string name="problem_background_text">Android does not let the app keep working in the background. Open the app and remove battery restrictions; on OPPO, OnePlus, realme and Xiaomi phones also allow background activity and auto-launch in the app\'s battery settings.</string>
     <string name="error_model_load">The model could not be loaded (corrupted file or not enough memory)</string>
     <string name="error_transcribe">Transcription failed or stopped</string>
 
@@ -69,7 +72,7 @@
     <string name="setup_download">Download</string>
     <string name="setup_folder">Choose the %1$s voice notes folder (the picker opens on it: tap \"Use this folder\").</string>
     <string name="setup_choose">Choose</string>
-    <string name="setup_battery">Remove battery restrictions, so transcriptions finish even with the screen off.</string>
+    <string name="setup_battery">Remove battery restrictions, so transcriptions finish in the background. On OPPO, OnePlus, realme and Xiaomi phones also allow background activity and auto-launch in the app\'s battery settings.</string>
 
     <string name="meta_work">transcribed in %1$d s</string>
     <string name="status_pending">Queued</string>

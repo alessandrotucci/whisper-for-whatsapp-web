@@ -22,7 +22,8 @@ import java.util.concurrent.TimeUnit;
  * <p>La coda vera è la tabella notes (righe PENDING): {@link #kick()} avvia, se non è già attivo,
  * un ciclo che prende la riga più vecchia, la trascrive e passa alla successiva finché non ne
  * restano. Il modello resta in memoria tra un vocale e l'altro e si libera dopo IDLE_UNLOAD_MS
- * senza lavoro. Durante il ciclo un wake lock parziale tiene sveglia la CPU.
+ * senza lavoro. Durante il ciclo un wake lock parziale tiene sveglia la CPU e
+ * {@link TranscriptionService} tiene il processo in primo piano.
  */
 public final class TranscriptionQueue {
 
@@ -44,6 +45,7 @@ public final class TranscriptionQueue {
 
     private boolean draining;
     private boolean modelMissingNotified;
+    private boolean serviceRefusedNotified;
     private long ctx;
     private String ctxModel;
     private ScheduledFuture<?> unloadTask;
@@ -81,7 +83,17 @@ public final class TranscriptionQueue {
     public synchronized void kick() {
         if (draining) return;
         draining = true;
+        if (Models.selectedInstalled(app) != null && Db.get(app).nextPending() != null
+                && !TranscriptionService.start(app) && !serviceRefusedNotified) {
+            serviceRefusedNotified = true;
+            Notifier.showProblem(app, app.getString(R.string.problem_background_title),
+                    app.getString(R.string.problem_background_text));
+        }
         worker.execute(this::drain);
+    }
+
+    public synchronized boolean isDraining() {
+        return draining;
     }
 
     /** Interrompe la trascrizione in corso; la riga va in errore e il ciclo prosegue. */
@@ -113,10 +125,11 @@ public final class TranscriptionQueue {
                 process(db, note, model);
             }
         } finally {
-            Notifier.clearProgress(app);
             synchronized (this) {
                 draining = false;
             }
+            TranscriptionService.stop();
+            Notifier.clearProgress(app);
             scheduleUnload();
             if (wl.isHeld()) wl.release();
             changed();
@@ -153,6 +166,8 @@ public final class TranscriptionQueue {
                 changed();
                 return;
             }
+            Log.i(TAG, "trascritto " + note.name + ": audio " + audioMs + " ms, lavoro " + workMs + " ms, modello "
+                    + model.id + ", thread " + Prefs.threads(app) + ", lingua " + r.language);
             db.markDone(note.id, r.text, r.language, audioMs, workMs, model.id);
             deleteLocalCopy(note);
             Db.Note done = db.byId(note.id);

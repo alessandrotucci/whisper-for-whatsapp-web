@@ -128,6 +128,7 @@ Java_io_github_alessandrotucci_whisperwa_WhisperLib_nativeTranscribe(
     int rc = whisper_full(ctx, params, data, n);
     env->ReleaseFloatArrayElements(samples, data, JNI_ABORT);
     if (rc != 0 || cancel_requested.load()) return nullptr;
+    whisper_print_timings(ctx);
 
     std::string text;
     int segments = whisper_full_n_segments(ctx);

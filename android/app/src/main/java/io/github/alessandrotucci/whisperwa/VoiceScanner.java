@@ -164,6 +164,8 @@ public final class VoiceScanner {
                 Hint h = q == null ? null : q.pollFirst();
                 long id = Db.get(app).insertPending(pkg, h == null ? null : h.chat, h == null ? null : h.sender,
                         d.uri.toString(), d.name, null, d.modified);
+                Log.i(TAG, "vocale in coda: " + d.name + " (" + d.size + " byte, modificato " + d.modified
+                        + ") mittente=" + (h == null ? null : h.sender) + " id=" + id);
                 lastSize.remove(d.uri.toString());
                 if (id > 0) added = true;
             }
