@@ -77,20 +77,25 @@ public final class TranscriptionQueue {
 
     /** Rimette in coda ciò che un processo precedente lasciava in corso e avvia il ciclo. */
     public void resume() {
-        worker.execute(() -> Db.get(app).resetRunning());
+        // Sincrono: kick() deve già vedere in coda le righe rimesse PENDING, per avviare il servizio.
+        Db.get(app).resetRunning();
         kick();
     }
 
     public synchronized void kick() {
         if (draining) return;
         draining = true;
-        if (Models.selectedInstalled(app) != null && Db.get(app).nextPending() != null
-                && !TranscriptionService.start(app) && !serviceRefusedNotified) {
+        worker.execute(this::drain);
+    }
+
+    /** Avvia il servizio in primo piano se non è attivo; se il sistema lo rifiuta avvisa una volta. */
+    private void ensureService() {
+        if (TranscriptionService.isActive()) return;
+        if (!TranscriptionService.start(app) && !serviceRefusedNotified) {
             serviceRefusedNotified = true;
             Notifier.showProblem(app, app.getString(R.string.problem_background_title),
                     app.getString(R.string.problem_background_text));
         }
-        worker.execute(this::drain);
     }
 
     public synchronized boolean isDraining() {
@@ -123,6 +128,7 @@ public final class TranscriptionQueue {
                 modelMissingNotified = false;
                 Db.Note note = db.nextPending();
                 if (note == null) break;
+                ensureService();
                 process(db, note, model);
             }
         } finally {

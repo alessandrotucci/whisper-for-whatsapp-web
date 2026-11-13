@@ -31,14 +31,23 @@ public final class TranscriptionService extends Service {
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
 
     private static TranscriptionService running;
+    private static volatile boolean starting;
+
+    /** Vero dalla richiesta di avvio fino all'arresto. */
+    static boolean isActive() {
+        return starting || running != null;
+    }
 
     /** Avvia il servizio; restituisce false se il sistema non lo permette in questo momento. */
     static boolean start(Context context) {
         try {
+            starting = true;
             context.startForegroundService(new Intent(context, TranscriptionService.class));
+            Log.i(TAG, "servizio in primo piano richiesto");
             return true;
         } catch (RuntimeException e) {
-            Log.w(TAG, "servizio in primo piano non avviato: " + e);
+            starting = false;
+            Log.w(TAG, "servizio in primo piano non avviato", e);
             return false;
         }
     }
@@ -59,10 +68,12 @@ public final class TranscriptionService extends Service {
         try {
             startForeground(Notifier.ID_PROGRESS, n, type);
         } catch (RuntimeException e) {
-            Log.w(TAG, "startForeground rifiutato: " + e);
+            starting = false;
+            Log.w(TAG, "startForeground rifiutato", e);
             stopSelf();
             return START_NOT_STICKY;
         }
+        starting = false;
         running = this;
         Log.i(TAG, "servizio in primo piano avviato");
         if (!TranscriptionQueue.get(this).isDraining()) finish();
@@ -76,6 +87,7 @@ public final class TranscriptionService extends Service {
     }
 
     private void finish() {
+        starting = false;
         if (running == this) running = null;
         stopForeground(STOP_FOREGROUND_REMOVE);
         stopSelf();
@@ -84,6 +96,7 @@ public final class TranscriptionService extends Service {
 
     @Override
     public void onDestroy() {
+        starting = false;
         if (running == this) running = null;
         super.onDestroy();
     }
