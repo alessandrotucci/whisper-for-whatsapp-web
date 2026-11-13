@@ -24,6 +24,12 @@ import java.util.concurrent.TimeUnit;
  * restano. Il modello resta in memoria tra un vocale e l'altro e si libera dopo IDLE_UNLOAD_MS
  * senza lavoro. Durante il ciclo un wake lock parziale tiene sveglia la CPU e
  * {@link TranscriptionService} tiene il processo in primo piano.
+ *
+ * <p>I thread si scelgono all'inizio di ogni vocale: tutti quelli delle impostazioni con l'app
+ * sullo schermo, quelli di background altrimenti. Se l'app esce dallo schermo durante una
+ * trascrizione con più thread di quelli di background, la trascrizione si interrompe e riparte
+ * con i thread di background, senza contare il tentativo: alcuni sistemi uccidono l'app che tiene
+ * occupati tutti i core mentre non è visibile.
  */
 public final class TranscriptionQueue {
 
@@ -47,6 +53,8 @@ public final class TranscriptionQueue {
     private boolean draining;
     private boolean modelMissingNotified;
     private boolean serviceRefusedNotified;
+    private int runningThreads;
+    private boolean downgrade;
     private long ctx;
     private String ctxModel;
     private ScheduledFuture<?> unloadTask;
@@ -100,6 +108,20 @@ public final class TranscriptionQueue {
 
     public synchronized boolean isDraining() {
         return draining;
+    }
+
+    /**
+     * Chiamato sul thread principale quando nessuna attività dell'app è più visibile: interrompe la
+     * trascrizione in corso se usa più thread di quelli di background, per farla ripartire con quelli.
+     */
+    void onAppHidden() {
+        int background = Prefs.backgroundThreads(app);
+        synchronized (this) {
+            if (runningThreads <= background) return;
+            downgrade = true;
+        }
+        Log.i(TAG, "app non visibile: trascrizione interrotta per ripartire con " + background + " thread");
+        WhisperLib.cancel();
     }
 
     /** Interrompe la trascrizione in corso; la riga va in errore e il ciclo prosegue. */
@@ -170,8 +192,16 @@ public final class TranscriptionQueue {
                 return;
             }
             int[] last = {-1};
-            boolean visible = App.isVisible();
-            int threads = visible ? Prefs.threads(app) : Prefs.backgroundThreads(app);
+            boolean visible;
+            int threads;
+            // Nello stesso blocco di onAppHidden: o la scelta vede l'app già nascosta, o
+            // onAppHidden vede i thread scelti e interrompe.
+            synchronized (this) {
+                visible = App.isVisible();
+                threads = visible ? Prefs.threads(app) : Prefs.backgroundThreads(app);
+                runningThreads = threads;
+                downgrade = false;
+            }
             Log.i(TAG, "inizio " + note.name + ": tentativo " + (note.attempts + 1) + ", thread " + threads
                     + (visible ? " (app visibile)" : " (app non visibile)"));
             WhisperLib.Result r = WhisperLib.transcribe(ctx, samples, Prefs.language(app),
@@ -182,6 +212,18 @@ public final class TranscriptionQueue {
                         }
                     });
             long workMs = SystemClock.elapsedRealtime() - started;
+            boolean downgraded;
+            synchronized (this) {
+                runningThreads = 0;
+                downgraded = downgrade;
+                downgrade = false;
+            }
+            if (r == null && downgraded) {
+                Log.i(TAG, "rimesso in coda senza contare il tentativo: " + note.name + " dopo " + workMs + " ms");
+                db.requeueUncounted(note.id);
+                changed();
+                return;
+            }
             if (r == null) {
                 db.markError(note.id, app.getString(R.string.error_transcribe));
                 changed();

@@ -163,6 +163,12 @@ public final class Db extends SQLiteOpenHelper {
         update(id, v);
     }
 
+    /** Rimette in coda la riga in corso senza contare il tentativo appena interrotto. */
+    public void requeueUncounted(long id) {
+        getWritableDatabase().execSQL("UPDATE notes SET status = " + PENDING
+                + ", attempts = MAX(attempts - 1, 0) WHERE id = ?", new Object[]{id});
+    }
+
     public void requeue(long id) {
         ContentValues v = new ContentValues();
         v.put("status", PENDING);

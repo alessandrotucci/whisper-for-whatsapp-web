@@ -6,7 +6,8 @@ import android.os.Bundle;
 
 /**
  * All'avvio del processo crea i canali di notifica e riprende la coda lasciata in sospeso.
- * Conta le attività visibili, per sapere se l'utente sta guardando l'app.
+ * Conta le attività visibili, per sapere se l'utente sta guardando l'app, e avvisa la coda quando
+ * l'app esce dallo schermo (non per una rotazione, che ricrea l'attività).
  */
 public final class App extends Application {
 
@@ -33,6 +34,9 @@ public final class App extends Application {
             @Override
             public void onActivityStopped(Activity a) {
                 changeStarted(-1);
+                if (!a.isChangingConfigurations() && !isVisible()) {
+                    TranscriptionQueue.get(a).onAppHidden();
+                }
             }
 
             @Override
