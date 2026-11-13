@@ -53,8 +53,9 @@ cartella dello script quando gira da sorgente.
 
 Da riga di comando: "--info" stampa lo stato, "--selftest" carica il modello e
 trascrive un secondo di silenzio, "--file PERCORSO [--lang xx]" trascrive un file,
-"--cuda-install" scarica le librerie CUDA; "--device cpu|cuda|auto" e
-"--compute TIPO" valgono per quella sola esecuzione, senza toccare config.json.
+"--cuda-install" scarica le librerie CUDA, "--download MODELLO" scarica un modello;
+"--device cpu|cuda|auto", "--compute TIPO" e "--model MODELLO" valgono per quella
+sola esecuzione, senza toccare config.json.
 """
 
 import base64
@@ -1134,9 +1135,19 @@ def run_cli(argv):
         print(text, file=sys.stderr)
 
     tr = Transcriber(log)
-    for opt in ("--device", "--compute"):
+    for opt, key in (("--device", "device"), ("--compute", "compute_type"), ("--model", "model")):
         if opt in argv:
-            tr.cfg["device" if opt == "--device" else "compute_type"] = argv[argv.index(opt) + 1]
+            tr.cfg[key] = argv[argv.index(opt) + 1]
+    if "--download" in argv:
+        name = argv[argv.index("--download") + 1]
+        last = [0.0]
+
+        def dl_progress(done, total):
+            if time.time() - last[0] >= 5:
+                last[0] = time.time()
+                log("modello %s: %d / %s MB" % (name, done // 1000000, total // 1000000 if total else "?"))
+
+        log("modello %s in %s" % (name, tr.download(name, dl_progress)))
     if "--cuda-install" in argv:
         last = [0.0]
 
@@ -1175,7 +1186,7 @@ def run_cli(argv):
 if __name__ == "__main__":
     if "--engine" in sys.argv:
         run_engine()
-    elif any(a in sys.argv for a in ("--selftest", "--file", "--info", "--cuda-install")):
+    elif any(a in sys.argv for a in ("--selftest", "--file", "--info", "--cuda-install", "--download")):
         run_cli(sys.argv[1:])
     else:
         run_native()
