@@ -107,6 +107,15 @@
   "err_audio_unavailable": {
     "message": "audio non disponibile ($1)"
   },
+  "err_engine_unavailable": {
+    "message": "il motore di trascrizione non si avvia: vedi whisper_host.log"
+  },
+  "err_engine_crashed": {
+    "message": "il motore di trascrizione si è chiuso più volte su questo vocale"
+  },
+  "err_cuda_running": {
+    "message": "download delle librerie CUDA già in corso"
+  },
   "err_model_missing": {
     "message": "il modello $1 non è sul disco: scaricalo dalla pagina dell'estensione"
   },
@@ -133,6 +142,15 @@
   },
   "popup_queue": {
     "message": "In coda: $1"
+  },
+  "popup_item_pos": {
+    "message": "n. $1 · $2"
+  },
+  "popup_queue_others": {
+    "message": "altri browser: $1"
+  },
+  "popup_other_running": {
+    "message": "Il componente sta trascrivendo un vocale di un altro browser."
   },
   "popup_item_requested": {
     "message": "$1 (richiesto)"
@@ -364,6 +382,51 @@
   },
   "opt_d_exe": {
     "message": "Eseguibile"
+  },
+  "opt_cuda_old_host": {
+    "message": "Il componente locale installato non gestisce la GPU: aggiornalo."
+  },
+  "opt_cuda_driver_ok": {
+    "message": "Driver NVIDIA pronto (CUDA $1): $2."
+  },
+  "opt_cuda_driver_old": {
+    "message": "Il driver NVIDIA supporta CUDA $1: serve almeno CUDA 12. Aggiorna il driver da nvidia.com."
+  },
+  "opt_cuda_no_driver": {
+    "message": "Nessun driver NVIDIA: la GPU non è utilizzabile. Se il computer ha una scheda NVIDIA, installa il driver da <a href=\"https://www.nvidia.com/drivers\" target=\"_blank\">nvidia.com/drivers</a>, poi riapri questa pagina."
+  },
+  "opt_cuda_libs_ok": {
+    "message": "Librerie CUDA installate: cuBLAS $1, cuDNN $2."
+  },
+  "opt_cuda_libs_missing": {
+    "message": "Per usare la GPU servono le librerie CUDA (cuBLAS e cuDNN, $1 da scaricare una volta sola, da NVIDIA tramite PyPI)."
+  },
+  "opt_cuda_download": {
+    "message": "Scarica le librerie CUDA"
+  },
+  "opt_cuda_redownload": {
+    "message": "Scarica di nuovo"
+  },
+  "opt_cuda_started": {
+    "message": "Download avviato…"
+  },
+  "opt_cuda_progress": {
+    "message": "Scarico le librerie CUDA… $1"
+  },
+  "opt_cuda_extracting": {
+    "message": "Estraggo le librerie…"
+  },
+  "opt_cuda_done": {
+    "message": "Librerie CUDA pronte. Scegli GPU NVIDIA e premi Applica."
+  },
+  "opt_cuda_failed": {
+    "message": "Download delle librerie CUDA non riuscito: $1"
+  },
+  "opt_cuda_last_error": {
+    "message": "L'ultimo tentativo sulla GPU è fallito, quindi le trascrizioni girano sulla CPU: $1"
+  },
+  "opt_cuda_compute_hint": {
+    "message": "Sulla GPU conviene la precisione float16 o int8_float16."
   },
   "opt_d_cuda": {
     "message": "GPU CUDA: $1"
