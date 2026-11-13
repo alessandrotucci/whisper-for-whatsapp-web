@@ -10,7 +10,13 @@
 # Le altre chiamate lasciano i valori predefiniti nulli, che tolgono un abort rimasto impostato
 # su un backend riusato.
 #
-# La seconda riguarda la lingua. Con lingua "auto", whisper_full esegue l'encoder sulla prima finestra per rilevare la lingua e
+# La seconda riguarda la lingua. whisper_full imposta la finestra dell'encoder (audio_ctx) solo
+# dopo il rilevamento della lingua, che quindi codifica con la finestra lasciata dalla chiamata
+# precedente sullo stesso stato. La patch la imposta prima del rilevamento: lingua e ciclo
+# principale codificano con la stessa finestra, condizione necessaria anche per il riuso
+# descritto sotto.
+#
+# Con lingua "auto", whisper_full esegue l'encoder sulla prima finestra per rilevare la lingua e
 # poi lo riesegue sulla stessa finestra nel ciclo principale. La patch ricorda che la finestra
 # all'offset 0 è già codificata e salta il secondo encode. Il riuso è corretto perché la
 # decodifica del rilevamento non modifica embd_enc né la cache cross, e il ciclo principale
@@ -86,6 +92,9 @@ replace_once(
 "    // auto-detect language if not specified
     if (params.language == nullptr"
 "    int ${marker} = -1;
+
+    // language detection encodes with the same audio context as the main loop
+    state->exp_n_audio_ctx = params.audio_ctx;
 
     // auto-detect language if not specified
     if (params.language == nullptr")

@@ -58,11 +58,12 @@ public final class WhisperLib {
 
     /**
      * Trascrive audio mono a 16 kHz. language vale "auto" per il riconoscimento automatico,
-     * altrimenti un codice ISO 639-1. Restituisce null se la trascrizione fallisce o è annullata.
+     * altrimenti un codice ISO 639-1. audioContext è la finestra dell'encoder in frame da 20 ms,
+     * 0 per quella intera. Restituisce null se la trascrizione fallisce o è annullata.
      */
     public static Result transcribe(long ctx, float[] samples, String language, int threads,
-                                    ProgressListener listener) {
-        byte[] raw = nativeTranscribe(ctx, samples, language, threads, listener);
+                                    int audioContext, ProgressListener listener) {
+        byte[] raw = nativeTranscribe(ctx, samples, language, threads, audioContext, listener);
         if (raw == null) return null;
         String all = new String(raw, StandardCharsets.UTF_8);
         int nl = all.indexOf('\n');
@@ -83,7 +84,8 @@ public final class WhisperLib {
     private static native void nativeCancel();
 
     private static native byte[] nativeTranscribe(long ctx, float[] samples, String language,
-                                                  int threads, ProgressListener listener);
+                                                  int threads, int audioContext,
+                                                  ProgressListener listener);
 
     private static native String nativeSystemInfo();
 }

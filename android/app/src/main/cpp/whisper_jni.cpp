@@ -92,7 +92,7 @@ Java_io_github_alessandrotucci_whisperwa_WhisperLib_nativeCancel(JNIEnv *, jclas
 extern "C" JNIEXPORT jbyteArray JNICALL
 Java_io_github_alessandrotucci_whisperwa_WhisperLib_nativeTranscribe(
         JNIEnv * env, jclass, jlong ctx_ptr, jfloatArray samples, jstring language,
-        jint threads, jobject listener) {
+        jint threads, jint audio_ctx, jobject listener) {
     auto * ctx = (struct whisper_context *) ctx_ptr;
     std::string lang = to_std(env, language);
     if (lang.empty()) lang = "auto";
@@ -109,6 +109,7 @@ Java_io_github_alessandrotucci_whisperwa_WhisperLib_nativeTranscribe(
 
     struct whisper_full_params params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
     params.n_threads = threads > 0 ? threads : 4;
+    params.audio_ctx = audio_ctx > 0 ? audio_ctx : 0;
     params.language = lang.c_str();
     params.translate = false;
     params.no_timestamps = true;

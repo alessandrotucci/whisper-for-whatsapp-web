@@ -202,10 +202,12 @@ public final class TranscriptionQueue {
                 runningThreads = threads;
                 downgrade = false;
             }
+            int audioContext = model.audioContext(samples.length);
             Log.i(TAG, "inizio " + note.name + ": tentativo " + (note.attempts + 1) + ", thread " + threads
-                    + (visible ? " (app visibile)" : " (app non visibile)"));
+                    + (visible ? " (app visibile)" : " (app non visibile)") + ", modello " + model.id
+                    + ", finestra " + (audioContext > 0 ? audioContext : "intera"));
             WhisperLib.Result r = WhisperLib.transcribe(ctx, samples, Prefs.language(app),
-                    threads, percent -> {
+                    threads, audioContext, percent -> {
                         if (percent != last[0]) {
                             last[0] = percent;
                             Notifier.showProgress(app, note, percent, queued);
