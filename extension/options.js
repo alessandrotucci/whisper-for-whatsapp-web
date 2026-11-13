@@ -286,8 +286,109 @@ for (const id of ['autoIncoming', 'autoOutgoing', 'autoVisible', 'vadFilter', 'l
   $(id).addEventListener('change', saveSettings);
 }
 
+// ---------- GPU NVIDIA ----------
+
+let cudaState = null;
+let cudaInstalling = false;
+
+function renderCuda() {
+  const box = $('cudaBox');
+  const device = $('hDevice').value;
+  const st = cudaState;
+  const driverPresent = !!(st && st.driver && st.driver.present);
+  box.hidden = device === 'cpu' && !driverPresent && !cudaInstalling;
+  if (box.hidden) return;
+  const drv = $('cudaDriver');
+  const libs = $('cudaLibs');
+  const btn = $('cudaInstall');
+  if (!st) {
+    drv.className = 'err';
+    drv.textContent = t('opt_cuda_old_host');
+    libs.textContent = '';
+    btn.hidden = true;
+    return;
+  }
+  if (st.driver.usable) {
+    drv.className = 'ok';
+    drv.textContent = t('opt_cuda_driver_ok', st.driver.version_str, (st.driver.names || []).join(', ') || '?');
+  } else if (driverPresent) {
+    drv.className = 'err';
+    drv.textContent = t('opt_cuda_driver_old', st.driver.version_str || '?');
+  } else {
+    drv.className = 'err';
+    drv.innerHTML = t('opt_cuda_no_driver');
+  }
+  if (st.libs.installed) {
+    libs.className = 'ok';
+    const v = st.libs.versions || {};
+    libs.textContent = t('opt_cuda_libs_ok', v.cublas || '?', v.cudnn || '?');
+  } else {
+    libs.className = 'muted';
+    libs.textContent = t('opt_cuda_libs_missing', fmtBytes(st.libs.download_size || 0));
+  }
+  btn.hidden = st.libs.installed && !cudaInstalling;
+  btn.disabled = cudaInstalling || !st.driver.usable;
+  btn.textContent = t(st.libs.installed ? 'opt_cuda_redownload' : 'opt_cuda_download');
+  if (!cudaInstalling) {
+    const msg = $('cudaMsg');
+    if (st.last_error) {
+      msg.className = 'err';
+      msg.textContent = t('opt_cuda_last_error', st.last_error);
+    } else if (device !== 'cpu' && /^int8$|float32/.test($('hCompute').value)) {
+      msg.className = 'muted';
+      msg.textContent = t('opt_cuda_compute_hint');
+    } else {
+      msg.textContent = '';
+    }
+  }
+}
+
+$('hDevice').addEventListener('change', renderCuda);
+$('hCompute').addEventListener('change', renderCuda);
+
+$('cudaInstall').addEventListener('click', async () => {
+  const r = await send({ cmd: 'cudaInstall' });
+  if (!r || !r.ok) {
+    $('cudaMsg').className = 'err';
+    $('cudaMsg').textContent = t('opt_error', r ? r.error : '?');
+    return;
+  }
+  cudaInstalling = true;
+  $('cudaBar').hidden = false;
+  $('cudaBar').removeAttribute('value');
+  $('cudaMsg').className = 'muted';
+  $('cudaMsg').textContent = t('opt_cuda_started');
+  renderCuda();
+});
+
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.cmd !== 'hostEvent') return;
+  const ev = msg.event;
+  if (ev.type === 'cuda_progress') {
+    cudaInstalling = true;
+    const bar = $('cudaBar');
+    bar.hidden = false;
+    if (ev.total) {
+      bar.max = ev.total;
+      bar.value = ev.downloaded;
+    }
+    $('cudaMsg').className = 'muted';
+    $('cudaMsg').textContent = ev.stage === 'extract'
+      ? t('opt_cuda_extracting')
+      : t('opt_cuda_progress', t('opt_of', fmtBytes(ev.downloaded), fmtBytes(ev.total)));
+  } else if (ev.type === 'cuda_done' || ev.type === 'cuda_error') {
+    cudaInstalling = false;
+    $('cudaBar').hidden = true;
+    if (ev.cuda) cudaState = ev.cuda;
+    renderCuda();
+    $('cudaMsg').className = ev.type === 'cuda_done' ? 'ok' : 'err';
+    $('cudaMsg').textContent = ev.type === 'cuda_done' ? t('opt_cuda_done') : t('opt_cuda_failed', ev.message);
+  }
+});
+
 function fillAdvanced(p) {
   const cfg = p.config || {};
+  cudaState = p.cuda || null;
   $('hDevice').value = cfg.device || 'cpu';
   $('hCompute').value = cfg.compute_type || 'int8';
   $('hThreads').value = cfg.cpu_threads || 0;
@@ -301,6 +402,7 @@ function fillAdvanced(p) {
     [t('opt_d_model_dir'), p.model_path || t('opt_d_not_found')],
     [t('opt_d_data'), p.data_dir],
   ]));
+  renderCuda();
 }
 
 $('saveHost').addEventListener('click', async () => {

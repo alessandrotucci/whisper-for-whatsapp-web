@@ -112,3 +112,6 @@ a.button.primary { background: var(--accent); border-color: var(--accent); color
 .upd-actions { display: flex; gap: 12px; align-items: center; margin-top: 10px; font-size: 13px; }
 .upd-actions a { color: var(--muted); }
 .upd-actions button.link { margin-left: auto; border: none; background: none; padding: 0; color: var(--muted); font-size: 13px; }
+.cuda { border: 1px solid var(--line); border-radius: 8px; padding: 4px 12px; margin: 6px 0 10px; }
+.cuda p { margin: 6px 0; font-size: 13px; }
+.cuda progress { flex: 1; min-width: 160px; }

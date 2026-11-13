@@ -19,15 +19,21 @@ async function refresh() {
     const p = st.current.progress != null ? ' ' + Math.round(st.current.progress * 100) + '%' : '';
     const state = STATE_KEYS[st.current.state] ? t(STATE_KEYS[st.current.state]) : st.current.state;
     $('current').textContent = t('popup_current', st.current.chat || t('popup_voice'), state + p);
+  } else if (st.host && st.host.othersRunning) {
+    $('current').textContent = t('popup_other_running');
   } else {
     $('current').textContent = t('popup_idle');
   }
-  $('queueInfo').textContent = st.queue.length ? t('popup_queue', st.queue.length) : '';
+  const info = [];
+  if (st.queue.length) info.push(t('popup_queue', st.queue.length));
+  if (st.host && st.host.others) info.push(t('popup_queue_others', st.host.others));
+  $('queueInfo').textContent = info.join(' · ');
   $('queue').replaceChildren(
     ...st.queue.slice(0, 30).map((j) => {
       const li = document.createElement('li');
       const name = j.chat || t('popup_voice');
-      li.textContent = j.manual ? t('popup_item_requested', name) : name;
+      const label = j.manual ? t('popup_item_requested', name) : name;
+      li.textContent = j.position ? t('popup_item_pos', j.position, label) : label;
       return li;
     }),
   );

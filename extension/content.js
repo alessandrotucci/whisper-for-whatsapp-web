@@ -308,6 +308,25 @@
     attributeFilter: ['data-wwt-voice', 'data-wwt-key'],
   });
   const timer = setInterval(schedule, 2000);
-  stoppers.push(() => observer.disconnect(), () => clearInterval(timer));
+
+  // I riquadri in uno stato in corso chiedono di nuovo lo stato ogni 15 secondi: la
+  // richiesta risveglia il service worker, che riprende i lavori salvati se era stato
+  // terminato. Un lavoro che il service worker non conosce più torna a "Trascrivi".
+  const BUSY = new Set(['queued', 'downloading', 'waiting', 'waiting_lock', 'loading_model', 'transcribing']);
+  const refresher = setInterval(() => {
+    if (!alive()) return;
+    const keys = [...states].filter(([, st]) => BUSY.has(st.state)).map(([key]) => key);
+    if (!keys.length) return;
+    send({ cmd: 'get', keys }).then((res) => {
+      if (!res) return;
+      for (const key of keys) {
+        const prev = states.get(key);
+        if (!prev || !BUSY.has(prev.state)) continue;
+        states.set(key, res[key] || { state: 'none' });
+        renderKey(key);
+      }
+    });
+  }, 15000);
+  stoppers.push(() => observer.disconnect(), () => clearInterval(timer), () => clearInterval(refresher));
   schedule();
 })();

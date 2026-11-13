@@ -120,6 +120,12 @@
           <select id="hCompute"><option>int8</option><option>int8_float32</option><option>float32</option><option>float16</option><option>int8_float16</option></select></div>
         <div class="field"><label for="hThreads" data-i18n="opt_threads"></label><input type="number" id="hThreads" min="0" max="64"></div>
       </div>
+      <div id="cudaBox" class="cuda" hidden>
+        <p id="cudaDriver"></p>
+        <p id="cudaLibs"></p>
+        <div class="row"><button id="cudaInstall" hidden data-i18n="opt_cuda_download"></button> <progress id="cudaBar" hidden></progress></div>
+        <p id="cudaMsg" class="muted"></p>
+      </div>
       <div class="row"><button id="saveHost" disabled data-i18n="opt_apply"></button> <span id="hostSaved" class="muted"></span></div>
       <div id="hostDetails"></div>
 

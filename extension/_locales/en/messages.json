@@ -107,6 +107,15 @@
   "err_audio_unavailable": {
     "message": "audio not available ($1)"
   },
+  "err_engine_unavailable": {
+    "message": "the transcription engine does not start: see whisper_host.log"
+  },
+  "err_engine_crashed": {
+    "message": "the transcription engine closed repeatedly on this voice message"
+  },
+  "err_cuda_running": {
+    "message": "CUDA libraries download already running"
+  },
   "err_model_missing": {
     "message": "model $1 is not on disk: download it from the extension page"
   },
@@ -133,6 +142,15 @@
   },
   "popup_queue": {
     "message": "Queued: $1"
+  },
+  "popup_item_pos": {
+    "message": "#$1 · $2"
+  },
+  "popup_queue_others": {
+    "message": "other browsers: $1"
+  },
+  "popup_other_running": {
+    "message": "The local component is transcribing a voice message from another browser."
   },
   "popup_item_requested": {
     "message": "$1 (requested)"
@@ -364,6 +382,51 @@
   },
   "opt_d_exe": {
     "message": "Executable"
+  },
+  "opt_cuda_old_host": {
+    "message": "The installed local component does not handle the GPU: update it."
+  },
+  "opt_cuda_driver_ok": {
+    "message": "NVIDIA driver ready (CUDA $1): $2."
+  },
+  "opt_cuda_driver_old": {
+    "message": "The NVIDIA driver supports CUDA $1: at least CUDA 12 is needed. Update the driver from nvidia.com."
+  },
+  "opt_cuda_no_driver": {
+    "message": "No NVIDIA driver: the GPU can't be used. If this computer has an NVIDIA card, install the driver from <a href=\"https://www.nvidia.com/drivers\" target=\"_blank\">nvidia.com/drivers</a>, then reopen this page."
+  },
+  "opt_cuda_libs_ok": {
+    "message": "CUDA libraries installed: cuBLAS $1, cuDNN $2."
+  },
+  "opt_cuda_libs_missing": {
+    "message": "Using the GPU needs the CUDA libraries (cuBLAS and cuDNN, $1 to download once, from NVIDIA via PyPI)."
+  },
+  "opt_cuda_download": {
+    "message": "Download the CUDA libraries"
+  },
+  "opt_cuda_redownload": {
+    "message": "Download again"
+  },
+  "opt_cuda_started": {
+    "message": "Download started…"
+  },
+  "opt_cuda_progress": {
+    "message": "Downloading the CUDA libraries… $1"
+  },
+  "opt_cuda_extracting": {
+    "message": "Extracting the libraries…"
+  },
+  "opt_cuda_done": {
+    "message": "CUDA libraries ready. Choose NVIDIA GPU and press Apply."
+  },
+  "opt_cuda_failed": {
+    "message": "CUDA libraries download failed: $1"
+  },
+  "opt_cuda_last_error": {
+    "message": "The last attempt on the GPU failed, so transcriptions run on the CPU: $1"
+  },
+  "opt_cuda_compute_hint": {
+    "message": "On the GPU, float16 or int8_float16 precision works best."
   },
   "opt_d_cuda": {
     "message": "CUDA GPUs: $1"
