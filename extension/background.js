@@ -307,17 +307,20 @@ function applyHostQueue(snap) {
 async function fetchAudio(job) {
   const tabs = await waTabs();
   const order = [job.tabId, ...tabs.map((t) => t.id).filter((id) => id !== job.tabId)].filter((id) => id != null);
-  let lastErr = new Error(chrome.i18n.getMessage('err_no_wa_tab'));
+  // L'errore riferito da una scheda (audio scaduto, messaggio non caricato) prevale su
+  // quello di una scheda che non risponde, per esempio perché non ha ancora lo script.
+  let tabErr = null;
+  let connErr = new Error(chrome.i18n.getMessage('err_no_wa_tab'));
   for (const tabId of order) {
     try {
       const res = await chrome.tabs.sendMessage(tabId, { cmd: 'fetchAudio', key: job.key });
       if (res && res.ok) return res.result;
-      lastErr = new Error((res && res.error) || chrome.i18n.getMessage('err_empty_tab_reply'));
+      if (!tabErr) tabErr = new Error((res && res.error) || chrome.i18n.getMessage('err_empty_tab_reply'));
     } catch (e) {
-      lastErr = e;
+      connErr = e;
     }
   }
-  throw lastErr;
+  throw tabErr || connErr;
 }
 
 // ---------- lavori ----------
