@@ -34,7 +34,7 @@
     <string name="error_killed">Interrotta dal sistema tre volte; tocca Trascrivi di nuovo per riprovare</string>
     <string name="error_transcribe">Trascrizione fallita o interrotta</string>
 
-    <string name="model_large">large-v3 (il più preciso, 1,1 GB)</string>
+    <string name="model_large">large-v3 (il più preciso, più lento)</string>
     <string name="model_turbo">large-v3-turbo (consigliato)</string>
     <string name="model_medium">medium</string>
     <string name="model_small">small (telefoni datati)</string>
