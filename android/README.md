@@ -32,7 +32,8 @@ notifica di WhatsApp con 🎤 ─ VoiceListener (NotificationListenerService)
 - Ripieghi: *Condividi* un vocale da WhatsApp verso **Trascrivi**; dal menu, *Cerca vocali nuovi*
   mette in coda quelli delle ultime 24 ore.
 - Modelli ggml scaricati dall'app da `huggingface.co/ggerganov/whisper.cpp`, verificati con
-  SHA-256 (`Models.java`): large-v3-turbo q5_0 (predefinito), medium q5_0, small q5_1, base q5_1.
+  SHA-256 (`Models.java`): large-v3 q5_0 (predefinito), large-v3-turbo q5_0, medium q5_0, small q5_1,
+  base q5_1.
 - ggml è compilato con una variante del backend CPU per famiglia di processori ARM
   (`GGML_CPU_ALL_VARIANTS`); all'avvio si carica la migliore supportata dal telefono. Per questo
   le librerie native sono estratte sul disco (`useLegacyPackaging`).

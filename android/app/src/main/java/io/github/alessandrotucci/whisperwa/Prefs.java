@@ -16,8 +16,18 @@ public final class Prefs {
         return context.getApplicationContext().getSharedPreferences(FILE, Context.MODE_PRIVATE);
     }
 
+    /**
+     * Il modello scelto. Senza una scelta esplicita vale il primo modello già installato, nell'ordine
+     * di {@link Models#ALL}, così un modello scaricato resta in uso anche se cambia il predefinito;
+     * se nessuno è installato vale {@link Models#DEFAULT_ID}.
+     */
     public static String model(Context context) {
-        return sp(context).getString("model", Models.DEFAULT_ID);
+        String chosen = sp(context).getString("model", null);
+        if (chosen != null) return chosen;
+        for (Models.Model m : Models.ALL) {
+            if (m.installed(context)) return m.id;
+        }
+        return Models.DEFAULT_ID;
     }
 
     public static void setModel(Context context, String id) {

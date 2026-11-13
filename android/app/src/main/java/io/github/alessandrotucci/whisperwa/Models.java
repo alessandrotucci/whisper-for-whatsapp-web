@@ -62,7 +62,7 @@ public final class Models {
                     R.string.model_base),
     };
 
-    public static final String DEFAULT_ID = "large-v3-turbo-q5_0";
+    public static final String DEFAULT_ID = "large-v3-q5_0";
 
     private Models() {
     }

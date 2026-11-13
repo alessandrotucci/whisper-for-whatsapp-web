@@ -35,8 +35,8 @@
     <string name="error_killed">Stopped by the system three times; tap Transcribe again to retry</string>
     <string name="error_transcribe">Transcription failed or stopped</string>
 
-    <string name="model_large">large-v3 (most accurate, slower)</string>
-    <string name="model_turbo">large-v3-turbo (recommended)</string>
+    <string name="model_large">large-v3 (recommended)</string>
+    <string name="model_turbo">large-v3-turbo (faster, less accurate)</string>
     <string name="model_medium">medium</string>
     <string name="model_small">small (older phones)</string>
     <string name="model_base">base (fastest, least accurate)</string>

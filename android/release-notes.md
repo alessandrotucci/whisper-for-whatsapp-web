@@ -11,8 +11,9 @@ lista completa. Serve Android 10 o successivo su un processore a 64 bit.
    - **Accesso alle notifiche**: serve a sapere quando arriva un vocale. Da Android 13, per le app
      installate da file, l'interruttore è grigio («impostazione con restrizioni»): apri *Info app*,
      menu ⋮, *Consenti impostazioni con restrizioni*, e torna ad attivarlo.
-   - **Modello**: scaricalo dalle Impostazioni. large-v3-turbo (574 MB) è il consigliato; small
-     (190 MB) è per i telefoni datati.
+   - **Modello**: scaricalo dalle Impostazioni. large-v3 (1,1 GB) è il consigliato;
+     large-v3-turbo (574 MB) è più veloce di circa un quinto ma meno preciso; small (190 MB) è per
+     i telefoni datati.
    - **Cartella dei vocali**: il selettore si apre su
      `Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Voice Notes`; tocca *Usa questa cartella*
      e *Consenti*. Per WhatsApp Business la cartella è quella di `com.whatsapp.w4b`.
