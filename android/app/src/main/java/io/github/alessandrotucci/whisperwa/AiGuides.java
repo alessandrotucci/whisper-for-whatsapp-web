@@ -81,14 +81,12 @@ final class AiGuides {
     private static final long RETRY_MS = 60L * 60 * 1000;
     private static final long IMG_MAX_AGE_MS = 7 * DAY_MS;
 
-    /** Fornitori che girano su un computer della rete locale, senza account né carta. */
-    private static final Set<String> LOCAL = new HashSet<>(Arrays.asList("ollama", "lmstudio"));
-
     /**
-     * Fornitori per cui l'ultimo passo «Torna qui e tocca Incolla» non vale: i locali non hanno una
-     * chiave, OpenRouter collega l'account dal browser.
+     * Fornitori che collegano l'account dal browser, senza una chiave da incollare. Anche i fornitori
+     * con local true nel JSON non hanno una chiave: per entrambi manca l'ultimo passo «Torna qui e
+     * tocca Incolla».
      */
-    private static final Set<String> NO_PASTE_STEP = new HashSet<>(Arrays.asList("ollama", "lmstudio", "openrouter"));
+    private static final Set<String> BROWSER_SIGN_IN = new HashSet<>(Arrays.asList("openrouter"));
 
     private static final String PREFS = "ai_guides";
     private static final String KEY_COLLAPSED = "collapsed";
@@ -173,7 +171,7 @@ final class AiGuides {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         TextView meta = new TextView(activity);
-        meta.setText(meta(activity, providerId, g));
+        meta.setText(meta(activity, g));
         meta.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         meta.setTextColor(secondary);
         body.addView(meta);
@@ -191,7 +189,7 @@ final class AiGuides {
             String imgUrl = img.isEmpty() || imgBase.isEmpty() ? null : imgBase + img;
             body.addView(step(activity, ++n, textView, imgUrl, accent));
         }
-        if (!NO_PASTE_STEP.contains(providerId)) {
+        if (!g.optBoolean("local", false) && !BROWSER_SIGN_IN.contains(providerId)) {
             View last = stepText(activity, activity.getString(R.string.guide_back_title),
                     activity.getString(R.string.guide_back_text), "", accent);
             body.addView(step(activity, ++n, last, null, accent));
@@ -315,13 +313,13 @@ final class AiGuides {
         return localized instanceof String ? (String) localized : "";
     }
 
-    private static String meta(Context c, String providerId, JSONObject g) {
+    private static String meta(Context c, JSONObject g) {
         int minutes = Math.max(1, g.optInt("minutes", 3));
         StringBuilder sb = new StringBuilder(c.getResources().getQuantityString(R.plurals.guide_minutes, minutes, minutes));
         sb.append(" · ");
         if (g.optBoolean("card", false)) {
             sb.append(c.getString(R.string.guide_card)).append(" · ").append(c.getString(R.string.guide_cost));
-        } else if (LOCAL.contains(providerId) || g.optBoolean("local", false)) {
+        } else if (g.optBoolean("local", false)) {
             sb.append(c.getString(R.string.guide_local));
         } else {
             sb.append(c.getString(R.string.guide_nocard));
