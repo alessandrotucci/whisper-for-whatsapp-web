@@ -195,6 +195,54 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
+        <LinearLayout
+            android:id="@+id/background_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="-8dp"
+            android:orientation="vertical"
+            android:paddingHorizontal="8dp"
+            android:paddingBottom="8dp">
+
+            <TextView
+                style="@style/SectionTitle"
+                android:text="@string/section_background" />
+
+            <TextView
+                style="@style/Hint"
+                android:text="@string/background_hint" />
+
+            <include
+                android:id="@+id/bg_battery"
+                layout="@layout/item_check" />
+
+            <include
+                android:id="@+id/bg_activity"
+                layout="@layout/item_check" />
+
+            <include
+                android:id="@+id/bg_autostart"
+                layout="@layout/item_check" />
+
+            <TextView
+                android:id="@+id/bg_last"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_problem_box"
+                android:lineSpacingMultiplier="1.15"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="10dp"
+                android:textColor="@color/problem_text"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/bg_no_problem"
+                style="@style/Hint"
+                android:layout_marginTop="8dp"
+                android:text="@string/bg_no_problem" />
+        </LinearLayout>
+
         <TextView
             style="@style/SectionTitle"
             android:text="@string/section_sources" />

@@ -85,5 +85,9 @@
         <receiver
             android:name=".CopyReceiver"
             android:exported="false" />
+
+        <receiver
+            android:name=".RetryReceiver"
+            android:exported="false" />
     </application>
 </manifest>

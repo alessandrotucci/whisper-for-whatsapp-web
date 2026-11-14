@@ -38,7 +38,8 @@ import java.util.List;
 
 /**
  * Lista delle trascrizioni, dalla più recente, con in cima ciò che manca per funzionare:
- * permesso di notifica, accesso alle notifiche, modello, cartella dei vocali, batteria.
+ * permesso di notifica, accesso alle notifiche, modello, cartella dei vocali, batteria, e una
+ * riga finché il sistema ha fermato una trascrizione negli ultimi sette giorni.
  */
 public final class MainActivity extends Activity {
 
@@ -146,6 +147,13 @@ public final class MainActivity extends Activity {
         }
         if (!Ui.batteryUnrestricted(this)) {
             addSetupRow(R.string.setup_battery, R.string.setup_allow, () -> Ui.requestBatteryUnrestricted(this));
+        }
+        long killed = BackgroundWork.recentKill(this);
+        if (killed > 0) {
+            String when = BackgroundWork.when(this, killed);
+            when = when.substring(0, 1).toUpperCase(java.util.Locale.getDefault()) + when.substring(1);
+            addSetupRow(getString(R.string.setup_killed, when), R.string.setup_check,
+                    () -> startActivity(SettingsActivity.backgroundSection(this)));
         }
         setup.setVisibility(setup.getChildCount() > 0 ? View.VISIBLE : View.GONE);
     }

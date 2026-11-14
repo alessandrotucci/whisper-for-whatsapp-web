@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="check_ok">#6FD39A</color>
+    <color name="check_error">#FF8A7A</color>
+    <color name="check_unknown">#F2C26B</color>
+    <color name="problem_box">#1FF2C26B</color>
+    <color name="problem_text">#F3DCA8</color>
+    <color name="section_highlight">#291DA462</color>
+</resources>

@@ -71,6 +71,29 @@ public final class Prefs {
         sp(context).edit().putInt("threads_bg", n).apply();
     }
 
+    /** Ultimo vocale fermato dal sistema tre volte: id della riga, mittente e ora. */
+    public static void setLastKill(Context context, long noteId, String who, long when) {
+        sp(context).edit()
+                .putLong("kill.note", noteId)
+                .putString("kill.who", who)
+                .putLong("kill.time", when)
+                .apply();
+    }
+
+    /** Id del vocale dell'ultima interruzione, oppure -1. */
+    public static long lastKillNote(Context context) {
+        return sp(context).getLong("kill.note", -1);
+    }
+
+    public static String lastKillWho(Context context) {
+        return sp(context).getString("kill.who", "");
+    }
+
+    /** Ora dell'ultima interruzione in millisecondi, oppure 0. */
+    public static long lastKillTime(Context context) {
+        return sp(context).getLong("kill.time", 0);
+    }
+
     /** Cartella dei vocali scelta con lo Storage Access Framework per un pacchetto di WhatsApp. */
     public static Uri folder(Context context, String pkg) {
         String s = sp(context).getString("folder." + pkg, null);
