@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Sezione «Lavoro in background»: stato dei permessi e riquadro dell'ultimo problema. -->
+    <color name="check_ok">#1E8E4E</color>
+    <color name="check_error">#C5372C</color>
+    <color name="check_unknown">#9A6400</color>
+    <color name="problem_box">#24F2C26B</color>
+    <color name="problem_text">#6B4E00</color>
+    <color name="section_highlight">#291DA462</color>
+</resources>

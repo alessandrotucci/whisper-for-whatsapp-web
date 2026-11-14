@@ -101,8 +101,7 @@ public final class TranscriptionQueue {
         if (TranscriptionService.isActive()) return;
         if (!TranscriptionService.start(app) && !serviceRefusedNotified) {
             serviceRefusedNotified = true;
-            Notifier.showProblem(app, app.getString(R.string.problem_background_title),
-                    app.getString(R.string.problem_background_text));
+            BackgroundWork.notifyServiceRefused(app);
         }
     }
 
@@ -174,8 +173,7 @@ public final class TranscriptionQueue {
             Log.w(TAG, "troppi tentativi interrotti: " + note.name);
             db.markError(note.id, app.getString(R.string.error_killed));
             changed();
-            Notifier.showProblem(app, app.getString(R.string.problem_background_title),
-                    app.getString(R.string.problem_background_text));
+            BackgroundWork.notifyKilled(app, note);
             return;
         }
         db.markRunning(note.id);
