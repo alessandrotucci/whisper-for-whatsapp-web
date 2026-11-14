@@ -192,4 +192,20 @@
     <string name="action_review_again">Rivedi di nuovo con l\'IA</string>
     <string name="progress_review">Revisione: %1$s</string>
     <string name="progress_review_with">con %1$s…</string>
+    <string name="guide_title">Come ottenere la chiave</string>
+    <plurals name="guide_minutes">
+        <item quantity="one">circa %d minuto</item>
+        <item quantity="other">circa %d minuti</item>
+    </plurals>
+    <string name="guide_card">serve una carta di credito</string>
+    <string name="guide_cost">un vocale costa una frazione di centesimo</string>
+    <string name="guide_nocard">non serve una carta</string>
+    <string name="guide_local">nessun account</string>
+    <string name="guide_back_title">Torna qui</string>
+    <string name="guide_back_text">e tocca Incolla.</string>
+    <string name="guide_full">Guida completa con le immagini ↗</string>
+    <string name="guide_expand">tocca per aprire</string>
+    <string name="guide_collapse">tocca per chiudere</string>
+    <string name="guide_image">Cattura del passo %1$d</string>
+    <string name="guide_image_close">Cattura: tocca per chiudere, tocco lungo per aprirla nel browser</string>
 </resources>

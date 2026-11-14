@@ -196,4 +196,20 @@
     <string name="action_review_again">Review again with AI</string>
     <string name="progress_review">Review: %1$s</string>
     <string name="progress_review_with">with %1$s…</string>
+    <string name="guide_title">How to get the key</string>
+    <plurals name="guide_minutes">
+        <item quantity="one">about %d minute</item>
+        <item quantity="other">about %d minutes</item>
+    </plurals>
+    <string name="guide_card">a credit card is required</string>
+    <string name="guide_cost">a voice message costs a fraction of a cent</string>
+    <string name="guide_nocard">no card needed</string>
+    <string name="guide_local">no account</string>
+    <string name="guide_back_title">Come back here</string>
+    <string name="guide_back_text">and tap Paste.</string>
+    <string name="guide_full">Full guide with images ↗</string>
+    <string name="guide_expand">tap to expand</string>
+    <string name="guide_collapse">tap to collapse</string>
+    <string name="guide_image">Screenshot of step %1$d</string>
+    <string name="guide_image_close">Screenshot: tap to close, long press to open it in the browser</string>
 </resources>
