@@ -94,6 +94,15 @@ public final class Prefs {
         return sp(context).getLong("kill.time", 0);
     }
 
+    /** Vero dopo che l'archivio è stato letto una volta in cerca di interruzioni già avvenute. */
+    public static boolean killSeeded(Context context) {
+        return sp(context).getBoolean("kill.seeded", false);
+    }
+
+    public static void setKillSeeded(Context context) {
+        sp(context).edit().putBoolean("kill.seeded", true).apply();
+    }
+
     /** Cartella dei vocali scelta con lo Storage Access Framework per un pacchetto di WhatsApp. */
     public static Uri folder(Context context, String pkg) {
         String s = sp(context).getString("folder." + pkg, null);
