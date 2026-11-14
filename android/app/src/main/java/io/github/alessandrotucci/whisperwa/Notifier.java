@@ -29,6 +29,7 @@ public final class Notifier {
     private static final int ID_NOTE_BASE = 1000;
     private static final int KEEP = 8;
     private static final String GROUP = "transcripts";
+    private static final String GLOBE = new String(Character.toChars(0x1F310));
 
     private Notifier() {
     }
@@ -58,13 +59,14 @@ public final class Notifier {
         Intent copy = new Intent(context, CopyReceiver.class).putExtra(CopyReceiver.EXTRA_NOTE, note.id);
         PendingIntent copyPi = PendingIntent.getBroadcast(context, (int) note.id, copy,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        String text = note.text == null || note.text.isEmpty()
-                ? context.getString(R.string.empty_transcript) : note.text;
+        String shown = note.shownText();
+        String text = shown == null || shown.isEmpty() ? context.getString(R.string.empty_transcript) : shown;
+        String big = note.translation != null ? text + "\n\n" + GLOBE + " " + note.translation : text;
         Notification n = new Notification.Builder(context, CH_TRANSCRIPTS)
                 .setSmallIcon(R.drawable.ic_stat)
                 .setContentTitle(note.title())
                 .setContentText(text)
-                .setStyle(new Notification.BigTextStyle().bigText(text))
+                .setStyle(new Notification.BigTextStyle().bigText(big))
                 .setWhen(note.received)
                 .setShowWhen(true)
                 .setGroup(GROUP)
@@ -86,7 +88,8 @@ public final class Notifier {
         int shown = Math.min(KEEP, done.size());
         for (int i = 0; i < Math.min(5, shown); i++) {
             Db.Note d = done.get(i);
-            inbox.addLine(d.title() + ": " + (d.text == null ? "" : d.text));
+            String t = d.shownText();
+            inbox.addLine(d.title() + ": " + (t == null ? "" : t));
         }
         Notification summary = new Notification.Builder(context, CH_TRANSCRIPTS)
                 .setSmallIcon(R.drawable.ic_stat)
@@ -117,6 +120,14 @@ public final class Notifier {
                 : context.getString(R.string.progress_percent, percent);
         context.getSystemService(NotificationManager.class)
                 .notify(ID_PROGRESS, progressNotification(context, title, text, percent));
+    }
+
+    /** Notifica di avanzamento durante la revisione con l'IA. */
+    public static void showReviewProgress(Context context, Db.Note note, String provider) {
+        String title = context.getString(R.string.progress_review, note.title());
+        String text = context.getString(R.string.progress_review_with, provider);
+        context.getSystemService(NotificationManager.class)
+                .notify(ID_PROGRESS, progressNotification(context, title, text, 0));
     }
 
     static Notification progressNotification(Context context, String title, String text, int percent) {

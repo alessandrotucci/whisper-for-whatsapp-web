@@ -15,6 +15,11 @@ import java.util.List;
  *
  * <p>source identifica l'audio ed è unico: l'URI del documento nella cartella di WhatsApp, oppure
  * "share:" seguito da un UUID per i file condivisi, copiati in local_path.
+ *
+ * <p>text è sempre il testo di Whisper. La revisione con l'IA ha uno stato suo (review_state):
+ * una riga trascritta con revisione in attesa è anch'essa lavoro per la coda. review_text e
+ * review_segments sono il testo corretto e i suoi pezzi [testo, testo di Whisper o null] in
+ * JSON; translation è la traduzione in target_lang. show_whisper sceglie quale testo mostrare.
  */
 public final class Db extends SQLiteOpenHelper {
 
@@ -22,6 +27,12 @@ public final class Db extends SQLiteOpenHelper {
     public static final int RUNNING = 1;
     public static final int DONE = 2;
     public static final int ERROR = 3;
+
+    public static final int REVIEW_NONE = 0;
+    public static final int REVIEW_PENDING = 1;
+    public static final int REVIEW_RUNNING = 2;
+    public static final int REVIEW_DONE = 3;
+    public static final int REVIEW_FAILED = 4;
 
     /** Una riga della tabella notes. */
     public static final class Note {
@@ -41,6 +52,24 @@ public final class Db extends SQLiteOpenHelper {
         public String model;
         public String error;
         public int attempts;
+        public int reviewState;
+        public String reviewText;
+        public String reviewSegments;
+        public String translation;
+        public String targetLang;
+        public String reviewProvider;
+        public String reviewError;
+        public boolean showWhisper;
+
+        /** Vero se c'è un testo rivisto diverso da mostrare al posto di quello di Whisper. */
+        public boolean hasRevision() {
+            return reviewState == REVIEW_DONE && reviewText != null;
+        }
+
+        /** Il testo da mostrare e copiare: quello rivisto, salvo scelta contraria. */
+        public String shownText() {
+            return hasRevision() && !showWhisper ? reviewText : text;
+        }
 
         /** Mittente e chat in una riga, oppure il nome del file se non si conoscono. */
         public String title() {
@@ -59,7 +88,7 @@ public final class Db extends SQLiteOpenHelper {
     }
 
     private Db(Context context) {
-        super(context, "notes.db", null, 2);
+        super(context, "notes.db", null, 3);
     }
 
     @Override
@@ -80,13 +109,68 @@ public final class Db extends SQLiteOpenHelper {
                 + "work_ms INTEGER,"
                 + "model TEXT,"
                 + "error TEXT,"
-                + "attempts INTEGER NOT NULL DEFAULT 0)");
+                + "attempts INTEGER NOT NULL DEFAULT 0,"
+                + REVIEW_COLUMNS + ")");
         db.execSQL("CREATE INDEX notes_status ON notes(status, received)");
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         if (oldVersion < 2) db.execSQL("ALTER TABLE notes ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0");
+        if (oldVersion < 3) {
+            for (String col : REVIEW_COLUMNS.split(",")) db.execSQL("ALTER TABLE notes ADD COLUMN " + col);
+        }
+    }
+
+    private static final String REVIEW_COLUMNS = "review_state INTEGER NOT NULL DEFAULT 0,"
+            + "review_text TEXT,"
+            + "review_segments TEXT,"
+            + "translation TEXT,"
+            + "target_lang TEXT,"
+            + "review_provider TEXT,"
+            + "review_model TEXT,"
+            + "review_error TEXT,"
+            + "show_whisper INTEGER NOT NULL DEFAULT 0";
+
+    /** La riga trascritta con revisione in attesa da più tempo, oppure null. */
+    public Note nextReviewPending() {
+        List<Note> l = query("status = " + DONE + " AND review_state = " + REVIEW_PENDING, null,
+                "received ASC, id ASC", "1");
+        return l.isEmpty() ? null : l.get(0);
+    }
+
+    public void setReviewState(long id, int state) {
+        ContentValues v = new ContentValues();
+        v.put("review_state", state);
+        if (state == REVIEW_PENDING) v.putNull("review_error");
+        update(id, v);
+    }
+
+    public void markReviewDone(long id, String text, String segments, String translation, String targetLang,
+                               String provider, String model) {
+        ContentValues v = new ContentValues();
+        v.put("review_state", REVIEW_DONE);
+        v.put("review_text", text);
+        v.put("review_segments", segments);
+        v.put("translation", translation);
+        v.put("target_lang", targetLang);
+        v.put("review_provider", provider);
+        v.put("review_model", model);
+        v.putNull("review_error");
+        update(id, v);
+    }
+
+    public void markReviewFailed(long id, String error) {
+        ContentValues v = new ContentValues();
+        v.put("review_state", REVIEW_FAILED);
+        v.put("review_error", error);
+        update(id, v);
+    }
+
+    public void setShowWhisper(long id, boolean show) {
+        ContentValues v = new ContentValues();
+        v.put("show_whisper", show ? 1 : 0);
+        update(id, v);
     }
 
     /** Inserisce un vocale in coda; restituisce l'id, oppure -1 se source è già presente. */
@@ -153,6 +237,13 @@ public final class Db extends SQLiteOpenHelper {
         v.put("model", model);
         v.putNull("error");
         v.putNull("local_path");
+        v.put("review_state", REVIEW_NONE);
+        v.putNull("review_text");
+        v.putNull("review_segments");
+        v.putNull("translation");
+        v.putNull("review_provider");
+        v.putNull("review_error");
+        v.put("show_whisper", 0);
         update(id, v);
     }
 
@@ -182,6 +273,9 @@ public final class Db extends SQLiteOpenHelper {
         ContentValues v = new ContentValues();
         v.put("status", PENDING);
         getWritableDatabase().update("notes", v, "status = " + RUNNING, null);
+        ContentValues r = new ContentValues();
+        r.put("review_state", REVIEW_PENDING);
+        getWritableDatabase().update("notes", r, "review_state = " + REVIEW_RUNNING, null);
     }
 
     public void delete(long id) {
@@ -217,6 +311,14 @@ public final class Db extends SQLiteOpenHelper {
                 n.model = c.getString(c.getColumnIndexOrThrow("model"));
                 n.error = c.getString(c.getColumnIndexOrThrow("error"));
                 n.attempts = c.getInt(c.getColumnIndexOrThrow("attempts"));
+                n.reviewState = c.getInt(c.getColumnIndexOrThrow("review_state"));
+                n.reviewText = c.getString(c.getColumnIndexOrThrow("review_text"));
+                n.reviewSegments = c.getString(c.getColumnIndexOrThrow("review_segments"));
+                n.translation = c.getString(c.getColumnIndexOrThrow("translation"));
+                n.targetLang = c.getString(c.getColumnIndexOrThrow("target_lang"));
+                n.reviewProvider = c.getString(c.getColumnIndexOrThrow("review_provider"));
+                n.reviewError = c.getString(c.getColumnIndexOrThrow("review_error"));
+                n.showWhisper = c.getInt(c.getColumnIndexOrThrow("show_whisper")) != 0;
                 out.add(n);
             }
         }

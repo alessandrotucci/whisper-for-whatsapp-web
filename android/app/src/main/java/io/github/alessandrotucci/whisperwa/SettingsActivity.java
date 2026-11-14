@@ -16,7 +16,10 @@ import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
 
-/** Impostazioni: modello (download e scelta), lingua, thread, cartelle dei vocali, prova su un file. */
+/**
+ * Impostazioni: modello (download e scelta), lingua, revisione con l'IA, thread, cartelle dei
+ * vocali, prova su un file.
+ */
 public final class SettingsActivity extends Activity {
 
     private static final int REQ_FOLDER_WHATSAPP = 10;
@@ -30,6 +33,7 @@ public final class SettingsActivity extends Activity {
     private Button download;
     private Button delete;
     private Button cancel;
+    private AiSettings ai;
     private final Runnable downloadRefresher = this::refreshModel;
 
     @Override
@@ -82,6 +86,8 @@ public final class SettingsActivity extends Activity {
         language.setSelection(Math.max(0, langIdx));
         language.setOnItemSelectedListener(new SimpleSelection(pos -> Prefs.setLanguage(this, LANGUAGES[pos])));
 
+        ai = new AiSettings(this);
+
         Spinner threads = findViewById(R.id.threads);
         int cores = Runtime.getRuntime().availableProcessors();
         Integer[] options = new Integer[Math.max(1, cores)];
@@ -125,6 +131,7 @@ public final class SettingsActivity extends Activity {
         DownloadService.addListener(downloadRefresher);
         refreshModel();
         refreshFolders();
+        ai.refresh();
     }
 
     @Override

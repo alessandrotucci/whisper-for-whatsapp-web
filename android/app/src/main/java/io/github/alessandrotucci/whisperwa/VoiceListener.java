@@ -76,14 +76,18 @@ public final class VoiceListener extends NotificationListenerService {
                 if (!(p instanceof Bundle)) continue;
                 Bundle m = (Bundle) p;
                 CharSequence text = m.getCharSequence("text");
-                if (text == null || !text.toString().contains(MIC)) continue;
+                if (text == null) continue;
                 long time = m.getLong("time", sbn.getPostTime());
                 CharSequence sender = m.getCharSequence("sender");
                 Person person = m.getParcelable("sender_person");
                 if (person != null && person.getName() != null) sender = person.getName();
-                Uri uri = m.getParcelable("uri");
                 String chat = str(conversation != null ? conversation : title);
                 String who = sender != null ? sender.toString() : chat;
+                if (!text.toString().contains(MIC)) {
+                    ChatContext.add(pkg, chat, who, text.toString(), time);
+                    continue;
+                }
+                Uri uri = m.getParcelable("uri");
                 hint(pkg, chat, who, time, uri, now, out);
             }
             return;

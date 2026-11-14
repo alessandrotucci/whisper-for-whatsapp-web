@@ -20,7 +20,8 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme"
+        android:usesCleartextTraffic="true">
 
         <activity
             android:name=".MainActivity"
@@ -37,6 +38,13 @@
             android:exported="false"
             android:label="@string/settings"
             android:parentActivityName=".MainActivity" />
+
+        <activity
+            android:name=".AiAddActivity"
+            android:exported="false"
+            android:label="@string/ai_dialog_title"
+            android:parentActivityName=".SettingsActivity"
+            android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".ShareActivity"
