@@ -562,5 +562,281 @@
   },
   "upd_versions": {
     "message": "Extension $1 · local component $2"
+  },
+  "box_transcription_whisper": {
+    "message": "Whisper transcription"
+  },
+  "box_reviewing": {
+    "message": "reviewing with $1…"
+  },
+  "box_reviewing_ai": {
+    "message": "AI review…"
+  },
+  "box_reviewed_by": {
+    "message": "reviewed by $1"
+  },
+  "box_fix_title": {
+    "message": "Whisper: “$1”"
+  },
+  "box_fix_added": {
+    "message": "word added by the review"
+  },
+  "box_show_original": {
+    "message": "Original"
+  },
+  "box_show_original_title": {
+    "message": "Show the Whisper text"
+  },
+  "box_show_revised": {
+    "message": "Reviewed"
+  },
+  "box_show_revised_title": {
+    "message": "Show the AI-reviewed text"
+  },
+  "box_translation": {
+    "message": "Translation"
+  },
+  "box_review_failed": {
+    "message": "Review failed: $1."
+  },
+  "box_review_retry": {
+    "message": "Retry with AI"
+  },
+  "ai_err_key": {
+    "message": "key rejected"
+  },
+  "ai_err_rate": {
+    "message": "rate limit reached"
+  },
+  "ai_err_timeout": {
+    "message": "no reply within the time limit"
+  },
+  "ai_err_network": {
+    "message": "service unreachable"
+  },
+  "ai_err_model": {
+    "message": "model not found"
+  },
+  "ai_err_format": {
+    "message": "invalid reply"
+  },
+  "ai_err_http": {
+    "message": "service error"
+  },
+  "ai_err_host": {
+    "message": "local component unreachable"
+  },
+  "ai_err_interrupted": {
+    "message": "interrupted before finishing"
+  },
+  "ai_title": {
+    "message": "AI review and translation"
+  },
+  "ai_optional": {
+    "message": "· optional"
+  },
+  "ai_intro": {
+    "message": "Connect one or more AI accounts. After transcription, the text (not the audio) goes to the first account in the list, which fixes misheard words and, if the message is in another language, translates it. The original transcription is always available."
+  },
+  "ai_revise": {
+    "message": "Fix the transcription"
+  },
+  "ai_revise_note": {
+    "message": "Changed words are underlined; hover them to see what Whisper heard."
+  },
+  "ai_translate": {
+    "message": "Translate messages in another language into"
+  },
+  "ai_browser_lang": {
+    "message": "(browser language)"
+  },
+  "ai_empty_note": {
+    "message": "Both features turn on as soon as you connect the first account."
+  },
+  "ai_accounts": {
+    "message": "Connected accounts, in order of preference"
+  },
+  "ai_timeout_line": {
+    "message": "If the first one does not reply within $1 seconds or fails, the next one is used."
+  },
+  "ai_add": {
+    "message": "+ Add an account"
+  },
+  "ai_add_more": {
+    "message": "+ Add another account"
+  },
+  "ai_context": {
+    "message": "Use the chat's written messages as context"
+  },
+  "ai_context_note": {
+    "message": "The last written messages before the voice message go to the AI with the transcription: names and terms get fixed better, but the provider receives more of the conversation."
+  },
+  "ai_keys_note": {
+    "message": "Keys stay on this computer, encrypted with your Windows account, and work in both Chrome and Edge."
+  },
+  "ai_model": {
+    "message": "Model"
+  },
+  "ai_recommended": {
+    "message": "$1 (recommended)"
+  },
+  "ai_recommended_long": {
+    "message": "$1 (recommended: fast and cheap)"
+  },
+  "ai_last_ok": {
+    "message": "last used $1"
+  },
+  "ai_free_tier": {
+    "message": "free tier"
+  },
+  "ai_ago_now": {
+    "message": "just now"
+  },
+  "ai_ago_min": {
+    "message": "$1 min ago"
+  },
+  "ai_ago_h": {
+    "message": "$1 h ago"
+  },
+  "ai_ago_d": {
+    "message": "$1 d ago"
+  },
+  "ai_move_up": {
+    "message": "Move up"
+  },
+  "ai_move_down": {
+    "message": "Move down"
+  },
+  "ai_test": {
+    "message": "Test"
+  },
+  "ai_test_title": {
+    "message": "Test with a sample text"
+  },
+  "ai_testing": {
+    "message": "Testing…"
+  },
+  "ai_test_ok": {
+    "message": "✓ Reply in $1 s:"
+  },
+  "ai_remove": {
+    "message": "Remove"
+  },
+  "ai_remove_confirm": {
+    "message": "Disconnect $1? The key is deleted from this computer."
+  },
+  "ai_dialog_title": {
+    "message": "Add an AI account"
+  },
+  "ai_pick_note": {
+    "message": "Chat subscriptions (Claude Pro, ChatGPT Plus, Gemini Advanced, SuperGrok…) do not give access to external apps: you need an API key from the same provider, billed by usage and separately. Some providers have a free tier; Ollama and LM Studio run on your computer."
+  },
+  "ai_tag_key": {
+    "message": "API key"
+  },
+  "ai_tag_url_key": {
+    "message": "address and key"
+  },
+  "ai_tag_free": {
+    "message": "free with limits"
+  },
+  "ai_tag_oauth": {
+    "message": "sign in with your account"
+  },
+  "ai_tag_local": {
+    "message": "on your computer"
+  },
+  "ai_custom_vendor": {
+    "message": "OpenAI compatible"
+  },
+  "ai_custom_title": {
+    "message": "Other OpenAI-compatible service"
+  },
+  "ai_guide": {
+    "message": "How to get the key"
+  },
+  "ai_guide_minutes": {
+    "message": "about $1 minutes"
+  },
+  "ai_guide_card": {
+    "message": "a credit card is needed"
+  },
+  "ai_guide_nocard": {
+    "message": "no card needed"
+  },
+  "ai_guide_local": {
+    "message": "no account"
+  },
+  "ai_guide_what": {
+    "message": "An API key is a password that lets this extension use your account with the provider. It is billed by usage: a voice message costs a fraction of a cent."
+  },
+  "ai_guide_full": {
+    "message": "Full guide, with full-size images ↗"
+  },
+  "ai_oauth": {
+    "message": "Sign in with OpenRouter"
+  },
+  "ai_oauth_wait": {
+    "message": "Complete the sign-in in the OpenRouter tab that opened…"
+  },
+  "ai_paste_key": {
+    "message": "or paste a key"
+  },
+  "ai_url": {
+    "message": "Service address"
+  },
+  "ai_key": {
+    "message": "API key"
+  },
+  "ai_need_key": {
+    "message": "Paste the key first."
+  },
+  "ai_verify": {
+    "message": "Verify"
+  },
+  "ai_verifying": {
+    "message": "Verifying…"
+  },
+  "ai_key_ok": {
+    "message": "Key valid"
+  },
+  "ai_server_ok": {
+    "message": "Service reachable"
+  },
+  "ai_no_models": {
+    "message": "the service offers no text models"
+  },
+  "ai_model_note": {
+    "message": "The list comes from the provider. A small model is enough to fix and translate a voice message."
+  },
+  "ai_cancel": {
+    "message": "Cancel"
+  },
+  "ai_connect": {
+    "message": "Connect"
+  },
+  "ai_connecting": {
+    "message": "Connecting and testing…"
+  },
+  "ai_connected": {
+    "message": "$1 connected."
+  },
+  "popup_ai": {
+    "message": "AI: $1 · $2"
+  },
+  "popup_ai_then": {
+    "message": ", then "
+  },
+  "popup_ai_both": {
+    "message": "fixing and translation on"
+  },
+  "popup_ai_revise": {
+    "message": "fixing on"
+  },
+  "popup_ai_translate": {
+    "message": "translation on"
+  },
+  "popup_ai_off": {
+    "message": "features off"
   }
 }

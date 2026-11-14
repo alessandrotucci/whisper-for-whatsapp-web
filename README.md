@@ -3,6 +3,7 @@
 Estensione per Chrome ed Edge che trascrive i vocali di WhatsApp Web con
 [faster-whisper](https://github.com/SYSTRAN/faster-whisper) **sul tuo computer** e mostra il testo
 sotto ogni vocale. L'audio non lascia la macchina: nessun servizio cloud, nessun account.
+Solo la revisione con l'IA, facoltativa, manda il testo trascritto al fornitore che scegli.
 
 - Trascrizione automatica dei vocali in arrivo, in qualsiasi chat.
 - Pulsante **Trascrivi** sotto ogni vocale, anche quelli arrivati prima dell'installazione.
@@ -13,6 +14,11 @@ sotto ogni vocale. L'audio non lascia la macchina: nessun servizio cloud, nessun
   vocale mostra la sua posizione nella coda comune.
 - GPU NVIDIA facoltativa: la pagina dell'estensione verifica il driver e scarica da sé le librerie
   CUDA (cuBLAS e cuDNN, circa 1,3 GB), che l'installer non contiene.
+- Revisione e traduzione con l'IA, facoltative: collegando uno o più account (Claude, ChatGPT,
+  Gemini, Grok, Mistral, DeepSeek, OpenRouter, Ollama in locale e altri, 21 in tutto) il testo di
+  Whisper si corregge, con le parole cambiate sottolineate, e i messaggi in un'altra lingua
+  ricevono la traduzione. Gli account si provano in ordine, con passaggio al successivo se uno non
+  risponde. [Come ottenere una chiave](docs/ai-keys/README.it.md).
 - Modelli Whisper a scelta (large-v3 predefinito), scaricati dalla pagina dell'estensione o già
   presenti nella cache di faster-whisper.
 
@@ -77,6 +83,16 @@ degli zip di release, e l'estensione si ricarica). Il componente scarica solo da
 release di questo repository. `tools/release_check.py`, in CI, blocca una release se tag, manifest,
 `version.json` e `HOST_VERSION` non coincidono, o se `host/` o `installer/` sono cambiati senza
 alzare la versione del componente.
+
+IA: gli account stanno in `%LOCALAPPDATA%\WhisperForWhatsAppWeb\ai.json`, con la chiave cifrata
+con DPAPI per l'utente di Windows; verso il browser non torna mai. Dopo una trascrizione il relay
+manda il testo al primo account (`host/ai_review.py`: una sola richiesta che chiede testo corretto
+e, se la lingua è diversa da quella dell'utente, traduzione), passa al successivo su errore o
+timeout e ricava le parole cambiate confrontando i due testi; una correzione troppo diversa
+dall'originale si scarta. La maggior parte dei fornitori parla l'API chat/completions di OpenAI,
+Anthropic la sua. OpenRouter si collega con l'accesso all'account (OAuth PKCE con ritorno su
+localhost). Le guide per ottenere le chiavi stanno in `extension/ai-guides.json`, che la finestra
+di collegamento rilegge da GitHub; `tools/ai_guides.py` ne genera `docs/ai-keys/README*.md`.
 
 Le trascrizioni restano in `chrome.storage.local`, legate all'id del messaggio. Il componente
 locale resta attivo, col modello in memoria, per alcuni minuti dopo l'ultima trascrizione.

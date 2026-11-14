@@ -4,7 +4,8 @@
 //  - marcare nel DOM i messaggi vocali: sull'elemento [data-id] del messaggio
 //    imposta data-wwt-key (id completo del messaggio), data-wwt-voice ("1"/"0")
 //    e data-wwt-from-me, che content.js usa per costruire l'interfaccia;
-//  - scaricare e decifrare in memoria l'audio di un vocale, su richiesta;
+//  - scaricare e decifrare in memoria l'audio di un vocale, su richiesta, con i
+//    messaggi scritti che lo precedono se la revisione con l'IA usa il contesto;
 //  - segnalare i vocali nuovi appena arrivati;
 //  - aggiungere le trascrizioni dei vocali selezionati al testo copiato.
 //
@@ -102,6 +103,31 @@
     }
   }
 
+  // Gli ultimi messaggi scritti prima del vocale, nella sua chat, come "nome: testo" uno per
+  // riga, fino a CONTEXT_MSGS messaggi e CONTEXT_CHARS caratteri.
+  const CONTEXT_MSGS = 8;
+  const CONTEXT_CHARS = 1500;
+  function chatContext(m) {
+    const chat = WA.Chat.get(m.id.remote);
+    if (!chat || !chat.msgs) return null;
+    const list = chat.msgs.getModelsArray();
+    const i = list.indexOf(m);
+    if (i < 0) return null;
+    const lines = [];
+    let size = 0;
+    for (let j = i - 1; j >= 0 && lines.length < CONTEXT_MSGS; j--) {
+      const x = list[j];
+      if (!x || x.type !== 'chat' || !x.body) continue;
+      const pre = prePlainText(x);
+      const name = pre ? pre.replace(/^\[[^\]]*\]\s*/, '').replace(/:\s*$/, '') : '';
+      const line = (name ? name + ': ' : '') + String(x.body).replace(/\s+/g, ' ').trim();
+      if (size + line.length > CONTEXT_CHARS) break;
+      lines.unshift(line);
+      size += line.length + 1;
+    }
+    return lines.length ? lines.join('\n') : null;
+  }
+
   function chatTitle(m) {
     try {
       const chat = WA.Chat.get(m.id.remote);
@@ -168,7 +194,11 @@
         if (!m) throw new Error('E:msg_not_loaded');
         if (!isVoice(m)) throw new Error('E:not_voice');
         const blob = await downloadAudio(m);
-        return { b64: await blobToBase64(blob), mime: blob.type, size: blob.size, duration: m.duration || null };
+        const out = { b64: await blobToBase64(blob), mime: blob.type, size: blob.size, duration: m.duration || null };
+        if (req.context) {
+          try { out.context = chatContext(m); } catch (_) { /* senza contesto */ }
+        }
+        return out;
       }
       case 'chatVoices': {
         const chat = activeChat();
@@ -246,10 +276,12 @@
       const msgEl = row.querySelector('[data-id]');
       if (msgEl && msgEl.getAttribute('data-wwt-voice') === '1') {
         const textEl = row.querySelector('.wwt-box[data-state="done"] .wwt-final');
+        const trEl = row.querySelector('.wwt-box[data-state="done"] .wwt-final-tr');
         const m = textEl && WA.Msg.get(msgEl.getAttribute('data-wwt-key'));
         const pre = m && prePlainText(m);
         const text = textEl && textEl.textContent.trim();
-        if (pre && text) items.push({ voice: true, pre, text });
+        const tr = trEl && trEl.textContent.trim();
+        if (pre && text) items.push({ voice: true, pre, text, tr });
         continue;
       }
       const copyable = row.querySelector('[data-pre-plain-text]');
@@ -258,7 +290,8 @@
     return items;
   }
 
-  const voiceLine = (it) => it.pre + VOICE_MARK + it.text;
+  const TRANSLATION_MARK = '    🌐 ';
+  const voiceLine = (it) => it.pre + VOICE_MARK + it.text + (it.tr ? '\n' + TRANSLATION_MARK + it.tr : '');
 
   // Inserisce le righe dei vocali nel testo di WhatsApp, prima del messaggio scritto che le
   // segue nella selezione; quelle dopo l'ultimo messaggio scritto vanno in coda.

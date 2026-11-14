@@ -5,7 +5,9 @@
 // si chiede alla scheda di WhatsApp un vocale per volta e si passa subito al componente.
 // Posizione in coda e stato arrivano dal componente, con i messaggi "queue" e "status".
 //
-// Archivio: chrome.storage.local, chiave "t:<id messaggio>".
+// Archivio: chrome.storage.local, chiave "t:<id messaggio>". Con un account di IA collegato
+// nel componente, il record ha anche "review": {state: running|done|error, ...}; il testo
+// di Whisper resta in "text", quello rivisto e la traduzione stanno in review.
 // Lavori aperti: chrome.storage.session, così sopravvivono al riavvio del service worker;
 // alla ripartenza tornano tutti in attesa dell'audio e si inviano di nuovo.
 
@@ -21,6 +23,7 @@ const DEFAULT_SETTINGS = {
   beamSize: 5,
   vadFilter: true,
   idleMinutes: 10,
+  aiContext: false,
 };
 
 // Un lavoro passa per gli stati: queued (attende l'audio, o il turno nel componente,
@@ -107,6 +110,8 @@ let jobSeq = 0;
 let ridSeq = 0;
 let downloading = null; // nome del modello in download
 let cudaInstalling = false;
+let reviews = new Map(); // id della revisione nel componente -> chiave del vocale
+let reviewSeq = 0;
 
 function connect() {
   if (port) return port;
@@ -154,6 +159,10 @@ function onHostMessage(msg) {
     applyHostQueue(msg);
     return;
   }
+  if (msg.type === 'review') {
+    onReview(msg);
+    return;
+  }
   const p = msg.id != null ? pending.get(msg.id) : null;
   if (!p) return;
   if (msg.type === 'result') {
@@ -194,7 +203,7 @@ function notifyPages(message) {
   chrome.runtime.sendMessage(message).catch(() => {});
 }
 
-function hostTranscribe(audioB64, manual, onEvent) {
+function hostTranscribe(audioB64, manual, context, onEvent) {
   const id = 'j' + Date.now().toString(36) + '-' + (++jobSeq);
   const promise = new Promise((resolve, reject) => {
     pending.set(id, { resolve, reject, onEvent });
@@ -208,6 +217,7 @@ function hostTranscribe(audioB64, manual, onEvent) {
         beam_size: Number(settings.beamSize) || 5,
         vad_filter: !!settings.vadFilter,
         manual: !!manual,
+        context: context || null,
       });
     } catch (e) {
       pending.delete(id);
@@ -222,7 +232,7 @@ function hostTranscribe(audioB64, manual, onEvent) {
 // muta a lungo (modello in caricamento, vocale in coda dietro quelli di un altro browser).
 let keepAliveTimer = null;
 function updateKeepAlive() {
-  const busy = jobs.size > 0 || !!downloading || cudaInstalling || updating;
+  const busy = jobs.size > 0 || reviews.size > 0 || !!downloading || cudaInstalling || updating;
   if (busy && !keepAliveTimer) {
     keepAliveTimer = setInterval(() => {
       chrome.runtime.getPlatformInfo().catch(() => {});
@@ -236,10 +246,10 @@ function updateKeepAlive() {
 function scheduleIdleDisconnect() {
   clearTimeout(idleTimer);
   updateKeepAlive();
-  if (!port || jobs.size || downloading || cudaInstalling) return;
+  if (!port || jobs.size || reviews.size || downloading || cudaInstalling) return;
   const minutes = Math.max(1, Number(settings.idleMinutes) || 10);
   idleTimer = setTimeout(() => {
-    if (port && !jobs.size && !downloading && !cudaInstalling) {
+    if (port && !jobs.size && !reviews.size && !downloading && !cudaInstalling) {
       port.disconnect();
       port = null;
     }
@@ -313,7 +323,7 @@ async function fetchAudio(job) {
   let connErr = new Error(chrome.i18n.getMessage('err_no_wa_tab'));
   for (const tabId of order) {
     try {
-      const res = await chrome.tabs.sendMessage(tabId, { cmd: 'fetchAudio', key: job.key });
+      const res = await chrome.tabs.sendMessage(tabId, { cmd: 'fetchAudio', key: job.key, context: !!settings.aiContext });
       if (res && res.ok) return res.result;
       if (!tabErr) tabErr = new Error((res && res.error) || chrome.i18n.getMessage('err_empty_tab_reply'));
     } catch (e) {
@@ -394,7 +404,7 @@ async function pumpFetch() {
         connect(); // la porta aperta tiene vivo il service worker anche durante il download
         const audio = await fetchAudio(job);
         if (jobs.get(key) !== job) continue;
-        submit(job, audio.b64);
+        submit(job, audio.b64, audio.context);
       } catch (e) {
         if (jobs.get(key) === job) await finishError(job, e);
       }
@@ -405,9 +415,9 @@ async function pumpFetch() {
   }
 }
 
-function submit(job, b64) {
+function submit(job, b64, context) {
   job.state = 'waiting';
-  const { id, promise } = hostTranscribe(b64, job.manual, (ev) => {
+  const { id, promise } = hostTranscribe(b64, job.manual, context, (ev) => {
     if (ev.type === 'status') {
       job.state = ev.state;
       job.position = null;
@@ -434,8 +444,63 @@ async function finishResult(job, res) {
     chat: job.chat,
     at: Date.now(),
   };
+  if (res.review) {
+    record.review = { ...res.review, since: Date.now() };
+    reviews.set(res.id, job.key);
+  }
   await chrome.storage.local.set({ ['t:' + job.key]: record });
   await dropJob(job.key, { state: 'done', ...record });
+}
+
+// Esito della revisione con l'IA di un vocale già trascritto: aggiorna il record e le schede.
+async function onReview(msg) {
+  const key = reviews.get(msg.id);
+  if (!key) return;
+  if (msg.state !== 'running') reviews.delete(msg.id);
+  const record = (await getCached([key]))[key];
+  if (!record) return;
+  if (msg.state === 'running') {
+    record.review = { state: 'running', provider: msg.provider, since: Date.now() };
+  } else if (msg.state === 'done') {
+    const r = msg.review;
+    record.review = {
+      state: 'done',
+      text: r.text,
+      segments: r.segments,
+      revised: r.revised,
+      translation: r.translation,
+      targetLang: r.target_lang,
+      language: r.language,
+      provider: r.provider,
+      model: r.model,
+      failed: (r.errors || []).map((e) => ({ name: e.name, code: e.code })),
+    };
+  } else if (msg.state === 'error') {
+    record.review = { state: 'error', errors: (msg.errors || []).map((e) => ({ name: e.name, code: e.code, detail: e.detail })) };
+  } else {
+    delete record.review;
+  }
+  await chrome.storage.local.set({ ['t:' + key]: record });
+  broadcast({ cmd: 'update', updates: [{ key, state: 'done', review: null, ...record }] });
+  scheduleIdleDisconnect();
+}
+
+// Nuova revisione di un vocale già trascritto, dal testo di Whisper salvato.
+async function reviewAgain(key) {
+  const record = (await getCached([key]))[key];
+  if (!record || !record.text) return { ok: false, error: 'no transcription' };
+  const id = 'rv' + Date.now().toString(36) + '-' + (++reviewSeq);
+  reviews.set(id, key);
+  record.review = { state: 'running', provider: '', since: Date.now() };
+  await chrome.storage.local.set({ ['t:' + key]: record });
+  broadcast({ cmd: 'update', updates: [{ key, state: 'done', ...record }] });
+  try {
+    connect().postMessage({ type: 'review', id, text: record.text, language: record.language, hint: settings.initialPrompt || null });
+  } catch (e) {
+    await onReview({ id, state: 'error', errors: [{ code: 'network', detail: e.message }] });
+  }
+  updateKeepAlive();
+  return { ok: true };
 }
 
 async function finishError(job, e) {
@@ -606,6 +671,35 @@ const handlers = {
   openOptions() {
     chrome.runtime.openOptionsPage();
     return true;
+  },
+  reviewAgain({ key }) {
+    return reviewAgain(key);
+  },
+  // Richieste di configurazione dell'IA dalle pagine dell'estensione; la risposta
+  // ai_error diventa {ok: false, code, detail}.
+  async ai({ message, done, timeoutMs }) {
+    try {
+      const r = await hostRequest(message, [...done, 'ai_error'], { timeoutMs: timeoutMs == null ? 60000 : timeoutMs });
+      scheduleIdleDisconnect();
+      if (r.type === 'ai_error') return { ok: false, code: r.code, detail: r.detail };
+      return { ok: true, ...r };
+    } catch (e) {
+      return { ok: false, code: 'host', detail: e.message };
+    }
+  },
+  async aiOauth({ targetLang }) {
+    try {
+      const r = await hostRequest({ type: 'ai_oauth', provider: 'openrouter', target_lang: targetLang }, ['ai_added', 'ai_error'], {
+        timeoutMs: 0,
+        onEvent: (ev) => {
+          if (ev.type === 'ai_oauth_url') chrome.tabs.create({ url: ev.url });
+        },
+      });
+      if (r.type === 'ai_error') return { ok: false, code: r.code, detail: r.detail };
+      return { ok: true, ...r };
+    } catch (e) {
+      return { ok: false, code: 'host', detail: e.message };
+    }
   },
 };
 

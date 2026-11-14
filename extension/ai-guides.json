@@ -1,0 +1,245 @@
+{
+  "version": 1,
+  "img_base": "https://raw.githubusercontent.com/alessandrotucci/whisper-for-whatsapp-web/main/docs/ai-keys/img/",
+  "providers": {
+    "anthropic": {
+      "minutes": 3, "card": true,
+      "steps": [
+        {"url": "https://console.anthropic.com/", "img": "anthropic-1.png",
+         "title": {"it": "Accedi alla console", "en": "Sign in to the console"},
+         "text": {"it": "Apri la console di Anthropic ed entra con il tuo account, anche con Google. È un account diverso da quello di claude.ai: l'abbonamento Pro o Max non vale qui.", "en": "Open the Anthropic console and sign in, Google works too. It is separate from claude.ai: a Pro or Max subscription does not apply here."}},
+        {"url": "https://console.anthropic.com/settings/billing", "img": "anthropic-2.png",
+         "title": {"it": "Aggiungi del credito", "en": "Add credit"},
+         "text": {"it": "In Billing scegli Add funds e carica il minimo, 5 $: bastano per migliaia di vocali.", "en": "In Billing choose Add funds and load the minimum, 5 $: enough for thousands of voice messages."}},
+        {"url": "https://console.anthropic.com/settings/keys", "img": "anthropic-3.png",
+         "title": {"it": "Crea la chiave", "en": "Create the key"},
+         "text": {"it": "In API keys premi Create Key, dalle un nome (per esempio WhatsApp) e copiala: si vede una volta sola.", "en": "In API keys press Create Key, name it (for example WhatsApp) and copy it: it is shown only once."}}
+      ]
+    },
+    "openai": {
+      "minutes": 3, "card": true,
+      "steps": [
+        {"url": "https://platform.openai.com/", "img": "openai-1.png",
+         "title": {"it": "Accedi alla piattaforma per sviluppatori", "en": "Sign in to the developer platform"},
+         "text": {"it": "Apri platform.openai.com con lo stesso account di ChatGPT. L'abbonamento ChatGPT Plus non copre l'uso tramite chiave.", "en": "Open platform.openai.com with your ChatGPT account. A ChatGPT Plus subscription does not cover key-based usage."}},
+        {"url": "https://platform.openai.com/settings/organization/billing/overview", "img": "openai-2.png",
+         "title": {"it": "Aggiungi del credito", "en": "Add credit"},
+         "text": {"it": "In Billing aggiungi un metodo di pagamento e carica il minimo, 5 $.", "en": "In Billing add a payment method and load the minimum, 5 $."}},
+        {"url": "https://platform.openai.com/api-keys", "img": "openai-3.png",
+         "title": {"it": "Crea la chiave", "en": "Create the key"},
+         "text": {"it": "In API keys premi Create new secret key, dalle un nome e copiala: si vede una volta sola.", "en": "In API keys press Create new secret key, name it and copy it: it is shown only once."}}
+      ]
+    },
+    "gemini": {
+      "minutes": 1, "card": false,
+      "steps": [
+        {"url": "https://aistudio.google.com/apikey", "img": "gemini-1.png",
+         "title": {"it": "Apri Google AI Studio", "en": "Open Google AI Studio"},
+         "text": {"it": "Entra con il tuo account Google e accetta le condizioni la prima volta. Non serve una carta: il livello gratuito ha un limite di richieste al giorno.", "en": "Sign in with your Google account and accept the terms the first time. No card needed: the free tier has a daily request limit."}},
+        {"url": "https://aistudio.google.com/apikey", "img": "gemini-2.png",
+         "title": {"it": "Crea la chiave", "en": "Create the key"},
+         "text": {"it": "Premi Create API key, scegli o crea un progetto e copia la chiave.", "en": "Press Create API key, pick or create a project and copy the key."}}
+      ]
+    },
+    "xai": {
+      "minutes": 3, "card": true,
+      "steps": [
+        {"url": "https://console.x.ai/", "img": "xai-1.png",
+         "title": {"it": "Accedi alla console di xAI", "en": "Sign in to the xAI console"},
+         "text": {"it": "Entra con l'account X o con un'email. L'abbonamento SuperGrok non vale per le chiavi.", "en": "Sign in with your X account or an email. A SuperGrok subscription does not apply to keys."}},
+        {"url": "https://console.x.ai/", "img": "xai-2.png",
+         "title": {"it": "Aggiungi del credito", "en": "Add credit"},
+         "text": {"it": "In Billing carica del credito prepagato.", "en": "In Billing load some prepaid credit."}},
+        {"url": "https://console.x.ai/", "img": "xai-3.png",
+         "title": {"it": "Crea la chiave", "en": "Create the key"},
+         "text": {"it": "In API Keys premi Create API Key e copiala.", "en": "In API Keys press Create API Key and copy it."}}
+      ]
+    },
+    "mistral": {
+      "minutes": 3, "card": false,
+      "steps": [
+        {"url": "https://console.mistral.ai/", "img": "mistral-1.png",
+         "title": {"it": "Accedi alla console di Mistral", "en": "Sign in to the Mistral console"},
+         "text": {"it": "Crea l'account o entra. Per il piano gratuito Experiment serve verificare un numero di telefono, non una carta.", "en": "Sign up or sign in. The free Experiment plan needs a verified phone number, not a card."}},
+        {"url": "https://console.mistral.ai/api-keys", "img": "mistral-2.png",
+         "title": {"it": "Crea la chiave", "en": "Create the key"},
+         "text": {"it": "In API keys premi Create new key e copiala. Una chiave appena creata può impiegare qualche minuto a funzionare.", "en": "In API keys press Create new key and copy it. A new key may take a few minutes to start working."}}
+      ]
+    },
+    "deepseek": {
+      "minutes": 3, "card": true,
+      "steps": [
+        {"url": "https://platform.deepseek.com/", "img": "deepseek-1.png",
+         "title": {"it": "Accedi alla piattaforma", "en": "Sign in to the platform"},
+         "text": {"it": "Entra con email o Google.", "en": "Sign in with email or Google."}},
+        {"url": "https://platform.deepseek.com/top_up", "img": "deepseek-2.png",
+         "title": {"it": "Ricarica", "en": "Top up"},
+         "text": {"it": "In Top up carica del credito: 2 $ bastano a lungo.", "en": "In Top up load some credit: 2 $ last a long time."}},
+        {"url": "https://platform.deepseek.com/api_keys", "img": "deepseek-3.png",
+         "title": {"it": "Crea la chiave", "en": "Create the key"},
+         "text": {"it": "In API keys premi Create new API key e copiala.", "en": "In API keys press Create new API key and copy it."}}
+      ]
+    },
+    "qwen": {
+      "minutes": 5, "card": true,
+      "steps": [
+        {"url": "https://modelstudio.console.alibabacloud.com/", "img": "qwen-1.png",
+         "title": {"it": "Apri Model Studio di Alibaba Cloud", "en": "Open Alibaba Cloud Model Studio"},
+         "text": {"it": "Serve un account Alibaba Cloud internazionale. I nuovi account ricevono una quota gratuita.", "en": "You need an international Alibaba Cloud account. New accounts get a free quota."}},
+        {"url": "https://modelstudio.console.alibabacloud.com/", "img": "qwen-2.png",
+         "title": {"it": "Crea la chiave", "en": "Create the key"},
+         "text": {"it": "Nella sezione API Key premi Create API Key e copiala.", "en": "In the API Key section press Create API Key and copy it."}}
+      ]
+    },
+    "moonshot": {
+      "minutes": 3, "card": true,
+      "steps": [
+        {"url": "https://platform.moonshot.ai/", "img": "moonshot-1.png",
+         "title": {"it": "Accedi alla piattaforma Kimi", "en": "Sign in to the Kimi platform"},
+         "text": {"it": "Entra con Google o email e ricarica un piccolo credito in Billing.", "en": "Sign in with Google or email and load a small credit in Billing."}},
+        {"url": "https://platform.moonshot.ai/console/api-keys", "img": "moonshot-2.png",
+         "title": {"it": "Crea la chiave", "en": "Create the key"},
+         "text": {"it": "In API Keys premi Create API Key e copiala.", "en": "In API Keys press Create API Key and copy it."}}
+      ]
+    },
+    "zai": {
+      "minutes": 2, "card": false,
+      "steps": [
+        {"url": "https://z.ai/", "img": "zai-1.png",
+         "title": {"it": "Accedi a Z.ai", "en": "Sign in to Z.ai"},
+         "text": {"it": "Entra con Google o email. Il modello glm-4.5-flash è gratuito.", "en": "Sign in with Google or email. The glm-4.5-flash model is free."}},
+        {"url": "https://z.ai/manage-apikey/apikey-list", "img": "zai-2.png",
+         "title": {"it": "Crea la chiave", "en": "Create the key"},
+         "text": {"it": "In API Keys premi Add new API key e copiala.", "en": "In API Keys press Add new API key and copy it."}}
+      ]
+    },
+    "perplexity": {
+      "minutes": 3, "card": true,
+      "steps": [
+        {"url": "https://www.perplexity.ai/account/api", "img": "perplexity-1.png",
+         "title": {"it": "Apri le impostazioni API", "en": "Open the API settings"},
+         "text": {"it": "Entra in Perplexity e apri la sezione API delle impostazioni; aggiungi un metodo di pagamento e del credito.", "en": "Sign in to Perplexity and open the API section of the settings; add a payment method and some credit."}},
+        {"url": "https://www.perplexity.ai/account/api/keys", "img": "perplexity-2.png",
+         "title": {"it": "Crea la chiave", "en": "Create the key"},
+         "text": {"it": "Premi Create Key e copiala.", "en": "Press Create Key and copy it."}}
+      ]
+    },
+    "cohere": {
+      "minutes": 2, "card": false,
+      "steps": [
+        {"url": "https://dashboard.cohere.com/", "img": "cohere-1.png",
+         "title": {"it": "Accedi alla dashboard di Cohere", "en": "Sign in to the Cohere dashboard"},
+         "text": {"it": "Entra con Google o email. La chiave di prova è gratuita, con limiti mensili.", "en": "Sign in with Google or email. The trial key is free, with monthly limits."}},
+        {"url": "https://dashboard.cohere.com/api-keys", "img": "cohere-2.png",
+         "title": {"it": "Copia la chiave di prova", "en": "Copy the trial key"},
+         "text": {"it": "In API Keys copia la Trial key già pronta, oppure creane una nuova.", "en": "In API Keys copy the ready-made Trial key, or create a new one."}}
+      ]
+    },
+    "groq": {
+      "minutes": 1, "card": false,
+      "steps": [
+        {"url": "https://console.groq.com/", "img": "groq-1.png",
+         "title": {"it": "Accedi alla console di Groq", "en": "Sign in to the Groq console"},
+         "text": {"it": "Entra con Google, GitHub o email. Il piano gratuito non chiede una carta.", "en": "Sign in with Google, GitHub or email. The free plan needs no card."}},
+        {"url": "https://console.groq.com/keys", "img": "groq-2.png",
+         "title": {"it": "Crea la chiave", "en": "Create the key"},
+         "text": {"it": "In API Keys premi Create API Key, dalle un nome e copiala.", "en": "In API Keys press Create API Key, name it and copy it."}}
+      ]
+    },
+    "cerebras": {
+      "minutes": 1, "card": false,
+      "steps": [
+        {"url": "https://cloud.cerebras.ai/", "img": "cerebras-1.png",
+         "title": {"it": "Accedi a Cerebras Cloud", "en": "Sign in to Cerebras Cloud"},
+         "text": {"it": "Entra con Google o email. Il piano gratuito non chiede una carta.", "en": "Sign in with Google or email. The free plan needs no card."}},
+        {"url": "https://cloud.cerebras.ai/", "img": "cerebras-2.png",
+         "title": {"it": "Copia la chiave", "en": "Copy the key"},
+         "text": {"it": "Nella sezione API Keys crea una chiave e copiala.", "en": "In the API Keys section create a key and copy it."}}
+      ]
+    },
+    "github": {
+      "minutes": 2, "card": false,
+      "steps": [
+        {"url": "https://github.com/settings/personal-access-tokens/new", "img": "github-1.png",
+         "title": {"it": "Crea un token di GitHub", "en": "Create a GitHub token"},
+         "text": {"it": "Con il tuo account GitHub apri la creazione di un token fine-grained, dagli un nome e una scadenza.", "en": "With your GitHub account open the fine-grained token page, give it a name and an expiry."}},
+        {"url": "https://github.com/settings/personal-access-tokens/new", "img": "github-2.png",
+         "title": {"it": "Permesso Models", "en": "Models permission"},
+         "text": {"it": "In Permissions aggiungi Models con accesso Read-only, poi Generate token e copialo. L'uso è gratuito entro limiti giornalieri.", "en": "In Permissions add Models with Read-only access, then Generate token and copy it. Usage is free within daily limits."}}
+      ]
+    },
+    "openrouter": {
+      "minutes": 1, "card": false,
+      "steps": [
+        {"url": "https://openrouter.ai/", "img": "openrouter-1.png",
+         "title": {"it": "Accedi con OpenRouter", "en": "Sign in with OpenRouter"},
+         "text": {"it": "Premi Accedi con OpenRouter: si apre la sua pagina, entri con Google, GitHub o email e autorizzi l'estensione. Nessuna chiave da copiare.", "en": "Press Sign in with OpenRouter: its page opens, you sign in with Google, GitHub or email and authorize the extension. No key to copy."}},
+        {"url": "https://openrouter.ai/settings/credits", "img": "openrouter-2.png",
+         "title": {"it": "Credito, se serve", "en": "Credit, if needed"},
+         "text": {"it": "I modelli con :free nel nome sono gratuiti, con limiti; per gli altri carica del credito in Credits.", "en": "Models with :free in the name are free, with limits; for the others load some credit in Credits."}}
+      ]
+    },
+    "together": {
+      "minutes": 3, "card": true,
+      "steps": [
+        {"url": "https://api.together.ai/", "img": "together-1.png",
+         "title": {"it": "Accedi a Together AI", "en": "Sign in to Together AI"},
+         "text": {"it": "Entra e aggiungi del credito in Billing.", "en": "Sign in and add some credit in Billing."}},
+        {"url": "https://api.together.ai/settings/api-keys", "img": "together-2.png",
+         "title": {"it": "Copia la chiave", "en": "Copy the key"},
+         "text": {"it": "In API Keys copia la chiave del tuo account.", "en": "In API Keys copy your account key."}}
+      ]
+    },
+    "fireworks": {
+      "minutes": 3, "card": true,
+      "steps": [
+        {"url": "https://app.fireworks.ai/", "img": "fireworks-1.png",
+         "title": {"it": "Accedi a Fireworks", "en": "Sign in to Fireworks"},
+         "text": {"it": "Entra e aggiungi del credito in Billing.", "en": "Sign in and add some credit in Billing."}},
+        {"url": "https://app.fireworks.ai/settings/users/api-keys", "img": "fireworks-2.png",
+         "title": {"it": "Crea la chiave", "en": "Create the key"},
+         "text": {"it": "In API Keys premi Create API Key e copiala.", "en": "In API Keys press Create API Key and copy it."}}
+      ]
+    },
+    "azure": {
+      "minutes": 10, "card": true,
+      "steps": [
+        {"url": "https://ai.azure.com/", "img": "azure-1.png",
+         "title": {"it": "Distribuisci un modello", "en": "Deploy a model"},
+         "text": {"it": "In Azure AI Foundry crea una risorsa Azure OpenAI e distribuisci un modello, per esempio gpt-4.1-mini. Il nome della distribuzione è il modello da indicare qui.", "en": "In Azure AI Foundry create an Azure OpenAI resource and deploy a model, for example gpt-4.1-mini. The deployment name is the model to enter here."}},
+        {"url": "https://portal.azure.com/", "img": "azure-2.png",
+         "title": {"it": "Indirizzo e chiave", "en": "Endpoint and key"},
+         "text": {"it": "Nella risorsa, in Keys and Endpoint, copia KEY 1. L'indirizzo da indicare è quello della risorsa seguito da /openai/v1.", "en": "In the resource, under Keys and Endpoint, copy KEY 1. The address to enter is the resource endpoint followed by /openai/v1."}}
+      ]
+    },
+    "ollama": {
+      "minutes": 10, "card": false,
+      "steps": [
+        {"url": "https://ollama.com/download", "img": "ollama-1.png",
+         "title": {"it": "Installa Ollama", "en": "Install Ollama"},
+         "text": {"it": "Scarica e installa Ollama: gira sul tuo computer, il testo non esce dalla macchina e non serve alcun account.", "en": "Download and install Ollama: it runs on your computer, the text never leaves the machine and no account is needed."}},
+        {"url": "https://ollama.com/library", "img": "ollama-2.png",
+         "title": {"it": "Scarica un modello", "en": "Download a model"},
+         "text": {"it": "Scegli un modello multilingue adatto alla memoria del computer, per esempio qwen3 o gemma3, e scaricalo dall'applicazione di Ollama. Poi premi Verifica qui sotto.", "en": "Pick a multilingual model that fits your computer's memory, for example qwen3 or gemma3, and download it from the Ollama app. Then press Verify below."}}
+      ]
+    },
+    "lmstudio": {
+      "minutes": 10, "card": false,
+      "steps": [
+        {"url": "https://lmstudio.ai/", "img": "lmstudio-1.png",
+         "title": {"it": "Installa LM Studio e un modello", "en": "Install LM Studio and a model"},
+         "text": {"it": "Installa LM Studio e scarica un modello multilingue dalla sua ricerca. Gira sul tuo computer, senza account.", "en": "Install LM Studio and download a multilingual model from its search. It runs on your computer, no account needed."}},
+        {"url": "https://lmstudio.ai/docs/app/api", "img": "lmstudio-2.png",
+         "title": {"it": "Avvia il server", "en": "Start the server"},
+         "text": {"it": "Nella scheda Developer avvia il server locale (porta 1234), poi premi Verifica qui sotto.", "en": "In the Developer tab start the local server (port 1234), then press Verify below."}}
+      ]
+    },
+    "custom": {
+      "minutes": 3, "card": false,
+      "steps": [
+        {"title": {"it": "Indirizzo e chiave del servizio", "en": "Service address and key"},
+         "text": {"it": "Qualunque servizio compatibile con l'API di OpenAI: indica l'indirizzo che termina con /v1 e la chiave che ti ha dato il servizio.", "en": "Any service compatible with the OpenAI API: enter the address ending in /v1 and the key the service gave you."}}
+      ]
+    }
+  }
+}

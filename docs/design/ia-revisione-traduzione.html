@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>IA: disegno</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1f2328;
+  --muted: #59636e;
+  --line: #d8dee4;
+  --panel: #f6f8fa;
+  --accent: #128c7e;
+  --accent-fg: #ffffff;
+  --ok: #1a7f37;
+  --err: #cf222e;
+  --code: #eef1f4;
+}
+
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 14px/1.5 "Segoe UI", system-ui, sans-serif;
+}
+
+h1 { font-size: 20px; margin: 0 0 4px; }
+h2 { font-size: 16px; margin: 28px 0 8px; }
+h3 { font-size: 14px; margin: 16px 0 6px; }
+p { margin: 6px 0; }
+a { color: var(--accent); }
+.muted { color: var(--muted); }
+.ok { color: var(--ok); }
+.err { color: var(--err); }
+
+button {
+  font: inherit;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--fg);
+  cursor: pointer;
+}
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+button:disabled { opacity: 0.5; cursor: default; }
+
+input[type="text"], input[type="number"], select, textarea {
+  font: inherit;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--fg);
+  width: 100%;
+}
+textarea { min-height: 60px; resize: vertical; }
+
+code, pre {
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 12.5px;
+  background: var(--code);
+  border-radius: 4px;
+}
+code { padding: 1px 4px; }
+pre { padding: 10px 12px; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0; }
+code { overflow-wrap: anywhere; }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.field { margin: 10px 0; }
+.field label { display: block; font-weight: 600; margin-bottom: 3px; }
+.check { display: flex; gap: 8px; align-items: flex-start; margin: 8px 0; }
+.check input { margin-top: 4px; }
+table.kv { border-collapse: collapse; width: 100%; }
+table.kv td { padding: 3px 8px 3px 0; vertical-align: top; border-bottom: 1px solid var(--line); word-break: break-all; }
+table.kv td:first-child { color: var(--muted); white-space: nowrap; width: 1%; }
+.cmd { position: relative; }
+.cmd button { position: absolute; top: 6px; right: 6px; padding: 2px 8px; font-size: 12px; }
+.cmd pre { padding-right: 70px; }
+.tabs { display: flex; gap: 6px; margin: 8px 0; }
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+
+a.button {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--fg);
+  text-decoration: none;
+  font-weight: 600;
+}
+a.button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+
+.upd { border: 1px solid var(--accent); border-radius: 8px; padding: 10px 12px; margin: 10px 0; background: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
+.upd-title { font-weight: 600; color: var(--accent); }
+.upd-text { margin: 4px 0 6px; font-size: 13px; color: var(--muted); }
+.upd-row { font-size: 13px; margin: 2px 0; }
+.upd-status { margin: 8px 0 0; font-size: 13px; }
+.upd-actions { display: flex; gap: 12px; align-items: center; margin-top: 10px; font-size: 13px; }
+.upd-actions a { color: var(--muted); }
+.upd-actions button.link { margin-left: auto; border: none; background: none; padding: 0; color: var(--muted); font-size: 13px; }
+.cuda { border: 1px solid var(--line); border-radius: 8px; padding: 4px 12px; margin: 6px 0 10px; }
+.cuda p { margin: 6px 0; font-size: 13px; }
+.cuda progress { flex: 1; min-width: 160px; }
+.wwt-box {
+  box-sizing: border-box;
+  margin-top: 3px;
+  margin-bottom: 6px;
+  padding: 5px 9px 6px;
+  border-radius: 7.5px;
+  border-left: 3px solid #25d366;
+  background: rgba(128, 128, 128, 0.14);
+  color: inherit;
+  font-size: 13.6px;
+  line-height: 19px;
+  align-self: flex-start;
+  min-width: 0;
+  user-select: text;
+}
+
+.wwt-box.wwt-out {
+  align-self: flex-end;
+}
+
+.wwt-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.wwt-icon {
+  font-size: 13px;
+}
+
+.wwt-label {
+  flex: 1 1 auto;
+}
+
+.wwt-error {
+  color: #e5534b;
+}
+
+.wwt-actions {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.wwt-btn {
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  padding: 1px 8px;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.wwt-btn:hover {
+  background: rgba(37, 211, 102, 0.18);
+  border-color: #25d366;
+}
+
+.wwt-text {
+  margin-top: 3px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  opacity: 1;
+}
+
+.wwt-partial {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.wwt-spinner {
+  width: 11px;
+  height: 11px;
+  border: 2px solid rgba(128, 128, 128, 0.35);
+  border-top-color: #25d366;
+  border-radius: 50%;
+  animation: wwt-spin 0.9s linear infinite;
+}
+
+@keyframes wwt-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+body { background: #e9edef; }
+.sheet { max-width: 1100px; margin: 0 auto; padding: 24px 16px 60px; }
+.mk-title { margin-bottom: 8px; }
+.mk-scene { font-size: 17px; margin: 34px 0 10px; padding-top: 14px; border-top: 2px solid #b8c2cc; }
+.mk-sub { margin: 22px 0 8px; font-size: 14px; color: #3b4450; }
+.mk-small { font-size: 12.5px; }
+.mk-light { font-weight: 400; font-size: 14px; }
+.frame { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,.08); overflow: hidden; }
+
+/* stile della pagina opzioni, copiato da options.html */
+main.opt { max-width: 820px; margin: 0 auto; padding: 24px 16px 30px; }
+.step { display: flex; gap: 14px; padding: 14px 16px; margin: 12px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.step > .num { flex: 0 0 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 13px; border: 2px solid var(--line); color: var(--muted); }
+.step > .body { flex: 1; min-width: 0; }
+.step h2 { margin: 2px 0 6px; font-size: 16px; }
+.step[data-state="done"] > .num { background: var(--ok); border-color: var(--ok); color: var(--bg); }
+.step[data-state="active"] > .num { border-color: var(--accent); color: var(--accent); }
+details { margin-top: 28px; }
+summary { cursor: pointer; font-weight: 600; font-size: 16px; }
+
+/* nuovi elementi proposti */
+select.mk-inline { width: auto; display: inline-block; margin-left: 6px; padding: 2px 6px; }
+input.mk-num { width: 56px; padding: 1px 6px; }
+.mk-off { opacity: .55; }
+.ai-list { display: grid; gap: 8px; margin: 8px 0; }
+.ai { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); flex-wrap: wrap; }
+.ai:first-child { border-color: var(--accent); }
+.ai-ord { width: 20px; text-align: center; font-weight: 700; color: var(--muted); }
+.ai-logo { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 7px; display: grid; place-items: center; background: var(--c); color: #fff; font-weight: 700; font-size: 12px; }
+.ai-name { flex: 1; min-width: 170px; line-height: 1.35; }
+.ai-model { display: flex; flex-direction: column; min-width: 220px; }
+.ai-model select { padding: 3px 6px; }
+.ai-btns { display: flex; gap: 4px; }
+.ai-btns button { padding: 3px 9px; font-size: 13px; }
+
+.mk-dim { background: rgba(31,35,40,.45); padding: 30px 16px; }
+.dlg { background: var(--bg); border-radius: 12px; padding: 16px 18px; max-width: 900px; margin: 0 auto; box-shadow: 0 8px 30px rgba(0,0,0,.25); }
+.dlg-narrow { max-width: 520px; }
+.dlg-head { display: flex; align-items: center; gap: 10px; font-size: 16px; margin-bottom: 6px; }
+.dlg-head .mk-x { margin-left: auto; border: none; background: none; font-size: 16px; }
+.mk-back { border: none; background: none; font-size: 18px; padding: 0 4px; }
+.prov-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-top: 12px; }
+.prov { display: flex; align-items: center; gap: 10px; text-align: left; padding: 8px 10px; background: var(--bg); line-height: 1.3; }
+.prov:hover { border-color: var(--accent); }
+.prov .muted { font-size: 12px; }
+.tag { display: inline-block; padding: 0 6px; border-radius: 8px; background: color-mix(in srgb, var(--ok) 14%, var(--bg)); color: var(--ok); font-size: 11.5px; }
+.tag-acc { background: color-mix(in srgb, #6467f2 14%, var(--bg)); color: #4b4ed1; }
+.tag-loc { background: color-mix(in srgb, var(--muted) 14%, var(--bg)); color: var(--fg); }
+.mk-steps { margin: 6px 0; padding-left: 20px; }
+
+/* WhatsApp, ricalco del tema chiaro */
+.wa { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; background: #efeae2; border-radius: 10px; padding: 16px 22px; color: #111b21; font-family: "Segoe UI", system-ui, sans-serif; }
+@media (max-width: 900px) { .wa { grid-template-columns: 1fr; } }
+.wa-col { display: flex; flex-direction: column; }
+.mk-cap { align-self: stretch; margin: 14px 0 6px; font-size: 12px; font-weight: 600; color: #54656f; border-bottom: 1px dashed #b9b2a8; padding-bottom: 2px; }
+.mk-cap:first-child { margin-top: 0; }
+.bubble-in, .bubble-out { width: 300px; padding: 8px 9px 6px; border-radius: 7.5px; box-shadow: 0 1px .5px rgba(11,20,26,.13); display: flex; align-items: flex-end; gap: 8px; }
+.bubble-in { background: #fff; align-self: flex-start; }
+.bubble-out { background: #d9fdd3; align-self: flex-end; }
+.voice { flex: 1; color: #54656f; font-size: 13px; letter-spacing: -1px; }
+.time { font-size: 11px; color: #667781; white-space: nowrap; }
+.wa .wwt-box { max-width: 420px; }
+.wwt-fix { text-decoration: underline dotted #25d366 2px; text-underline-offset: 3px; cursor: help; }
+.wwt-orig { background: rgba(229, 83, 75, .16); border-radius: 3px; padding: 0 2px; }
+.wwt-tr { margin-top: 6px; padding-top: 5px; border-top: 1px solid rgba(128,128,128,.3); white-space: pre-wrap; }
+.wwt-tr-label { font-size: 12px; opacity: .75; margin-bottom: 1px; }
+.wwt-note { margin-top: 5px; font-size: 12px; color: #a0461a; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.mk-tip { margin-top: 4px; font-size: 11.5px; color: #8a6d00; font-style: italic; }
+.mk-clip { background: #fff; color: #111b21; font-size: 12px; }
+
+.popup-frame { width: 330px; }
+.popup { padding: 12px 14px; }
+.popup h1 { font-size: 17px; }
+.popup .line { margin: 6px 0; }
+.popup .btns { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.guide { margin: 8px 0 4px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--panel); }
+.guide summary { font-size: 14px; }
+.g-steps { margin: 6px 0; padding-left: 20px; }
+.g-steps li { margin: 8px 0; }
+.g-steps li { display: list-item; }
+.g-txt { font-size: 13px; }
+.g-shot { margin-top: 5px; height: 74px; border: 1px dashed #9aa5b1; border-radius: 6px; display: grid; place-items: center; color: var(--muted); font-size: 12px; background: repeating-linear-gradient(45deg, #fff, #fff 8px, #f1f3f5 8px, #f1f3f5 16px); cursor: zoom-in; }
+</style></head><body>
+<div class="sheet">
+<header class="mk-title">
+  <h1>Revisione e traduzione con l'IA: disegno</h1>
+  <p class="muted">Mockup costruito con i fogli di stile veri dell'estensione (ui.css e content.css) e con i testi italiani in uso. Le bolle di WhatsApp sono ricalcate a mano sul tema chiaro: colori e misure delle bolle sono stimati. Testi dei messaggi e nomi dei modelli sono inventati, a titolo d'esempio.</p>
+</header>
+
+<!-- =================== A: opzioni =================== -->
+<h2 class="mk-scene">A · Pagina di configurazione: nuova sezione 4, sempre visibile</h2>
+<div class="frame">
+<main class="opt">
+  <h1>Whisper per WhatsApp Web</h1>
+  <p class="muted">Trascrive i vocali sul tuo computer con Whisper: l'audio non lascia la macchina.</p>
+
+  <section class="step" data-state="done"><div class="num">1</div><div class="body"><h2>Componente installato</h2><p class="muted">Pronto · large-v3 · cuda</p></div></section>
+  <section class="step" data-state="done"><div class="num">2</div><div class="body"><h2>Modello</h2><p class="muted">large-v3 in uso</p></div></section>
+  <section class="step" data-state="done"><div class="num">3</div><div class="body"><h2>Pronto</h2></div></section>
+
+  <section class="step" data-state="active">
+    <div class="num">4</div>
+    <div class="body">
+      <h2>Revisione e traduzione con l'IA <span class="muted mk-light">· facoltativo</span></h2>
+      <p class="muted">Collega uno o più account di IA. Dopo la trascrizione, il testo (non l'audio) va al primo account dell'elenco, che corregge le parole capite male e, se il messaggio è in un'altra lingua, lo traduce. La trascrizione originale resta sempre consultabile.</p>
+
+      <label class="check"><input type="checkbox" checked><span><strong>Correggi la trascrizione</strong><br><span class="muted">Le parole cambiate sono sottolineate; passandoci sopra si vede cosa aveva capito Whisper.</span></span></label>
+      <label class="check"><input type="checkbox" checked><span><strong>Traduci i messaggi in un'altra lingua in</strong>
+        <select class="mk-inline"><option>Italiano (lingua del browser)</option></select></span></label>
+
+      <h3>Account collegati, in ordine di preferenza</h3>
+      <p class="muted mk-small">Se il primo non risponde entro <input type="number" class="mk-num" value="20"> secondi o dà errore, si passa al successivo.</p>
+      <div class="ai-list">
+        <div class="ai">
+          <span class="ai-ord">1</span>
+          <span class="ai-logo" style="--c:#d97757">C</span>
+          <span class="ai-name"><strong>Claude</strong><span class="muted"> · Anthropic</span><br><span class="ok mk-small">✓ chiave verificata · ultimo uso 2 min fa</span></span>
+          <label class="ai-model"><span class="muted mk-small">Modello</span><select><option>claude-haiku-5-5 (consigliato)</option></select></label>
+          <span class="ai-btns"><button disabled title="Sposta su">↑</button><button title="Sposta giù">↓</button><button title="Prova con un testo d'esempio">Prova</button><button title="Scollega">Rimuovi</button></span>
+        </div>
+        <div class="ai">
+          <span class="ai-ord">2</span>
+          <span class="ai-logo" style="--c:#4285f4">G</span>
+          <span class="ai-name"><strong>Gemini</strong><span class="muted"> · Google</span><br><span class="ok mk-small">✓ chiave verificata · livello gratuito</span></span>
+          <label class="ai-model"><span class="muted mk-small">Modello</span><select><option>gemini-flash (consigliato)</option></select></label>
+          <span class="ai-btns"><button title="Sposta su">↑</button><button disabled title="Sposta giù">↓</button><button>Prova</button><button>Rimuovi</button></span>
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px"><button class="primary">+ Aggiungi un account</button></div>
+      <p class="muted mk-small" style="margin-top:10px">Le chiavi restano su questo computer, cifrate con l'account di Windows, e valgono sia in Chrome sia in Edge.</p>
+    </div>
+  </section>
+
+  <details><summary>Impostazioni</summary></details>
+</main>
+</div>
+
+<h3 class="mk-sub">A2 · La stessa sezione senza account collegati</h3>
+<div class="frame">
+<main class="opt">
+  <section class="step" data-state="active" style="margin-top:0">
+    <div class="num">4</div>
+    <div class="body">
+      <h2>Revisione e traduzione con l'IA <span class="muted mk-light">· facoltativo</span></h2>
+      <p class="muted">Collega uno o più account di IA. Dopo la trascrizione, il testo (non l'audio) va al primo account dell'elenco, che corregge le parole capite male e, se il messaggio è in un'altra lingua, lo traduce. La trascrizione originale resta sempre consultabile.</p>
+      <label class="check mk-off"><input type="checkbox" checked disabled><span><strong>Correggi la trascrizione</strong></span></label>
+      <label class="check mk-off"><input type="checkbox" checked disabled><span><strong>Traduci i messaggi in un'altra lingua in</strong> <select class="mk-inline" disabled><option>Italiano (lingua del browser)</option></select></span></label>
+      <p class="muted mk-small">Le due funzioni partono attive appena colleghi il primo account.</p>
+      <div class="row" style="margin-top:10px"><button class="primary">+ Aggiungi un account</button></div>
+    </div>
+  </section>
+</main>
+</div>
+
+<!-- =================== B: aggiunta account =================== -->
+<h2 class="mk-scene">B · Aggiungi un account: scelta del fornitore</h2>
+<div class="frame mk-dim">
+  <div class="dlg">
+    <div class="dlg-head"><strong>Aggiungi un account IA</strong><button class="mk-x">✕</button></div>
+    <p class="muted mk-small">Gli abbonamenti alle chat (Claude Pro, ChatGPT Plus, Gemini Advanced, SuperGrok…) non danno accesso alle applicazioni esterne: serve una chiave API dello stesso fornitore, che si paga a consumo e a parte. Alcuni fornitori hanno un livello gratuito; Ollama e LM Studio girano sul tuo computer.</p>
+    <div class="prov-grid">
+      <button class="prov"><span class="ai-logo" style="--c:#d97757">C</span><span><strong>Claude</strong><br><span class="muted">Anthropic · chiave API</span></span></button>
+      <button class="prov"><span class="ai-logo" style="--c:#10a37f">O</span><span><strong>ChatGPT</strong><br><span class="muted">OpenAI · chiave API</span></span></button>
+      <button class="prov"><span class="ai-logo" style="--c:#4285f4">G</span><span><strong>Gemini</strong><br><span class="muted">Google · <span class="tag">gratuito con limiti</span></span></span></button>
+      <button class="prov"><span class="ai-logo" style="--c:#111">X</span><span><strong>Grok</strong><br><span class="muted">xAI · chiave API</span></span></button>
+      <button class="prov"><span class="ai-logo" style="--c:#fa520f">M</span><span><strong>Mistral</strong><br><span class="muted"><span class="tag">gratuito con limiti</span></span></span></button>
+      <button class="prov"><span class="ai-logo" style="--c:#4d6bfe">D</span><span><strong>DeepSeek</strong><br><span class="muted">chiave API</span></span></button>
+      <button class="prov"><span class="ai-logo" style="--c:#615ced">Q</span><span><strong>Qwen</strong><br><span class="muted">Alibaba · chiave API</span></span></button>
+      <button class="prov"><span class="ai-logo" style="--c:#000">K</span><span><strong>Kimi</strong><br><span class="muted">Moonshot · chiave API</span></span></button>
+      <button class="prov"><span class="ai-logo" style="--c:#3859ff">Z</span><span><strong>GLM</strong><br><span class="muted">Zhipu · chiave API</span></span></button>
+      <button class="prov"><span class="ai-logo" style="--c:#20808d">P</span><span><strong>Perplexity</strong><br><span class="muted">chiave API</span></span></button>
+      <button class="prov"><span class="ai-logo" style="--c:#39594d">Co</span><span><strong>Cohere</strong><br><span class="muted">chiave API</span></span></button>
+      <button class="prov"><span class="ai-logo" style="--c:#f55036">Gq</span><span><strong>Groq</strong><br><span class="muted"><span class="tag">gratuito con limiti</span></span></span></button>
+      <button class="prov"><span class="ai-logo" style="--c:#f05a28">Ce</span><span><strong>Cerebras</strong><br><span class="muted"><span class="tag">gratuito con limiti</span></span></span></button>
+      <button class="prov"><span class="ai-logo" style="--c:#24292f">GH</span><span><strong>GitHub Models</strong><br><span class="muted">token GitHub · <span class="tag">gratuito con limiti</span></span></span></button>
+      <button class="prov"><span class="ai-logo" style="--c:#6467f2">OR</span><span><strong>OpenRouter</strong><br><span class="muted"><span class="tag tag-acc">accedi con l'account</span> · centinaia di modelli</span></span></button>
+      <button class="prov"><span class="ai-logo" style="--c:#0f6fff">T</span><span><strong>Together AI</strong><br><span class="muted">chiave API</span></span></button>
+      <button class="prov"><span class="ai-logo" style="--c:#6720ff">F</span><span><strong>Fireworks</strong><br><span class="muted">chiave API</span></span></button>
+      <button class="prov"><span class="ai-logo" style="--c:#0078d4">Az</span><span><strong>Azure OpenAI</strong><br><span class="muted">indirizzo e chiave</span></span></button>
+      <button class="prov"><span class="ai-logo" style="--c:#333">Ol</span><span><strong>Ollama</strong><br><span class="muted"><span class="tag tag-loc">sul tuo computer</span></span></span></button>
+      <button class="prov"><span class="ai-logo" style="--c:#4338ca">LM</span><span><strong>LM Studio</strong><br><span class="muted"><span class="tag tag-loc">sul tuo computer</span></span></span></button>
+      <button class="prov"><span class="ai-logo" style="--c:#59636e">…</span><span><strong>Altro</strong><br><span class="muted">compatibile OpenAI</span></span></button>
+    </div>
+  </div>
+</div>
+
+<h3 class="mk-sub">B2 · Dopo aver scelto Claude: chiave, verifica, modello</h3>
+<div class="frame mk-dim">
+  <div class="dlg dlg-narrow">
+    <div class="dlg-head"><button class="mk-back">←</button><span class="ai-logo" style="--c:#d97757">C</span><strong>Claude · Anthropic</strong><button class="mk-x">✕</button></div>
+    <details class="guide" open>
+      <summary>Come ottenere la chiave <span class="muted mk-small">· circa 3 minuti · serve una carta di credito</span></summary>
+      <p class="muted mk-small">Una chiave API è una password che permette a questa estensione di usare il tuo account Claude. Si paga a consumo: un vocale costa una frazione di centesimo.</p>
+      <ol class="g-steps">
+        <li><div class="g-txt"><strong>Accedi alla console</strong><br>Apri <a href="#">console.anthropic.com</a> ed entra con il tuo account (anche con Google).</div><div class="g-shot">cattura della pagina di accesso</div></li>
+        <li><div class="g-txt"><strong>Aggiungi del credito</strong><br>In <a href="#">Settings → Billing</a> scegli <em>Add funds</em>: bastano 5 $.</div><div class="g-shot">cattura di Billing, con il pulsante evidenziato</div></li>
+        <li><div class="g-txt"><strong>Crea la chiave</strong><br>In <a href="#">Settings → API keys</a> premi <em>Create Key</em>, dalle un nome (per esempio «WhatsApp») e copiala: si vede una volta sola.</div><div class="g-shot">cattura della finestra Create Key</div></li>
+        <li><div class="g-txt"><strong>Incollala qui sotto</strong> e premi Verifica.</div></li>
+      </ol>
+      <p class="mk-small"><a href="#">Guida completa, con le immagini a schermo intero ↗</a></p>
+    </details>
+    <div class="field"><label>Chiave API</label><input type="text" value="sk-ant-api03-••••••••••••••••••••••••••••Qx4w"></div>
+    <div class="row"><button>Verifica</button><span class="ok">✓ Chiave valida</span></div>
+    <div class="field"><label>Modello</label><select><option>claude-haiku-5-5 (consigliato: veloce ed economico)</option></select>
+      <p class="muted mk-small">L'elenco arriva dal fornitore. Per correggere e tradurre un vocale basta un modello piccolo.</p></div>
+    <div class="row" style="justify-content:flex-end"><button>Annulla</button><button class="primary">Collega</button></div>
+  </div>
+</div>
+
+<h3 class="mk-sub">B3 · OpenRouter: accesso con l'account, senza copiare chiavi</h3>
+<div class="frame mk-dim">
+  <div class="dlg dlg-narrow">
+    <div class="dlg-head"><button class="mk-back">←</button><span class="ai-logo" style="--c:#6467f2">OR</span><strong>OpenRouter</strong><button class="mk-x">✕</button></div>
+    <p>Si apre la pagina di OpenRouter: accedi, autorizza l'estensione e torni qui con l'account già collegato.</p>
+    <div class="row"><button class="primary">Accedi con OpenRouter</button><span class="muted mk-small">oppure <a href="#">incolla una chiave</a></span></div>
+  </div>
+</div>
+
+<!-- =================== C: riquadro in WhatsApp =================== -->
+<h2 class="mk-scene">C · Il riquadro sotto il vocale, in WhatsApp Web</h2>
+<p class="muted mk-small">Le correzioni dell'esempio sono quelle che whisper sbaglia davvero sul portoghese tecnico: «olfato sensível» per «fotossensível», «R» per «AR».</p>
+<div class="wa">
+  <div class="wa-col">
+    <div class="mk-cap">C1 · Whisper ha finito, l'IA sta rivedendo: si legge già il testo di Whisper</div>
+    <div class="bubble-in"><div class="voice">▶ ━━━━━━━━━━━ 0:12</div><div class="time">10:41</div></div>
+    <div class="wwt-box">
+      <div class="wwt-head"><span class="wwt-icon">🎙</span><span class="wwt-spinner"></span><span class="wwt-label">Trascrizione · pt · 0:12 · revisione con Claude…</span><span class="wwt-actions"><button class="wwt-btn">Copia</button></span></div>
+      <div class="wwt-text">Oi, as lentes olfato sensível com R chegaram ontem, mas o cliente reclamou que escurecem pouco. Dá pra verificar o pedido?</div>
+    </div>
+
+    <div class="mk-cap">C2 · Revisione e traduzione arrivate</div>
+    <div class="bubble-in"><div class="voice">▶ ━━━━━━━━━━━ 0:12</div><div class="time">10:41</div></div>
+    <div class="wwt-box">
+      <div class="wwt-head"><span class="wwt-icon">🎙</span><span class="wwt-label">Trascrizione · pt · 0:12 · rivista da Claude</span><span class="wwt-actions"><button class="wwt-btn">Copia</button><button class="wwt-btn" title="Mostra il testo di Whisper">Originale</button><button class="wwt-btn">↻</button></span></div>
+      <div class="wwt-text">Oi, as lentes <span class="wwt-fix" title="Whisper: «olfato sensível»">fotossensíveis</span> com <span class="wwt-fix" title="Whisper: «R»">AR</span> chegaram ontem, mas o cliente reclamou que escurecem pouco. Dá pra verificar o pedido?</div>
+      <div class="wwt-tr"><div class="wwt-tr-label">Traduzione · it</div>Ciao, le lenti fotocromatiche con AR sono arrivate ieri, ma il cliente si è lamentato che si scuriscono poco. Puoi verificare l'ordine?</div>
+      <div class="mk-tip">← passando sul testo sottolineato: «Whisper: olfato sensível»</div>
+    </div>
+
+    <div class="mk-cap">C3 · Dopo «Originale»: il testo di Whisper, con le parole poi corrette evidenziate</div>
+    <div class="wwt-box">
+      <div class="wwt-head"><span class="wwt-icon">🎙</span><span class="wwt-label">Trascrizione di Whisper · pt · 0:12</span><span class="wwt-actions"><button class="wwt-btn">Copia</button><button class="wwt-btn">Rivista</button><button class="wwt-btn">↻</button></span></div>
+      <div class="wwt-text">Oi, as lentes <span class="wwt-orig">olfato sensível</span> com <span class="wwt-orig">R</span> chegaram ontem, mas o cliente reclamou que escurecem pouco. Dá pra verificar o pedido?</div>
+      <div class="wwt-tr"><div class="wwt-tr-label">Traduzione · it</div>Ciao, le lenti fotocromatiche con AR sono arrivate ieri, ma il cliente si è lamentato che si scuriscono poco. Puoi verificare l'ordine?</div>
+    </div>
+  </div>
+
+  <div class="wa-col">
+    <div class="mk-cap">C4 · Messaggio nella lingua dell'utente: solo revisione, niente traduzione</div>
+    <div class="bubble-out"><div class="voice">▶ ━━━━━━━━━━━ 0:08</div><div class="time">10:44 ✓✓</div></div>
+    <div class="wwt-box wwt-out">
+      <div class="wwt-head"><span class="wwt-icon">🎙</span><span class="wwt-label">Trascrizione · it · 0:08 · rivista da Claude</span><span class="wwt-actions"><button class="wwt-btn">Copia</button><button class="wwt-btn">Originale</button><button class="wwt-btn">↻</button></span></div>
+      <div class="wwt-text">Controllo adesso: l'ordine è partito <span class="wwt-fix" title="Whisper: «martedì»">mercoledì</span>, ti mando il tracciamento.</div>
+    </div>
+
+    <div class="mk-cap">C5 · Nessun account ha risposto: resta il testo di Whisper</div>
+    <div class="bubble-in"><div class="voice">▶ ━━━━━━━━━━━ 0:21</div><div class="time">10:47</div></div>
+    <div class="wwt-box">
+      <div class="wwt-head"><span class="wwt-icon">🎙</span><span class="wwt-label">Trascrizione · pt · 0:21</span><span class="wwt-actions"><button class="wwt-btn">Copia</button><button class="wwt-btn">↻</button></span></div>
+      <div class="wwt-text">Beleza, então amanhã eu passo aí pra pegar as armações.</div>
+      <div class="wwt-note">⚠ Revisione non riuscita: Claude non ha risposto entro 20 s, Gemini ha rifiutato la chiave. <button class="wwt-btn">Riprova con l'IA</button></div>
+    </div>
+
+    <div class="mk-cap">C6 · Ctrl+C su più messaggi: cosa finisce negli appunti</div>
+    <pre class="mk-clip">[10:40, 13/11/2026] Cliente: né?
+[10:41, 13/11/2026] Cliente: 🎙 Oi, as lentes fotossensíveis com AR chegaram ontem, mas o cliente reclamou que escurecem pouco. Dá pra verificar o pedido?
+    🌐 Ciao, le lenti fotocromatiche con AR sono arrivate ieri, ma il cliente si è lamentato che si scuriscono poco. Puoi verificare l'ordine?
+[10:44, 13/11/2026] Alessandro: 🎙 Controllo adesso: l'ordine è partito mercoledì, ti mando il tracciamento.</pre>
+    <p class="muted mk-small">Il pulsante Copia del riquadro copia il testo rivisto e, se c'è, la traduzione, separati da una riga vuota.</p>
+  </div>
+</div>
+
+<!-- =================== D: popup =================== -->
+<h2 class="mk-scene">D · Popup dell'icona: una riga in più</h2>
+<div class="frame popup-frame">
+  <div class="popup">
+    <h1>Whisper per WhatsApp Web</h1>
+    <div class="line ok">Pronto · large-v3 · cuda</div>
+    <div class="line">IA: Claude, poi Gemini · correzione e traduzione attive</div>
+    <div class="line">Nessuna trascrizione in corso.</div>
+    <label class="check"><input type="checkbox" checked> <span>Trascrivi in automatico i vocali in arrivo</span></label>
+    <div class="btns"><button class="primary">Trascrivi i vocali della chat aperta</button><button>Svuota la coda</button><button>Configurazione e guida</button></div>
+  </div>
+</div>
+</div>
+</body></html>

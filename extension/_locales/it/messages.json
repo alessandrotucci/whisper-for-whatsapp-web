@@ -562,5 +562,281 @@
   },
   "upd_versions": {
     "message": "Estensione $1 · componente locale $2"
+  },
+  "box_transcription_whisper": {
+    "message": "Trascrizione di Whisper"
+  },
+  "box_reviewing": {
+    "message": "revisione con $1…"
+  },
+  "box_reviewing_ai": {
+    "message": "revisione con l'IA…"
+  },
+  "box_reviewed_by": {
+    "message": "rivista da $1"
+  },
+  "box_fix_title": {
+    "message": "Whisper: «$1»"
+  },
+  "box_fix_added": {
+    "message": "parola aggiunta dalla revisione"
+  },
+  "box_show_original": {
+    "message": "Originale"
+  },
+  "box_show_original_title": {
+    "message": "Mostra il testo di Whisper"
+  },
+  "box_show_revised": {
+    "message": "Rivista"
+  },
+  "box_show_revised_title": {
+    "message": "Mostra il testo rivisto dall'IA"
+  },
+  "box_translation": {
+    "message": "Traduzione"
+  },
+  "box_review_failed": {
+    "message": "Revisione non riuscita: $1."
+  },
+  "box_review_retry": {
+    "message": "Riprova con l'IA"
+  },
+  "ai_err_key": {
+    "message": "chiave rifiutata"
+  },
+  "ai_err_rate": {
+    "message": "limite di richieste raggiunto"
+  },
+  "ai_err_timeout": {
+    "message": "nessuna risposta entro il tempo massimo"
+  },
+  "ai_err_network": {
+    "message": "servizio non raggiungibile"
+  },
+  "ai_err_model": {
+    "message": "modello non trovato"
+  },
+  "ai_err_format": {
+    "message": "risposta non valida"
+  },
+  "ai_err_http": {
+    "message": "errore del servizio"
+  },
+  "ai_err_host": {
+    "message": "componente locale non raggiungibile"
+  },
+  "ai_err_interrupted": {
+    "message": "interrotta prima della fine"
+  },
+  "ai_title": {
+    "message": "Revisione e traduzione con l'IA"
+  },
+  "ai_optional": {
+    "message": "· facoltativo"
+  },
+  "ai_intro": {
+    "message": "Collega uno o più account di IA. Dopo la trascrizione, il testo (non l'audio) va al primo account dell'elenco, che corregge le parole capite male e, se il messaggio è in un'altra lingua, lo traduce. La trascrizione originale resta sempre consultabile."
+  },
+  "ai_revise": {
+    "message": "Correggi la trascrizione"
+  },
+  "ai_revise_note": {
+    "message": "Le parole cambiate sono sottolineate; passandoci sopra si vede cosa aveva capito Whisper."
+  },
+  "ai_translate": {
+    "message": "Traduci i messaggi in un'altra lingua in"
+  },
+  "ai_browser_lang": {
+    "message": "(lingua del browser)"
+  },
+  "ai_empty_note": {
+    "message": "Le due funzioni partono attive appena colleghi il primo account."
+  },
+  "ai_accounts": {
+    "message": "Account collegati, in ordine di preferenza"
+  },
+  "ai_timeout_line": {
+    "message": "Se il primo non risponde entro $1 secondi o dà errore, si passa al successivo."
+  },
+  "ai_add": {
+    "message": "+ Aggiungi un account"
+  },
+  "ai_add_more": {
+    "message": "+ Aggiungi un altro account"
+  },
+  "ai_context": {
+    "message": "Usa i messaggi scritti della chat come contesto"
+  },
+  "ai_context_note": {
+    "message": "Insieme alla trascrizione vanno all'IA gli ultimi messaggi scritti che precedono il vocale: nomi e termini si correggono meglio, ma il fornitore riceve più testo della conversazione."
+  },
+  "ai_keys_note": {
+    "message": "Le chiavi restano su questo computer, cifrate con l'account di Windows, e valgono sia in Chrome sia in Edge."
+  },
+  "ai_model": {
+    "message": "Modello"
+  },
+  "ai_recommended": {
+    "message": "$1 (consigliato)"
+  },
+  "ai_recommended_long": {
+    "message": "$1 (consigliato: veloce ed economico)"
+  },
+  "ai_last_ok": {
+    "message": "ultimo uso $1"
+  },
+  "ai_free_tier": {
+    "message": "livello gratuito"
+  },
+  "ai_ago_now": {
+    "message": "ora"
+  },
+  "ai_ago_min": {
+    "message": "$1 min fa"
+  },
+  "ai_ago_h": {
+    "message": "$1 h fa"
+  },
+  "ai_ago_d": {
+    "message": "$1 g fa"
+  },
+  "ai_move_up": {
+    "message": "Sposta su"
+  },
+  "ai_move_down": {
+    "message": "Sposta giù"
+  },
+  "ai_test": {
+    "message": "Prova"
+  },
+  "ai_test_title": {
+    "message": "Prova con un testo d'esempio"
+  },
+  "ai_testing": {
+    "message": "Prova in corso…"
+  },
+  "ai_test_ok": {
+    "message": "✓ Risposta in $1 s:"
+  },
+  "ai_remove": {
+    "message": "Rimuovi"
+  },
+  "ai_remove_confirm": {
+    "message": "Scollegare $1? La chiave viene cancellata da questo computer."
+  },
+  "ai_dialog_title": {
+    "message": "Aggiungi un account IA"
+  },
+  "ai_pick_note": {
+    "message": "Gli abbonamenti alle chat (Claude Pro, ChatGPT Plus, Gemini Advanced, SuperGrok…) non danno accesso alle applicazioni esterne: serve una chiave API dello stesso fornitore, che si paga a consumo e a parte. Alcuni fornitori hanno un livello gratuito; Ollama e LM Studio girano sul tuo computer."
+  },
+  "ai_tag_key": {
+    "message": "chiave API"
+  },
+  "ai_tag_url_key": {
+    "message": "indirizzo e chiave"
+  },
+  "ai_tag_free": {
+    "message": "gratuito con limiti"
+  },
+  "ai_tag_oauth": {
+    "message": "accedi con l'account"
+  },
+  "ai_tag_local": {
+    "message": "sul tuo computer"
+  },
+  "ai_custom_vendor": {
+    "message": "compatibile OpenAI"
+  },
+  "ai_custom_title": {
+    "message": "Altro servizio compatibile OpenAI"
+  },
+  "ai_guide": {
+    "message": "Come ottenere la chiave"
+  },
+  "ai_guide_minutes": {
+    "message": "circa $1 minuti"
+  },
+  "ai_guide_card": {
+    "message": "serve una carta di credito"
+  },
+  "ai_guide_nocard": {
+    "message": "non serve una carta"
+  },
+  "ai_guide_local": {
+    "message": "nessun account"
+  },
+  "ai_guide_what": {
+    "message": "Una chiave API è una password che permette a questa estensione di usare il tuo account presso il fornitore. Si paga a consumo: un vocale costa una frazione di centesimo."
+  },
+  "ai_guide_full": {
+    "message": "Guida completa, con le immagini a schermo intero ↗"
+  },
+  "ai_oauth": {
+    "message": "Accedi con OpenRouter"
+  },
+  "ai_oauth_wait": {
+    "message": "Completa l'accesso nella scheda di OpenRouter che si è aperta…"
+  },
+  "ai_paste_key": {
+    "message": "oppure incolla una chiave"
+  },
+  "ai_url": {
+    "message": "Indirizzo del servizio"
+  },
+  "ai_key": {
+    "message": "Chiave API"
+  },
+  "ai_need_key": {
+    "message": "Incolla prima la chiave."
+  },
+  "ai_verify": {
+    "message": "Verifica"
+  },
+  "ai_verifying": {
+    "message": "Verifica in corso…"
+  },
+  "ai_key_ok": {
+    "message": "Chiave valida"
+  },
+  "ai_server_ok": {
+    "message": "Servizio raggiungibile"
+  },
+  "ai_no_models": {
+    "message": "il servizio non offre modelli di testo"
+  },
+  "ai_model_note": {
+    "message": "L'elenco arriva dal fornitore. Per correggere e tradurre un vocale basta un modello piccolo."
+  },
+  "ai_cancel": {
+    "message": "Annulla"
+  },
+  "ai_connect": {
+    "message": "Collega"
+  },
+  "ai_connecting": {
+    "message": "Collegamento e prova in corso…"
+  },
+  "ai_connected": {
+    "message": "$1 collegato."
+  },
+  "popup_ai": {
+    "message": "IA: $1 · $2"
+  },
+  "popup_ai_then": {
+    "message": ", poi "
+  },
+  "popup_ai_both": {
+    "message": "correzione e traduzione attive"
+  },
+  "popup_ai_revise": {
+    "message": "correzione attiva"
+  },
+  "popup_ai_translate": {
+    "message": "traduzione attiva"
+  },
+  "popup_ai_off": {
+    "message": "funzioni spente"
   }
 }

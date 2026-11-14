@@ -275,7 +275,9 @@ function saveSettings() {
       beamSize: Math.min(10, Math.max(1, Number($('beamSize').value) || 5)),
       idleMinutes: Math.min(240, Math.max(1, Number($('idleMinutes').value) || 10)),
     };
-    await chrome.storage.local.set({ settings: s });
+    // Le altre voci, come aiContext della sezione IA, restano come sono.
+    const prev = (await chrome.storage.local.get('settings')).settings || {};
+    await chrome.storage.local.set({ settings: { ...prev, ...s } });
     $('saved').textContent = t('opt_saved');
     setTimeout(() => ($('saved').textContent = ''), 1500);
   }, 300);

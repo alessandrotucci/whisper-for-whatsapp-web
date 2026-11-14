@@ -87,7 +87,7 @@
 
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg.cmd === 'fetchAudio') {
-      pageRequest('fetchAudio', { key: msg.key })
+      pageRequest('fetchAudio', { key: msg.key, context: !!msg.context })
         .then((result) => sendResponse({ ok: true, result }))
         .catch((e) => sendResponse({ ok: false, error: e.message }));
       return true;
@@ -165,9 +165,127 @@
     });
   }
 
+  // Una revisione rimasta "in corso" oltre questo tempo si considera persa, per esempio
+  // perché il service worker è stato terminato: il riquadro offre di ripeterla.
+  const REVIEW_STALE_MS = 150000;
+  const showOriginal = new Set(); // chiavi per cui il riquadro mostra il testo di Whisper
+
+  const AI_ERR = {
+    key: 'ai_err_key',
+    rate: 'ai_err_rate',
+    timeout: 'ai_err_timeout',
+    network: 'ai_err_network',
+    model: 'ai_err_model',
+    format: 'ai_err_format',
+  };
+  const aiErrText = (code) => t(AI_ERR[code] || 'ai_err_http');
+
+  function reviewState(st) {
+    const rv = st.review;
+    if (!rv) return null;
+    if (rv.state === 'running' && Date.now() - (rv.since || 0) > REVIEW_STALE_MS) return 'stale';
+    return rv.state;
+  }
+
+  // Testo rivisto: le parole cambiate sono sottolineate e mostrano quelle di Whisper al passaggio.
+  function revisedText(segments) {
+    const div = el('div', 'wwt-text wwt-final');
+    for (const [text, orig] of segments) {
+      if (orig == null) {
+        div.append(text);
+      } else {
+        const span = el('span', 'wwt-fix', text);
+        span.title = orig ? t('box_fix_title', orig) : t('box_fix_added');
+        div.append(span);
+      }
+    }
+    return div;
+  }
+
+  // Testo di Whisper con evidenziate, nell'ordine, le parole che la revisione ha cambiato.
+  function originalText(text, segments) {
+    const div = el('div', 'wwt-text wwt-final');
+    let pos = 0;
+    for (const [, orig] of segments) {
+      if (!orig) continue;
+      const i = text.indexOf(orig, pos);
+      if (i < 0) continue;
+      div.append(text.slice(pos, i), el('span', 'wwt-orig', orig));
+      pos = i + orig.length;
+    }
+    div.append(text.slice(pos));
+    return div;
+  }
+
+  function renderDone(box, key, st) {
+    const rv = st.review;
+    const rstate = reviewState(st);
+    const done = rstate === 'done';
+    const fixes = done && rv.revised && (rv.segments || []).some(([, orig]) => orig != null);
+    const original = fixes && showOriginal.has(key);
+    const head = el('div', 'wwt-head');
+    head.append(el('span', 'wwt-icon', '🎙'));
+    const lang = (done && rv.language) || st.language;
+    const meta = [lang, fmtDuration(st.duration)].filter(Boolean).join(' · ');
+    let label = t(original ? 'box_transcription_whisper' : 'box_transcription') + (meta ? ' · ' + meta : '');
+    if (rstate === 'running') {
+      head.append(el('span', 'wwt-spinner'));
+      label += ' · ' + (rv.provider ? t('box_reviewing', rv.provider) : t('box_reviewing_ai'));
+    } else if (done && rv.revised && !original) {
+      label += ' · ' + t('box_reviewed_by', rv.provider || '');
+    }
+    head.append(el('span', 'wwt-label', label));
+    const translation = done ? rv.translation : null;
+    const shown = done && rv.revised && !original ? rv.text : st.text;
+    const actions = el('span', 'wwt-actions');
+    actions.append(
+      button(t('box_copy'), t('box_copy_title'), (ev) => {
+        const text = (shown || '') + (translation ? '\n\n' + translation : '');
+        navigator.clipboard.writeText(text).then(() => {
+          ev.target.textContent = t('box_copied');
+          setTimeout(() => (ev.target.textContent = t('box_copy')), 1200);
+        });
+      }),
+    );
+    if (fixes) {
+      actions.append(
+        button(original ? t('box_show_revised') : t('box_show_original'), original ? t('box_show_revised_title') : t('box_show_original_title'), () => {
+          if (original) showOriginal.delete(key);
+          else showOriginal.add(key);
+          renderKey(key);
+        }),
+      );
+    }
+    actions.append(button('↻', t('box_retranscribe_title'), () => requestTranscription(key, true)));
+    head.append(actions);
+    box.append(head);
+    // wwt-final e wwt-final-tr segnano testo e traduzione, che page.js aggiunge al testo copiato.
+    if (!st.text) {
+      box.append(el('div', 'wwt-text', t('box_no_speech')));
+    } else if (done && rv.revised) {
+      box.append(original ? originalText(st.text, rv.segments || []) : revisedText(rv.segments || [[rv.text, null]]));
+    } else {
+      box.append(el('div', 'wwt-text wwt-final', st.text));
+    }
+    if (translation) {
+      const tr = el('div', 'wwt-tr');
+      tr.append(el('div', 'wwt-tr-label', t('box_translation') + ' · ' + (rv.targetLang || '')), el('div', 'wwt-final-tr', translation));
+      box.append(tr);
+    }
+    if (rstate === 'error' || rstate === 'stale') {
+      const note = el('div', 'wwt-note');
+      const why = rstate === 'stale'
+        ? t('ai_err_interrupted')
+        : (rv.errors || []).map((e) => (e.name ? e.name + ': ' : '') + aiErrText(e.code)).join('; ');
+      note.append(el('span', null, '⚠ ' + t('box_review_failed', why || t('ai_err_http'))));
+      note.append(button(t('box_review_retry'), null, () => send({ cmd: 'reviewAgain', key })));
+      box.append(note);
+    }
+  }
+
   function renderBox(box, key) {
     const st = states.get(key) || { state: 'none' };
-    const sig = JSON.stringify(st);
+    const sig = JSON.stringify(st) + '|' + showOriginal.has(key) + '|' + reviewState(st);
     if (box.__wwtSig === sig) return;
     box.__wwtSig = sig;
     box.replaceChildren();
@@ -183,21 +301,7 @@
     }
 
     if (st.state === 'done') {
-      const meta = [st.language, fmtDuration(st.duration)].filter(Boolean).join(' · ');
-      head.append(el('span', 'wwt-label', t('box_transcription') + (meta ? ' · ' + meta : '')));
-      const actions = el('span', 'wwt-actions');
-      actions.append(
-        button(t('box_copy'), t('box_copy_title'), (ev) => {
-          navigator.clipboard.writeText(st.text || '').then(() => {
-            ev.target.textContent = t('box_copied');
-            setTimeout(() => (ev.target.textContent = t('box_copy')), 1200);
-          });
-        }),
-        button('↻', t('box_retranscribe_title'), () => requestTranscription(key, true)),
-      );
-      head.append(actions);
-      // wwt-final segna il testo trascritto, che page.js aggiunge al testo copiato.
-      box.append(head, el('div', st.text ? 'wwt-text wwt-final' : 'wwt-text', st.text || t('box_no_speech')));
+      renderDone(box, key, st);
       return;
     }
 
@@ -315,13 +419,23 @@
   const BUSY = new Set(['queued', 'downloading', 'waiting', 'waiting_lock', 'loading_model', 'transcribing']);
   const refresher = setInterval(() => {
     if (!alive()) return;
-    const keys = [...states].filter(([, st]) => BUSY.has(st.state)).map(([key]) => key);
+    // Le revisioni in corso si rileggono anche loro; quelle ferme da troppo si ridisegnano.
+    for (const [key, st] of states) if (st.state === 'done' && st.review && st.review.state === 'running') renderKey(key);
+    const keys = [...states]
+      .filter(([, st]) => BUSY.has(st.state) || (st.state === 'done' && st.review && st.review.state === 'running'))
+      .map(([key]) => key);
     if (!keys.length) return;
     send({ cmd: 'get', keys }).then((res) => {
       if (!res) return;
       for (const key of keys) {
         const prev = states.get(key);
-        if (!prev || !BUSY.has(prev.state)) continue;
+        if (!prev) continue;
+        if (prev.state === 'done') {
+          if (res[key] && res[key].state === 'done') states.set(key, res[key]);
+          renderKey(key);
+          continue;
+        }
+        if (!BUSY.has(prev.state)) continue;
         states.set(key, res[key] || { state: 'none' });
         renderKey(key);
       }
