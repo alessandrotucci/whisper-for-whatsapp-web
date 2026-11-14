@@ -173,7 +173,8 @@
       "steps": [
         {"url": "https://openrouter.ai/", "img": "openrouter-1.png",
          "title": {"it": "Accedi con OpenRouter", "en": "Sign in with OpenRouter"},
-         "text": {"it": "Premi Accedi con OpenRouter: si apre la sua pagina, entri con Google, GitHub o email e autorizzi l'estensione. Nessuna chiave da copiare.", "en": "Press Sign in with OpenRouter: its page opens, you sign in with Google, GitHub or email and authorize the extension. No key to copy."}},
+         "text": {"it": "Premi Accedi con OpenRouter: si apre la sua pagina, entri con Google, GitHub o email e autorizzi l'estensione. Nessuna chiave da copiare.", "en": "Press Sign in with OpenRouter: its page opens, you sign in with Google, GitHub or email and authorize the extension. No key to copy."},
+         "mobile": {"text": {"it": "Tocca Accedi con OpenRouter: si apre la sua pagina, entri con Google, GitHub o email e autorizzi l'app. Nessuna chiave da copiare.", "en": "Tap Sign in with OpenRouter: its page opens, you sign in with Google, GitHub or email and authorize the app. No key to copy."}}},
         {"url": "https://openrouter.ai/settings/credits", "img": "openrouter-2.png",
          "title": {"it": "Credito, se serve", "en": "Credit, if needed"},
          "text": {"it": "I modelli con :free nel nome sono gratuiti, con limiti; per gli altri carica del credito in Credits.", "en": "Models with :free in the name are free, with limits; for the others load some credit in Credits."}}
@@ -213,25 +214,33 @@
       ]
     },
     "ollama": {
-      "minutes": 10, "card": false,
+      "minutes": 10, "card": false, "local": true,
       "steps": [
         {"url": "https://ollama.com/download", "img": "ollama-1.png",
          "title": {"it": "Installa Ollama", "en": "Install Ollama"},
-         "text": {"it": "Scarica e installa Ollama: gira sul tuo computer, il testo non esce dalla macchina e non serve alcun account.", "en": "Download and install Ollama: it runs on your computer, the text never leaves the machine and no account is needed."}},
+         "text": {"it": "Scarica e installa Ollama: gira sul tuo computer, il testo non esce dalla macchina e non serve alcun account.", "en": "Download and install Ollama: it runs on your computer, the text never leaves the machine and no account is needed."},
+         "mobile": {"title": {"it": "Installa Ollama sul computer", "en": "Install Ollama on your computer"},
+                    "text": {"it": "Ollama non gira sul telefono: l'app si collega a quello installato su un computer della stessa rete Wi-Fi. Installalo sul computer; non serve alcun account e il testo non esce dalla tua rete.", "en": "Ollama does not run on the phone: the app connects to the one installed on a computer on the same Wi-Fi network. Install it on the computer; no account is needed and the text never leaves your network."}}},
         {"url": "https://ollama.com/library", "img": "ollama-2.png",
          "title": {"it": "Scarica un modello", "en": "Download a model"},
-         "text": {"it": "Scegli un modello multilingue adatto alla memoria del computer, per esempio qwen3 o gemma3, e scaricalo dall'applicazione di Ollama. Poi premi Verifica qui sotto.", "en": "Pick a multilingual model that fits your computer's memory, for example qwen3 or gemma3, and download it from the Ollama app. Then press Verify below."}}
+         "text": {"it": "Scegli un modello multilingue adatto alla memoria del computer, per esempio qwen3 o gemma3, e scaricalo dall'applicazione di Ollama. Poi premi Verifica qui sotto.", "en": "Pick a multilingual model that fits your computer's memory, for example qwen3 or gemma3, and download it from the Ollama app. Then press Verify below."},
+         "mobile": {"title": {"it": "Modello e accesso dalla rete", "en": "Model and network access"},
+                    "text": {"it": "Scarica sul computer un modello multilingue, per esempio qwen3 o gemma3. Imposta la variabile d'ambiente OLLAMA_HOST=0.0.0.0 e riavvia Ollama, così risponde anche al telefono. Come indirizzo qui sotto usa quello del computer, per esempio http://192.168.1.10:11434/v1, non localhost.", "en": "Download a multilingual model on the computer, for example qwen3 or gemma3. Set the environment variable OLLAMA_HOST=0.0.0.0 and restart Ollama so that it also answers the phone. As the address below use the computer's one, for example http://192.168.1.10:11434/v1, not localhost."}}}
       ]
     },
     "lmstudio": {
-      "minutes": 10, "card": false,
+      "minutes": 10, "card": false, "local": true,
       "steps": [
         {"url": "https://lmstudio.ai/", "img": "lmstudio-1.png",
          "title": {"it": "Installa LM Studio e un modello", "en": "Install LM Studio and a model"},
-         "text": {"it": "Installa LM Studio e scarica un modello multilingue dalla sua ricerca. Gira sul tuo computer, senza account.", "en": "Install LM Studio and download a multilingual model from its search. It runs on your computer, no account needed."}},
+         "text": {"it": "Installa LM Studio e scarica un modello multilingue dalla sua ricerca. Gira sul tuo computer, senza account.", "en": "Install LM Studio and download a multilingual model from its search. It runs on your computer, no account needed."},
+         "mobile": {"title": {"it": "Installa LM Studio e un modello sul computer", "en": "Install LM Studio and a model on your computer"},
+                    "text": {"it": "LM Studio non gira sul telefono: l'app si collega a quello installato su un computer della stessa rete Wi-Fi. Installalo sul computer e scarica un modello multilingue dalla sua ricerca; non serve alcun account.", "en": "LM Studio does not run on the phone: the app connects to the one installed on a computer on the same Wi-Fi network. Install it on the computer and download a multilingual model from its search; no account is needed."}}},
         {"url": "https://lmstudio.ai/docs/app/api", "img": "lmstudio-2.png",
          "title": {"it": "Avvia il server", "en": "Start the server"},
-         "text": {"it": "Nella scheda Developer avvia il server locale (porta 1234), poi premi Verifica qui sotto.", "en": "In the Developer tab start the local server (port 1234), then press Verify below."}}
+         "text": {"it": "Nella scheda Developer avvia il server locale (porta 1234), poi premi Verifica qui sotto.", "en": "In the Developer tab start the local server (port 1234), then press Verify below."},
+         "mobile": {"title": {"it": "Avvia il server in rete", "en": "Start the server on the network"},
+                    "text": {"it": "Nella scheda Developer attiva Serve on Local Network e avvia il server (porta 1234). Come indirizzo qui sotto usa quello del computer, per esempio http://192.168.1.10:1234/v1, non localhost.", "en": "In the Developer tab turn on Serve on Local Network and start the server (port 1234). As the address below use the computer's one, for example http://192.168.1.10:1234/v1, not localhost."}}}
       ]
     },
     "custom": {

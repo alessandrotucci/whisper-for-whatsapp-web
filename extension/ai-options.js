@@ -4,6 +4,7 @@
 // l'utente di Windows): questa pagina li legge e li cambia con le richieste ai_* e non
 // vede mai una chiave salvata. Le guide per ottenere le chiavi si leggono dal repository,
 // così si aggiornano senza una nuova versione; senza rete vale la copia nell'estensione.
+// Il campo "mobile" di un passo e il flag "local" di un fornitore servono all'app Android.
 'use strict';
 
 (() => {
