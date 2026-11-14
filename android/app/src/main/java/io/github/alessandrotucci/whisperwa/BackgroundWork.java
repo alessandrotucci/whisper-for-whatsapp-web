@@ -176,6 +176,11 @@ final class BackgroundWork {
         Ui.openAppDetails(a);
     }
 
+    /**
+     * Pagine del produttore da provare prima di Info app. Su ColorOS non ce ne sono: le pagine
+     * batteria e avvio automatico di com.oplus.battery non sono esportate o richiedono permessi di
+     * firma OPLUS, e si raggiungono da Info app con «Utilizzo batteria».
+     */
     private static Intent[] oemIntents(Context c, boolean autostart) {
         if (oem() == Oem.XIAOMI && autostart) {
             return new Intent[]{
