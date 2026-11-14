@@ -126,6 +126,7 @@ final class BackgroundWork {
 
     /** Il vocale dell'ultima interruzione, se esiste ancora ed è in errore. */
     static Db.Note retryableKill(Context c) {
+        seedLastKill(c);
         long id = Prefs.lastKillNote(c);
         Db.Note note = id < 0 ? null : Db.get(c).byId(id);
         return note != null && note.status == Db.ERROR ? note : null;
@@ -133,8 +134,20 @@ final class BackgroundWork {
 
     /** Ora dell'ultima interruzione se è degli ultimi RECENT_MS, altrimenti 0. */
     static long recentKill(Context c) {
+        seedLastKill(c);
         long t = Prefs.lastKillTime(c);
         return t > 0 && System.currentTimeMillis() - t < RECENT_MS ? t : 0;
+    }
+
+    /**
+     * Senza un'interruzione nelle preferenze, prende come ultima il vocale più recente rimasto in
+     * errore per tre interruzioni nel database, con l'ora di arrivo del vocale: le interruzioni
+     * presenti solo nel database contano come le altre.
+     */
+    private static void seedLastKill(Context c) {
+        if (Prefs.lastKillTime(c) > 0) return;
+        Db.Note n = Db.get(c).lastWithError(c.getString(R.string.error_killed));
+        if (n != null) Prefs.setLastKill(c, n.id, who(n), n.received);
     }
 
     /** «oggi alle 18:40», «ieri alle 9:05», «il 12 nov alle 18:40». */

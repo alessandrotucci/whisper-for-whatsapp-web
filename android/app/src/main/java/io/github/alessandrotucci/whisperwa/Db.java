@@ -201,6 +201,12 @@ public final class Db extends SQLiteOpenHelper {
         return l.isEmpty() ? null : l.get(0);
     }
 
+    /** La riga in errore più recente con quel messaggio, oppure null. */
+    public Note lastWithError(String error) {
+        List<Note> l = query("status = " + ERROR + " AND error = ?", new String[]{error}, "received DESC, id DESC", "1");
+        return l.isEmpty() ? null : l.get(0);
+    }
+
     public Note byId(long id) {
         List<Note> l = query("id = ?", new String[]{Long.toString(id)}, null, "1");
         return l.isEmpty() ? null : l.get(0);
