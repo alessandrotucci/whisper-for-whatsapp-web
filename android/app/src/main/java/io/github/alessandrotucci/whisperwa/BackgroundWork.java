@@ -133,8 +133,27 @@ final class BackgroundWork {
 
     /** Ora dell'ultima interruzione se è degli ultimi RECENT_MS, altrimenti 0. */
     static long recentKill(Context c) {
+        if (!Prefs.killSeeded(c)) seedLastKill(c);
         long t = Prefs.lastKillTime(c);
         return t > 0 && System.currentTimeMillis() - t < RECENT_MS ? t : 0;
+    }
+
+    /**
+     * Le interruzioni registrate prima che esistesse l'ultimo problema in Prefs restano solo
+     * nell'archivio, come righe in errore con il messaggio error_killed: la più recente diventa
+     * l'ultimo problema, con l'ora di arrivo del vocale al posto di quella dell'interruzione.
+     * Si fa una volta sola.
+     */
+    private static void seedLastKill(Context c) {
+        Prefs.setKillSeeded(c);
+        if (Prefs.lastKillTime(c) > 0) return;
+        String killed = c.getString(R.string.error_killed);
+        for (Db.Note n : Db.get(c).recent(300)) {
+            if (n.status == Db.ERROR && killed.equals(n.error)) {
+                Prefs.setLastKill(c, n.id, who(n), n.received);
+                return;
+            }
+        }
     }
 
     /** «oggi alle 18:40», «ieri alle 9:05», «il 12 nov alle 18:40». */
