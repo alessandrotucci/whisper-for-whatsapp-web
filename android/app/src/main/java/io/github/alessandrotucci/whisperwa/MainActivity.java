@@ -483,9 +483,10 @@ public final class MainActivity extends Activity {
             pw.setOutsideTouchable(true);
             pw.setElevation(6 * d);
             int x = Math.max(0, (int) touchX - tip.getMeasuredWidth() / 2);
-            int y = Math.max(0, (int) touchY - tip.getMeasuredHeight() - (int) (24 * d));
+            int y = Math.max(0, (int) touchY - tip.getMeasuredHeight() - (int) (14 * d));
+            tip.setOnClickListener(t -> pw.dismiss());
             pw.showAtLocation(anchor, Gravity.NO_GRAVITY, x, y);
-            anchor.postDelayed(pw::dismiss, 2500);
+            anchor.postDelayed(pw::dismiss, 4000);
         }
     }
 }

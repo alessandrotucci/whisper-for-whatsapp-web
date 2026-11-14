@@ -29,6 +29,7 @@ public final class VoiceListener extends NotificationListenerService {
 
     private static final String TAG = "whisperwa";
     private static final String MIC = new String(Character.toChars(0x1F3A4));
+    private static final String REPLY_ARROW = new String(Character.toChars(0x2937));
     private static final int SEEN_MAX = 500;
     private static final long MAX_AGE_MS = 10 * 60 * 1000;
 
@@ -81,6 +82,9 @@ public final class VoiceListener extends NotificationListenerService {
                 CharSequence sender = m.getCharSequence("sender");
                 Person person = m.getParcelable("sender_person");
                 if (person != null && person.getName() != null) sender = person.getName();
+                // Le notifiche di risposta hanno come mittente un avviso che inizia con la freccia
+                // U+2937 («Hai ricevuto una risposta»): non è un nome, vale la chat.
+                if (sender != null && sender.toString().startsWith(REPLY_ARROW)) sender = null;
                 String chat = str(conversation != null ? conversation : title);
                 String who = sender != null ? sender.toString() : chat;
                 if (!text.toString().contains(MIC)) {

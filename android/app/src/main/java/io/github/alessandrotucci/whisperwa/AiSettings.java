@@ -265,11 +265,13 @@ final class AiSettings {
             try {
                 Object[] r = AiReview.test(p, AiStore.unseal(a.sealedKey), a.baseUrl, a.model, targetLang, 30000);
                 JSONObject parsed = (JSONObject) r[1];
+                android.util.Log.i("whisperwa", "prova di " + p.name + " (" + a.model + ") riuscita in " + r[0] + " ms");
                 title = activity.getString(R.string.ai_test_ok, String.format(Locale.getDefault(), "%.1f", (Long) r[0] / 1000.0));
                 String tr = parsed.optString("translation", "");
                 body = parsed.optString("text") + (tr.isEmpty() || "null".equals(tr) ? "" : "\n\n" + tr);
                 AiStore.mark(activity, a.id, null);
             } catch (AiClient.AiError e) {
+                android.util.Log.w("whisperwa", "prova di " + p.name + " (" + a.model + ") fallita: " + e.getMessage());
                 title = activity.getString(R.string.ai_test_failed, AiReview.errorText(activity, e.code));
                 body = e.detail;
                 AiStore.mark(activity, a.id, e.code);
