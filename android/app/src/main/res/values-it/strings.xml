@@ -104,10 +104,10 @@
     <string name="bg_remove">Togli</string>
     <string name="bg_open">Apri</string>
     <string name="bg_activity_title">Attività in background</string>
-    <string name="bg_activity_coloros">Impostazione di ColorOS che l\'app non può verificare. Nella pagina che si apre tocca «Utilizzo batteria» e attiva «Consenti attività in background».</string>
+    <string name="bg_activity_coloros">Impostazione di ColorOS che l\'app non può verificare. Nella pagina che si apre tocca «Utilizzo batteria» e attiva «Consenti attività sullo sfondo».</string>
     <string name="bg_activity_xiaomi">Impostazione di MIUI che l\'app non può verificare. Nella pagina che si apre tocca «Risparmio batteria» e scegli «Nessuna restrizione».</string>
     <string name="bg_autostart_title">Avvio automatico</string>
-    <string name="bg_autostart_coloros">Nella stessa pagina attiva «Consenti avvio automatico».</string>
+    <string name="bg_autostart_coloros">Nella stessa pagina attiva «Consenti l\'avvio automatico».</string>
     <string name="bg_autostart_xiaomi">Nella pagina che si apre attiva l\'avvio automatico dell\'app.</string>
     <string name="bg_last">Ultimo problema: %1$s il sistema ha fermato tre volte il vocale di %2$s.</string>
     <string name="bg_retry">Riprova</string>
