@@ -32,8 +32,10 @@ import java.util.concurrent.TimeUnit;
  * occupati tutti i core mentre non è visibile.
  *
  * <p>Se la revisione con l'IA è attiva, una trascrizione finita resta in attesa di revisione e la
- * sua notifica parte solo a revisione conclusa o fallita. Le revisioni si fanno nello stesso
- * ciclo, dopo le trascrizioni in coda, così restano protette dal servizio in primo piano.
+ * sua notifica parte solo a revisione conclusa o fallita. La revisione segue subito la
+ * trascrizione, prima del vocale successivo, nello stesso ciclo e quindi sotto il servizio in
+ * primo piano; le revisioni rimaste in attesa (rifatte dal menu o interrotte da un riavvio) si
+ * fanno quando non restano trascrizioni.
  */
 public final class TranscriptionQueue {
 
@@ -195,6 +197,7 @@ public final class TranscriptionQueue {
         int queued = db.countPending();
         Notifier.showProgress(app, note, 0, queued);
         long started = SystemClock.elapsedRealtime();
+        boolean reviewNow = false;
         try {
             Uri uri = note.localPath != null ? Uri.fromFile(new File(note.localPath)) : Uri.parse(note.source);
             float[] samples = AudioDecoder.decode(app, uri);
@@ -247,6 +250,7 @@ public final class TranscriptionQueue {
             deleteLocalCopy(note);
             if (!r.text.isEmpty() && AiStore.load(app).needsReview(r.language)) {
                 db.setReviewState(note.id, Db.REVIEW_PENDING);
+                reviewNow = true;
             } else {
                 Db.Note done = db.byId(note.id);
                 if (done != null) Notifier.showTranscript(app, done);
@@ -256,6 +260,10 @@ public final class TranscriptionQueue {
             db.markError(note.id, e.getClass().getSimpleName() + ": " + e.getMessage());
         }
         changed();
+        if (reviewNow) {
+            Db.Note done = db.byId(note.id);
+            if (done != null) review(db, done);
+        }
     }
 
     /** Il fornitore con cui si sta rivedendo la riga noteId, oppure null. */

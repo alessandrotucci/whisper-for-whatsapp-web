@@ -482,7 +482,8 @@ public final class MainActivity extends Activity {
             PopupWindow pw = new PopupWindow(tip, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             pw.setOutsideTouchable(true);
             pw.setElevation(6 * d);
-            int x = Math.max(0, (int) touchX - tip.getMeasuredWidth() / 2);
+            int screen = c.getResources().getDisplayMetrics().widthPixels;
+            int x = Math.max(0, Math.min(screen - tip.getMeasuredWidth(), (int) touchX - tip.getMeasuredWidth() / 2));
             int y = Math.max(0, (int) touchY - tip.getMeasuredHeight() - (int) (14 * d));
             tip.setOnClickListener(t -> pw.dismiss());
             pw.showAtLocation(anchor, Gravity.NO_GRAVITY, x, y);
