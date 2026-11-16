@@ -56,7 +56,7 @@ button {
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
 button:disabled { opacity: 0.5; cursor: default; }
 
-input[type="text"], input[type="number"], select, textarea {
+input[type="text"], input[type="number"], input[type="password"], select, textarea {
   font: inherit;
   padding: 5px 8px;
   border-radius: 6px;

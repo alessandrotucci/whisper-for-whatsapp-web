@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "__MSG_extName__",
   "short_name": "WA Whisper",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA8jpZlVfHjTxw4Sn6tT5v/O26DN7lu2X13TYLOv7MCEF3sZyV9fy/IEqqkUflxFat4es9oO7LB68f8MTwprK4V3htZ4VAQH8KveEl/Zlv3RPPAeeA3Dc+mxhTnOg4suWXNpina92TjhyzTJ9L7YPZxRjVGA60bSKVUOsFHYCBjsLVLTf7ys3J/dB4TCA159WCUJIZUgAWdEaQ2AjrihWZTKoIhaUj4wE1najhGTkk1EPKkGwg0iWJrnaVDuV4jiqnccT1mK1P1czsRNmkmfPvsJzDyAujiiUvCSvp/RkhiuvJJE3iijvC79Q4DBbf3YJOQCxRW7rIJ7wK4bgJuRu4iQIDAQAB",

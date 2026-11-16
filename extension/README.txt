@@ -61,6 +61,11 @@ BUONO A SAPERSI
 - Copiare: se selezioni più messaggi e premi Ctrl+C, i vocali trascritti
   finiscono negli appunti al loro posto, con ora e mittente come i
   messaggi scritti e il simbolo 🎙 davanti al testo.
+- Revisione e traduzione con l'IA (facoltativa): in "Configurazione e
+  guida", sezione 4, collega un account di IA (Claude, ChatGPT,
+  Gemini e altri). La trascrizione viene corretta e, se il messaggio
+  è in un'altra lingua, tradotta. Va al fornitore solo il testo, non
+  l'audio. Serve una chiave API: la finestra spiega come ottenerla.
 - Disinstallare: rimuovi l'estensione dal browser e "Whisper for
   WhatsApp Web" da Impostazioni > App. Il modello scaricato resta in
   %USERPROFILE%\.cache\huggingface\hub e si può cancellare a mano.
@@ -130,6 +135,11 @@ GOOD TO KNOW
 - Copying: select several messages and press Ctrl+C, and transcribed
   voice messages land in the clipboard in their place, with time and
   sender like text messages and a 🎙 before the text.
+- AI review and translation (optional): in "Setup and guide",
+  section 4, connect an AI account (Claude, ChatGPT, Gemini and
+  others). The transcription gets fixed and, if the message is in
+  another language, translated. Only the text goes to the provider,
+  never the audio. You need an API key: the dialog explains how.
 - Uninstalling: remove the extension from the browser and "Whisper for
   WhatsApp Web" from Settings > Apps. The downloaded model stays in
   %USERPROFILE%\.cache\huggingface\hub and can be deleted by hand.

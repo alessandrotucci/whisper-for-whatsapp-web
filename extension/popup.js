@@ -53,6 +53,21 @@ async function checkHost() {
   }
 }
 
+// Una riga sugli account di IA collegati: l'ordine in cui si provano e le funzioni attive.
+async function checkAi() {
+  const r = await send({ cmd: 'ai', message: { type: 'ai_status' }, done: ['ai_status'] });
+  const el = $('aiLine');
+  if (!r || !r.ok || !r.accounts.length) {
+    el.hidden = true;
+    return;
+  }
+  const names = r.accounts.map((a) => a.name).join(t('popup_ai_then'));
+  const s = r.settings;
+  const what = s.revise && s.translate ? t('popup_ai_both') : s.revise ? t('popup_ai_revise') : s.translate ? t('popup_ai_translate') : t('popup_ai_off');
+  el.textContent = t('popup_ai', names, what);
+  el.hidden = false;
+}
+
 $('autoIncoming').addEventListener('change', async (ev) => {
   const s = (await chrome.storage.local.get('settings')).settings || {};
   s.autoIncoming = ev.target.checked;
@@ -92,5 +107,5 @@ $('clearQueue').addEventListener('click', async () => {
 $('options').addEventListener('click', () => chrome.runtime.openOptionsPage());
 
 refresh();
-checkHost();
+checkHost().then(checkAi);
 setInterval(refresh, 1000);

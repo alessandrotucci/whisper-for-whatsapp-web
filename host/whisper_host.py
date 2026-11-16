@@ -34,6 +34,26 @@ Richieste del browser (il campo "rid", se presente, torna nella risposta):
                                                      -> update_progress..., update_extension_done
   {"type": "extension_dirs", "ext_id": "..."}        -> extension_dirs
 
+Revisione e traduzione con l'IA (modulo ai_review; le chiavi non tornano mai al browser):
+  {"type": "ai_status"}                              -> ai_status
+  {"type": "ai_models", "provider": "...", "key": "...", "base_url": "...", "account": "..."}
+                                                     -> ai_models | ai_error
+  {"type": "ai_add", "provider": "...", "key": "...", "base_url": "...", "model": "...",
+   "target_lang": "it"}                              -> ai_added | ai_error
+  {"type": "ai_update", "account": "...", "model": "...", "base_url": "..."} -> ai_status
+  {"type": "ai_remove" | "ai_move", "account": "...", "delta": -1|1}        -> ai_status
+  {"type": "ai_settings", "settings": {...}}         -> ai_status
+  {"type": "ai_test", "account": "..."}              -> ai_test | ai_error
+  {"type": "ai_oauth", "provider": "openrouter", "target_lang": "it"}
+                                                     -> ai_oauth_url, poi ai_added | ai_error
+  {"type": "review", "id": "...", "text": "...", "language": "pt", "hint": "...", "context": "..."}
+                                                     -> review
+
+Dopo una trascrizione, se c'è almeno un account e serve una revisione, il
+risultato porta "review": {"state": "running", "provider": "..."} e segue
+  {"type": "review", "id": "...", "state": "done", "review": {...}}
+  {"type": "review", "id": "...", "state": "error", "errors": [...]}
+
 Eventi di una trascrizione (campo "id"):
   status (waiting_lock | loading_model | transcribing), partial, result, error
 
@@ -71,11 +91,13 @@ import sys
 import threading
 import time
 import traceback
+import urllib.parse
 from multiprocessing.connection import Client, Listener
 
+import ai_review
 import cuda_libs
 
-HOST_VERSION = "1.4.0"
+HOST_VERSION = "1.5.0"
 FROZEN = getattr(sys, "frozen", False)
 
 
@@ -798,10 +820,14 @@ class EngineLink:
         try:
             while True:
                 msg = json.loads(conn.recv_bytes().decode("utf-8"))
+                req = None
                 if msg.get("type") in ("result", "error") and msg.get("id") in self.submitted:
-                    self.submitted.pop(msg["id"], None)
+                    req = self.submitted.pop(msg["id"], None)
                     self.attempts.pop(msg["id"], None)
-                self.host.send(msg)
+                if msg.get("type") == "result" and req is not None:
+                    self.host.on_result(msg, req)
+                else:
+                    self.host.send(msg)
         except (EOFError, OSError, ValueError):
             pass
         with self.state_lock:
@@ -871,6 +897,7 @@ class Host:
         self.engine_q = queue.Queue()
         self.tr = Transcriber(log)
         self.engine = EngineLink(self)
+        self.ai = ai_review.Store(DATA_DIR)
 
     def send(self, msg):
         data = json.dumps(msg, ensure_ascii=False).encode("utf-8")
@@ -923,6 +950,8 @@ class Host:
             self.engine_q.put((kind, msg))
         elif kind in ("set_config", "download_model", "cuda_install", "update_host", "update_extension"):
             self.jobs.put(msg)
+        elif kind.startswith("ai_") or kind == "review":
+            threading.Thread(target=self.do_ai, args=(msg,), daemon=True).start()
         else:
             self.reply(msg, {"type": "error", "id": msg.get("id"), "message": "tipo sconosciuto: %s" % kind})
 
@@ -944,6 +973,147 @@ class Host:
                     self.engine.resubmit()
             except Exception:  # noqa: BLE001
                 self.log(traceback.format_exc())
+
+    def on_result(self, msg, req):
+        """Inoltra un risultato del motore e, se serve, avvia la revisione con l'IA."""
+        data = ai_review.active(self.ai) if (msg.get("text") or "").strip() else None
+        if not ai_review.needs_review(data, msg.get("language")):
+            self.send(msg)
+            return
+        first = ai_review.public_account(data["accounts"][0])
+        msg["review"] = {"state": "running", "provider": first["name"]}
+        self.send(msg)
+        threading.Thread(target=self.run_review, daemon=True, args=({
+            "type": "review", "id": msg.get("id"), "text": msg["text"], "language": msg.get("language"),
+            "hint": req.get("initial_prompt"), "context": req.get("context"),
+        },)).start()
+
+    def run_review(self, msg):
+        jid = msg.get("id")
+
+        def attempt(acc):
+            self.reply(msg, {"type": "review", "id": jid, "state": "running", "provider": acc["name"]})
+
+        try:
+            res = ai_review.review(self.ai, msg.get("text") or "", msg.get("language"), msg.get("hint"),
+                                   msg.get("context"), attempt)
+        except ai_review.AIError as e:
+            errors = getattr(e, "errors", None) or [{"code": e.code, "detail": e.detail}]
+            self.log("revisione %s non riuscita: %s" % (jid, "; ".join(
+                "%s %s" % (x.get("name", ""), x.get("code")) for x in errors)))
+            self.reply(msg, {"type": "review", "id": jid, "state": "error", "errors": errors})
+            return
+        if res is None:
+            self.reply(msg, {"type": "review", "id": jid, "state": "skipped"})
+            return
+        self.log("revisione %s con %s %s in %d ms%s" % (
+            jid, res["provider"], res["model"], res["ms"], ", correzione scartata" if res["rejected"] else ""))
+        self.reply(msg, {"type": "review", "id": jid, "state": "done", "review": res})
+
+    def ai_status(self):
+        return dict(type="ai_status", **ai_review.status(self.ai))
+
+    def do_ai(self, msg):
+        kind = msg.get("type")
+        try:
+            if kind == "review":
+                self.run_review(msg)
+            elif kind == "ai_status":
+                self.reply(msg, self.ai_status())
+            elif kind == "ai_models":
+                key, base_url = msg.get("key"), msg.get("base_url")
+                provider = msg.get("provider")
+                if msg.get("account"):
+                    acc = ai_review.find_account(self.ai, msg["account"])
+                    provider, key = acc["provider"], ai_review.unseal(acc.get("key"))
+                    base_url = base_url or acc.get("base_url")
+                models, best = ai_review.list_models(provider, key, base_url)
+                self.reply(msg, {"type": "ai_models", "provider": provider, "models": models, "recommended": best})
+            elif kind == "ai_add":
+                acc, ms = ai_review.add_account(self.ai, msg.get("provider"), msg.get("key"), msg.get("base_url"),
+                                                msg.get("model"), msg.get("target_lang"))
+                self.log("IA: collegato %s (%s), prova in %d ms" % (acc["name"], acc["model"], ms))
+                self.reply(msg, dict(self.ai_status(), type="ai_added", account=acc["id"], ms=ms))
+            elif kind == "ai_update":
+                ai_review.update_account(self.ai, msg.get("account"), msg.get("model"), msg.get("base_url"))
+                self.reply(msg, self.ai_status())
+            elif kind == "ai_remove":
+                ai_review.remove_account(self.ai, msg.get("account"))
+                self.reply(msg, self.ai_status())
+            elif kind == "ai_move":
+                ai_review.move_account(self.ai, msg.get("account"), msg.get("delta") or 0)
+                self.reply(msg, self.ai_status())
+            elif kind == "ai_settings":
+                ai_review.set_settings(self.ai, msg.get("settings"))
+                self.reply(msg, self.ai_status())
+            elif kind == "ai_test":
+                acc = ai_review.find_account(self.ai, msg.get("account"))
+                target = self.ai.load()["settings"].get("target_lang")
+                try:
+                    ms, parsed = ai_review.test_account(acc["provider"], ai_review.unseal(acc.get("key")),
+                                                        acc.get("base_url"), acc.get("model"), target)
+                except ai_review.AIError as e:
+                    ai_review.mark(self.ai, acc["id"], error=e.code)
+                    raise
+                ai_review.mark(self.ai, acc["id"], ok=True)
+                self.reply(msg, {"type": "ai_test", "account": acc["id"], "ms": ms, "text": parsed.get("text"),
+                                 "translation": parsed.get("translation")})
+            elif kind == "ai_oauth":
+                self.do_ai_oauth(msg)
+            else:
+                self.reply(msg, {"type": "error", "message": "tipo sconosciuto: %s" % kind})
+        except ai_review.AIError as e:
+            self.reply(msg, {"type": "ai_error", "code": e.code, "detail": e.detail})
+        except Exception as e:  # noqa: BLE001
+            self.log(traceback.format_exc())
+            self.reply(msg, {"type": "ai_error", "code": "http", "detail": "%s: %s" % (type(e).__name__, e)})
+
+    def do_ai_oauth(self, msg):
+        """Accesso a OpenRouter: pagina di ritorno su localhost, scambio del codice, account collegato."""
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+
+        verifier, challenge = ai_review.pkce_pair()
+        result = {}
+        done = threading.Event()
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):  # noqa: N802
+                q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+                code = (q.get("code") or [None])[0]
+                if not code:
+                    self.send_response(404)
+                    self.end_headers()
+                    return
+                result["code"] = code
+                body = ("<!doctype html><meta charset=utf-8><title>Whisper for WhatsApp Web</title>"
+                        "<body style='font:16px system-ui;padding:40px'><p>OpenRouter collegato. "
+                        "Puoi chiudere questa scheda.</p><p>OpenRouter connected. You can close this tab.</p>")
+                data = body.encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+                done.set()
+
+            def log_message(self, *args):
+                pass
+
+        server = HTTPServer(("127.0.0.1", 0), Handler)
+        port = server.server_address[1]
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            url = ai_review.openrouter_auth_url("http://localhost:%d/openrouter" % port, challenge)
+            self.reply(msg, {"type": "ai_oauth_url", "url": url})
+            if not done.wait(600):
+                raise ai_review.AIError("timeout", "accesso a OpenRouter non completato")
+        finally:
+            server.shutdown()
+            server.server_close()
+        key = ai_review.openrouter_exchange(result["code"], verifier)
+        acc, ms = ai_review.add_account(self.ai, "openrouter", key, None, None, msg.get("target_lang"))
+        self.log("IA: collegato OpenRouter (%s) con l'accesso all'account" % acc["model"])
+        self.reply(msg, dict(self.ai_status(), type="ai_added", account=acc["id"], ms=ms))
 
     def do_pick_folder(self, msg):
         try:
