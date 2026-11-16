@@ -355,8 +355,10 @@ def recommended(provider, ids):
         hits = [m for m in ids if rx.search(m) and "preview" not in m and "exp" not in m]
         hits = hits or [m for m in ids if rx.search(m)]
         if hits:
-            # Senza data di creazione: il nome più corto è di solito l'alias stabile.
-            return sorted(hits, key=lambda m: (len(m), m))[0]
+            # Senza data di creazione: il nome più corto è di solito l'alias stabile; a parità
+            # di lunghezza vince la versione più alta. Gli alias "~" di OpenRouter restano fuori.
+            hits = [m for m in hits if not m.startswith("~")] or hits
+            return sorted(hits, key=lambda m: (len(m), [-int(n) for n in re.findall(r"\d+", m)], m))[0]
     return ids[0] if ids else None
 
 
