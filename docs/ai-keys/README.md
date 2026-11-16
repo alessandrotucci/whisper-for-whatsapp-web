@@ -50,6 +50,8 @@ Paste the key in Setup and guide → AI review and translation → Add an accoun
 2. **Create the key**  
    Press Create API key, pick or create a project and copy the key. <https://aistudio.google.com/apikey>
 
+   ![](img/gemini-2.png)
+
 <a id="xai"></a>
 
 ## Grok · xAI
@@ -164,6 +166,8 @@ Paste the key in Setup and guide → AI review and translation → Add an accoun
 2. **Create the key**  
    In API Keys press Create API Key, name it and copy it. <https://console.groq.com/keys>
 
+   ![](img/groq-2.png)
+
 <a id="cerebras"></a>
 
 ## Cerebras · Cerebras
@@ -199,6 +203,8 @@ Paste the key in Setup and guide → AI review and translation → Add an accoun
 
 2. **Credit, if needed**  
    Models with :free in the name are free, with limits; for the others load some credit in Credits. <https://openrouter.ai/settings/credits>
+
+   ![](img/openrouter-2.png)
 
 <a id="together"></a>
 

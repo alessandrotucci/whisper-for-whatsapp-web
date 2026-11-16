@@ -50,6 +50,8 @@ La chiave si incolla in Configurazione e guida → Revisione e traduzione con l'
 2. **Crea la chiave**  
    Premi Create API key, scegli o crea un progetto e copia la chiave. <https://aistudio.google.com/apikey>
 
+   ![](img/gemini-2.png)
+
 <a id="xai"></a>
 
 ## Grok · xAI
@@ -164,6 +166,8 @@ La chiave si incolla in Configurazione e guida → Revisione e traduzione con l'
 2. **Crea la chiave**  
    In API Keys premi Create API Key, dalle un nome e copiala. <https://console.groq.com/keys>
 
+   ![](img/groq-2.png)
+
 <a id="cerebras"></a>
 
 ## Cerebras · Cerebras
@@ -199,6 +203,8 @@ La chiave si incolla in Configurazione e guida → Revisione e traduzione con l'
 
 2. **Credito, se serve**  
    I modelli con :free nel nome sono gratuiti, con limiti; per gli altri carica del credito in Credits. <https://openrouter.ai/settings/credits>
+
+   ![](img/openrouter-2.png)
 
 <a id="together"></a>
 
