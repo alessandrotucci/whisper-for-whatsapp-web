@@ -72,6 +72,7 @@ public final class VoiceListener extends NotificationListenerService {
         long now = System.currentTimeMillis();
 
         Parcelable[] messages = extras.getParcelableArray(Notification.EXTRA_MESSAGES);
+        String self = selfName(extras);
         if (messages != null && messages.length > 0) {
             for (Parcelable p : messages) {
                 if (!(p instanceof Bundle)) continue;
@@ -89,6 +90,9 @@ public final class VoiceListener extends NotificationListenerService {
                 String who = sender != null ? sender.toString() : chat;
                 if (!text.toString().contains(MIC)) {
                     ChatContext.add(pkg, chat, who, text.toString(), time);
+                    if (self == null || !self.equals(who)) {
+                        MessageTranslator.get(this).onMessage(pkg, chat, who, text.toString(), time);
+                    }
                     continue;
                 }
                 Uri uri = m.getParcelable("uri");
@@ -116,6 +120,14 @@ public final class VoiceListener extends NotificationListenerService {
             it.remove();
         }
         out.add(new VoiceScanner.Hint(chat, sender, time, uri));
+    }
+
+    /** Il nome dell'utente nelle notifiche MessagingStyle, per riconoscere i suoi messaggi. */
+    private static String selfName(Bundle extras) {
+        Person me = extras.getParcelable(Notification.EXTRA_MESSAGING_PERSON);
+        if (me != null && me.getName() != null) return me.getName().toString();
+        CharSequence name = extras.getCharSequence(Notification.EXTRA_SELF_DISPLAY_NAME);
+        return name == null ? null : name.toString();
     }
 
     private static String str(CharSequence s) {

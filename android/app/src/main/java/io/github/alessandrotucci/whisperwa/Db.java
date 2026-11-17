@@ -34,6 +34,10 @@ public final class Db extends SQLiteOpenHelper {
     public static final int REVIEW_DONE = 3;
     public static final int REVIEW_FAILED = 4;
 
+    /** Tipo di riga: un vocale da trascrivere oppure un gruppo di messaggi scritti da tradurre. */
+    public static final int KIND_VOICE = 0;
+    public static final int KIND_MESSAGE = 1;
+
     /** Una riga della tabella notes. */
     public static final class Note {
         public long id;
@@ -60,6 +64,11 @@ public final class Db extends SQLiteOpenHelper {
         public String reviewProvider;
         public String reviewError;
         public boolean showWhisper;
+        public int kind;
+
+        public boolean isMessage() {
+            return kind == KIND_MESSAGE;
+        }
 
         /** Vero se c'è un testo rivisto diverso da mostrare al posto di quello di Whisper. */
         public boolean hasRevision() {
@@ -88,7 +97,7 @@ public final class Db extends SQLiteOpenHelper {
     }
 
     private Db(Context context) {
-        super(context, "notes.db", null, 3);
+        super(context, "notes.db", null, 4);
     }
 
     @Override
@@ -110,7 +119,8 @@ public final class Db extends SQLiteOpenHelper {
                 + "model TEXT,"
                 + "error TEXT,"
                 + "attempts INTEGER NOT NULL DEFAULT 0,"
-                + REVIEW_COLUMNS + ")");
+                + REVIEW_COLUMNS + ","
+                + KIND_COLUMN + ")");
         db.execSQL("CREATE INDEX notes_status ON notes(status, received)");
     }
 
@@ -120,7 +130,10 @@ public final class Db extends SQLiteOpenHelper {
         if (oldVersion < 3) {
             for (String col : REVIEW_COLUMNS.split(",")) db.execSQL("ALTER TABLE notes ADD COLUMN " + col);
         }
+        if (oldVersion < 4) db.execSQL("ALTER TABLE notes ADD COLUMN " + KIND_COLUMN);
     }
+
+    private static final String KIND_COLUMN = "kind INTEGER NOT NULL DEFAULT 0";
 
     private static final String REVIEW_COLUMNS = "review_state INTEGER NOT NULL DEFAULT 0,"
             + "review_text TEXT,"
@@ -134,9 +147,60 @@ public final class Db extends SQLiteOpenHelper {
 
     /** La riga trascritta con revisione in attesa da più tempo, oppure null. */
     public Note nextReviewPending() {
-        List<Note> l = query("status = " + DONE + " AND review_state = " + REVIEW_PENDING, null,
+        List<Note> l = query("status = " + DONE + " AND review_state = " + REVIEW_PENDING + " AND kind = " + KIND_VOICE,
+                null, "received ASC, id ASC", "1");
+        return l.isEmpty() ? null : l.get(0);
+    }
+
+    /**
+     * Gruppo di messaggi scritti: una riga già trascritta (status DONE) con il testo dei messaggi,
+     * uno per riga, e la traduzione in attesa. source è unico per il primo messaggio del gruppo.
+     */
+    public long insertMessages(String pkg, String chat, String sender, String source, String text, String language,
+                               long received) {
+        ContentValues v = new ContentValues();
+        v.put("pkg", pkg);
+        v.put("chat", chat);
+        v.put("sender", sender);
+        v.put("source", source);
+        v.put("received", received);
+        v.put("status", DONE);
+        v.put("text", text);
+        v.put("language", language);
+        v.put("review_state", REVIEW_PENDING);
+        v.put("kind", KIND_MESSAGE);
+        return getWritableDatabase().insertWithOnConflict("notes", null, v, SQLiteDatabase.CONFLICT_IGNORE);
+    }
+
+    /** Il gruppo di messaggi più recente della chat, se l'ultimo messaggio è arrivato da since in poi. */
+    public Note lastMessages(String pkg, String chat, long since) {
+        List<Note> l = query("kind = " + KIND_MESSAGE + " AND pkg = ? AND chat = ? AND received >= ?",
+                new String[]{pkg, chat, Long.toString(since)}, "received DESC, id DESC", "1");
+        return l.isEmpty() ? null : l.get(0);
+    }
+
+    /** Aggiunge un messaggio al gruppo e ne rimette in attesa la traduzione. */
+    public void appendMessage(long id, String text, long received) {
+        getWritableDatabase().execSQL("UPDATE notes SET text = text || char(10) || ?, received = ?, review_state = "
+                + REVIEW_PENDING + ", review_error = NULL WHERE id = ?", new Object[]{text, received, id});
+    }
+
+    /** Il gruppo di messaggi con la traduzione in attesa da più tempo, oppure null. */
+    public Note nextMessagesPending() {
+        List<Note> l = query("kind = " + KIND_MESSAGE + " AND review_state = " + REVIEW_PENDING, null,
                 "received ASC, id ASC", "1");
         return l.isEmpty() ? null : l.get(0);
+    }
+
+    public void markTranslated(long id, String translation, String targetLang, String provider, String model) {
+        ContentValues v = new ContentValues();
+        v.put("review_state", REVIEW_DONE);
+        v.put("translation", translation);
+        v.put("target_lang", targetLang);
+        v.put("review_provider", provider);
+        v.put("review_model", model);
+        v.putNull("review_error");
+        update(id, v);
     }
 
     public void setReviewState(long id, int state) {
@@ -319,6 +383,7 @@ public final class Db extends SQLiteOpenHelper {
                 n.reviewProvider = c.getString(c.getColumnIndexOrThrow("review_provider"));
                 n.reviewError = c.getString(c.getColumnIndexOrThrow("review_error"));
                 n.showWhisper = c.getInt(c.getColumnIndexOrThrow("show_whisper")) != 0;
+                n.kind = c.getInt(c.getColumnIndexOrThrow("kind"));
                 out.add(n);
             }
         }

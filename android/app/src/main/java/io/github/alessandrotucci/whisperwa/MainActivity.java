@@ -54,6 +54,7 @@ public final class MainActivity extends Activity {
     private static final int MENU_SHOW_WHISPER = 5;
     private static final int MENU_SHOW_REVISED = 6;
     private static final int MENU_REVIEW_AGAIN = 7;
+    private static final int MENU_TRANSLATE_AGAIN = 8;
 
     private LinearLayout setup;
     private TextView status;
@@ -224,6 +225,15 @@ public final class MainActivity extends Activity {
         Db.Note note = noteAt(menuInfo);
         if (note == null) return;
         menu.setHeaderTitle(note.title());
+        if (note.isMessage()) {
+            menu.add(0, MENU_COPY, 0, R.string.action_copy);
+            if (note.reviewState != Db.REVIEW_PENDING && note.reviewState != Db.REVIEW_RUNNING
+                    && AiStore.load(this).messagesActive()) {
+                menu.add(0, MENU_TRANSLATE_AGAIN, 0, R.string.action_translate_again);
+            }
+            menu.add(0, MENU_DELETE, 0, R.string.action_delete);
+            return;
+        }
         if (note.status == Db.DONE && note.text != null) menu.add(0, MENU_COPY, 0, R.string.action_copy);
         if (note.hasRevision()) {
             menu.add(0, note.showWhisper ? MENU_SHOW_REVISED : MENU_SHOW_WHISPER, 0,
@@ -259,6 +269,10 @@ public final class MainActivity extends Activity {
                 return true;
             case MENU_REVIEW_AGAIN:
                 TranscriptionQueue.get(this).reviewAgain(note.id);
+                refresh();
+                return true;
+            case MENU_TRANSLATE_AGAIN:
+                MessageTranslator.get(this).retry(note.id);
                 refresh();
                 return true;
             case MENU_RETRY:
@@ -314,6 +328,7 @@ public final class MainActivity extends Activity {
             Db.Note n = getItem(position);
             Context c = getContext();
             ((TextView) v.findViewById(R.id.note_title)).setText(n.title());
+            if (n.isMessage()) return messageView(v, n, c);
             StringBuilder meta = new StringBuilder();
             meta.append(DateUtils.formatDateTime(c, n.received,
                     DateUtils.FORMAT_SHOW_DATE | DateUtils.FORMAT_SHOW_TIME | DateUtils.FORMAT_ABBREV_MONTH));
@@ -340,6 +355,7 @@ public final class MainActivity extends Activity {
             TextView warn = v.findViewById(R.id.note_warn);
             trBox.setVisibility(View.GONE);
             warn.setVisibility(View.GONE);
+            warn.setTextColor(c.getColor(R.color.warn));
             switch (n.status) {
                 case Db.PENDING:
                     body.setText(R.string.status_pending);
@@ -371,6 +387,48 @@ public final class MainActivity extends Activity {
                         warn.setVisibility(View.VISIBLE);
                         warn.setText(c.getString(R.string.review_failed, n.reviewError == null ? "" : n.reviewError));
                     }
+            }
+            return v;
+        }
+
+        /** Una voce di messaggi scritti: originali, traduzione sotto, stato nella riga dei dettagli. */
+        private View messageView(View v, Db.Note n, Context c) {
+            int count = n.text == null ? 0 : n.text.split("\n").length;
+            StringBuilder meta = new StringBuilder();
+            meta.append(DateUtils.formatDateTime(c, n.received,
+                    DateUtils.FORMAT_SHOW_DATE | DateUtils.FORMAT_SHOW_TIME | DateUtils.FORMAT_ABBREV_MONTH));
+            if (n.pkg != null) meta.append(" · ").append(Packages.label(c, n.pkg));
+            meta.append(" · ").append(count > 1 ? c.getString(R.string.msg_kind_many, count) : c.getString(R.string.msg_kind_one));
+            if (n.language != null && !n.language.isEmpty()) meta.append(" · ").append(n.language);
+            if (n.reviewState == Db.REVIEW_PENDING || n.reviewState == Db.REVIEW_RUNNING) {
+                String with = MessageTranslator.get(c).translatingWith(n.id);
+                meta.append(" · ").append(with != null ? c.getString(R.string.msg_translating, with)
+                        : c.getString(R.string.msg_translating_ai));
+            } else if (n.reviewState == Db.REVIEW_DONE && n.reviewProvider != null) {
+                meta.append(" · ").append(c.getString(count > 1 ? R.string.msg_translated_many : R.string.msg_translated_one,
+                        n.reviewProvider));
+            }
+            ((TextView) v.findViewById(R.id.note_meta)).setText(meta);
+            TextView body = v.findViewById(R.id.note_text);
+            body.setOnTouchListener(null);
+            body.setText(n.text);
+            View trBox = v.findViewById(R.id.note_translation);
+            TextView warn = v.findViewById(R.id.note_warn);
+            trBox.setVisibility(n.translation != null ? View.VISIBLE : View.GONE);
+            if (n.translation != null) {
+                ((TextView) v.findViewById(R.id.note_translation_label))
+                        .setText(c.getString(R.string.review_translation, n.targetLang != null ? n.targetLang : ""));
+                ((TextView) v.findViewById(R.id.note_translation_text)).setText(n.translation);
+            }
+            warn.setVisibility(View.GONE);
+            if (n.reviewState == Db.REVIEW_FAILED) {
+                warn.setVisibility(View.VISIBLE);
+                warn.setTextColor(c.getColor(R.color.warn));
+                warn.setText(c.getString(R.string.msg_failed, n.reviewError == null ? "" : n.reviewError));
+            } else if (n.text != null && n.text.length() >= 150 && (n.text.endsWith("\u2026") || n.text.endsWith("..."))) {
+                warn.setVisibility(View.VISIBLE);
+                warn.setTextColor(body.getCurrentHintTextColor());
+                warn.setText(R.string.msg_truncated);
             }
             return v;
         }

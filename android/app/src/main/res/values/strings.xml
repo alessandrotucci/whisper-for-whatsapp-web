@@ -237,4 +237,18 @@
     <string name="guide_collapse">tap to collapse</string>
     <string name="guide_image">Screenshot of step %1$d</string>
     <string name="guide_image_close">Screenshot: tap to close, long press to open it in the browser</string>
+    <string name="ai_messages">Written messages too</string>
+    <string name="ai_messages_note">Translates written messages that arrive in another language. The language is recognized on the phone: only messages to translate leave it, never those already in your language.</string>
+    <string name="channel_messages">Message translations</string>
+    <string name="msg_notif_title">%1$s · translation</string>
+    <string name="msg_kind_one">written message</string>
+    <string name="msg_kind_many">%1$d written messages</string>
+    <string name="msg_translating">translating with %1$s…</string>
+    <string name="msg_translating_ai">translating with AI…</string>
+    <string name="msg_translated_one">translated by %1$s</string>
+    <string name="msg_translated_many">translated by %1$s</string>
+    <string name="msg_failed">⚠ Translation failed: %1$s. Long-press to retry.</string>
+    <string name="msg_failed_short">Translation failed: open the app to retry.</string>
+    <string name="msg_truncated">Long message: the WhatsApp notification shows only its beginning. Open it in WhatsApp for the rest.</string>
+    <string name="action_translate_again">Translate again</string>
 </resources>

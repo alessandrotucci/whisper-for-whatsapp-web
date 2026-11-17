@@ -92,6 +92,7 @@ final class AiStore {
         String target;
         int timeoutS = DEFAULT_TIMEOUT_S;
         boolean context;
+        boolean messages;
         final List<Account> accounts = new ArrayList<>();
 
         /** La lingua della traduzione: quella scelta, oppure quella del telefono. */
@@ -102,6 +103,11 @@ final class AiStore {
         /** Vero se c'è almeno un account e almeno una delle due funzioni è attiva. */
         boolean active() {
             return !accounts.isEmpty() && (revise || translate);
+        }
+
+        /** Vero se i messaggi scritti in un'altra lingua si traducono. */
+        boolean messagesActive() {
+            return active() && translate && messages;
         }
 
         /** Vero se una trascrizione in language richiede una chiamata (needs_review del desktop). */
@@ -135,6 +141,7 @@ final class AiStore {
                     d.target = s.isNull("target_lang") ? null : s.optString("target_lang", null);
                     d.timeoutS = s.optInt("timeout_s", DEFAULT_TIMEOUT_S);
                     d.context = s.optBoolean("context", false);
+                    d.messages = s.optBoolean("translate_messages", false);
                 }
                 JSONArray accs = o.optJSONArray("accounts");
                 for (int i = 0; accs != null && i < accs.length(); i++) {
@@ -156,7 +163,8 @@ final class AiStore {
                         .put("translate", d.translate)
                         .put("target_lang", d.target == null ? JSONObject.NULL : d.target)
                         .put("timeout_s", d.timeoutS)
-                        .put("context", d.context);
+                        .put("context", d.context)
+                        .put("translate_messages", d.messages);
                 JSONArray accs = new JSONArray();
                 for (Account a : d.accounts) accs.put(a.toJson());
                 sp(context).edit().putString("data", new JSONObject().put("settings", s).put("accounts", accs).toString())

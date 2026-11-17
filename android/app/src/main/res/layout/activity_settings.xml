@@ -112,6 +112,27 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
 
+            <LinearLayout
+                android:id="@+id/ai_messages_box"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:orientation="vertical"
+                android:paddingTop="4dp">
+
+                <Switch
+                    android:id="@+id/ai_messages"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingTop="8dp"
+                    android:text="@string/ai_messages"
+                    android:textAppearance="?android:attr/textAppearanceMedium" />
+
+                <TextView
+                    style="@style/Hint"
+                    android:text="@string/ai_messages_note" />
+            </LinearLayout>
+
             <TextView
                 android:id="@+id/ai_empty_note"
                 style="@style/Hint"

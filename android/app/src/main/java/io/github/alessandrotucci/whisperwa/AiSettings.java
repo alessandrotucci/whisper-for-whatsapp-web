@@ -47,6 +47,8 @@ final class AiSettings {
     private final View more;
     private final Spinner timeout;
     private final Switch context;
+    private final Switch messages;
+    private final View messagesBox;
     private final List<String> targetCodes = new ArrayList<>();
     private boolean binding;
 
@@ -63,6 +65,8 @@ final class AiSettings {
         more = activity.findViewById(R.id.ai_more);
         timeout = activity.findViewById(R.id.ai_timeout);
         context = activity.findViewById(R.id.ai_context);
+        messages = activity.findViewById(R.id.ai_messages);
+        messagesBox = activity.findViewById(R.id.ai_messages_box);
 
         String phone = Locale.getDefault().getLanguage();
         List<String> labels = new ArrayList<>();
@@ -88,9 +92,14 @@ final class AiSettings {
         translate.setOnCheckedChangeListener((b, on) -> {
             if (!binding) AiStore.update(activity, d -> d.translate = on);
             target.setEnabled(on && revise.isEnabled());
+            messages.setEnabled(on && revise.isEnabled());
+            messagesBox.setAlpha(on && revise.isEnabled() ? 1f : 0.45f);
         });
         context.setOnCheckedChangeListener((b, on) -> {
             if (!binding) AiStore.update(activity, d -> d.context = on);
+        });
+        messages.setOnCheckedChangeListener((b, on) -> {
+            if (!binding) AiStore.update(activity, d -> d.messages = on);
         });
         target.setOnItemSelectedListener(new Selection(pos -> AiStore.update(activity, d -> d.target = targetCodes.get(pos))));
         timeout.setOnItemSelectedListener(new Selection(pos -> AiStore.update(activity, d -> d.timeoutS = TIMEOUTS[pos])));
@@ -110,6 +119,7 @@ final class AiSettings {
         revise.setChecked(d.revise);
         translate.setChecked(d.translate);
         context.setChecked(d.context);
+        messages.setChecked(d.messages);
         int ti = targetCodes.indexOf(AiProviders.baseLang(d.targetOrDefault()));
         target.setSelection(Math.max(0, ti), false);
         int to = 2;
@@ -120,6 +130,8 @@ final class AiSettings {
         revise.setEnabled(has);
         translate.setEnabled(has);
         target.setEnabled(has && d.translate);
+        messages.setEnabled(has && d.translate);
+        messagesBox.setAlpha(has && d.translate ? 1f : 0.45f);
         float alpha = has ? 1f : 0.45f;
         revise.setAlpha(alpha);
         translate.setAlpha(alpha);

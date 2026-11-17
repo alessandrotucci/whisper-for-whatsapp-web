@@ -11,12 +11,19 @@ import android.widget.Toast;
 public final class CopyReceiver extends BroadcastReceiver {
 
     public static final String EXTRA_NOTE = "note";
+    public static final String EXTRA_TRANSLATION_ONLY = "translation_only";
 
     @Override
     public void onReceive(Context context, Intent intent) {
         long id = intent.getLongExtra(EXTRA_NOTE, -1);
         Db.Note note = id < 0 ? null : Db.get(context).byId(id);
         if (note == null || note.shownText() == null) return;
+        if (intent.getBooleanExtra(EXTRA_TRANSLATION_ONLY, false) && note.translation != null) {
+            ClipboardManager cm = context.getSystemService(ClipboardManager.class);
+            cm.setPrimaryClip(ClipData.newPlainText(note.title(), note.translation));
+            Toast.makeText(context, R.string.copied, Toast.LENGTH_SHORT).show();
+            return;
+        }
         copy(context, note);
     }
 

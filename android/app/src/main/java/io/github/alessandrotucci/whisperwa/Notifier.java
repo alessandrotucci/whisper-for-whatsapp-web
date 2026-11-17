@@ -21,6 +21,7 @@ public final class Notifier {
     public static final String CH_TRANSCRIPTS = "transcripts";
     public static final String CH_PROGRESS = "progress";
     public static final String CH_PROBLEMS = "problems";
+    public static final String CH_MESSAGES = "messages";
 
     static final int ID_SUMMARY = 1;
     static final int ID_PROGRESS = 2;
@@ -44,6 +45,10 @@ public final class Notifier {
                 context.getString(R.string.channel_progress), NotificationManager.IMPORTANCE_LOW));
         nm.createNotificationChannel(new NotificationChannel(CH_PROBLEMS,
                 context.getString(R.string.channel_problems), NotificationManager.IMPORTANCE_DEFAULT));
+        NotificationChannel m = new NotificationChannel(CH_MESSAGES,
+                context.getString(R.string.channel_messages), NotificationManager.IMPORTANCE_DEFAULT);
+        m.setSound(null, null);
+        nm.createNotificationChannel(m);
     }
 
     static PendingIntent openList(Context context, long noteId) {
@@ -76,6 +81,39 @@ public final class Notifier {
                         context.getString(R.string.action_copy), copyPi).build())
                 .build();
         nm.notify(ID_NOTE_BASE + (int) note.id, n);
+        refreshSummary(context);
+    }
+
+    /**
+     * Notifica di un gruppo di messaggi scritti tradotti: la traduzione in primo piano, l'originale
+     * sotto. Si aggiorna in silenzio quando il gruppo cresce; Copia copia la sola traduzione.
+     */
+    public static void showMessages(Context context, Db.Note note) {
+        NotificationManager nm = context.getSystemService(NotificationManager.class);
+        String title = context.getString(R.string.msg_notif_title, note.chat != null ? note.chat : note.title());
+        String text = note.translation != null ? GLOBE + " " + note.translation
+                : context.getString(R.string.msg_failed_short);
+        String big = text + "\n\n" + note.text;
+        Notification.Builder b = new Notification.Builder(context, CH_MESSAGES)
+                .setSmallIcon(R.drawable.ic_stat)
+                .setContentTitle(title)
+                .setContentText(text)
+                .setStyle(new Notification.BigTextStyle().bigText(big))
+                .setWhen(note.received)
+                .setShowWhen(true)
+                .setGroup(GROUP)
+                .setOnlyAlertOnce(true)
+                .setAutoCancel(true)
+                .setContentIntent(openList(context, note.id));
+        if (note.translation != null) {
+            Intent copy = new Intent(context, CopyReceiver.class)
+                    .putExtra(CopyReceiver.EXTRA_NOTE, note.id)
+                    .putExtra(CopyReceiver.EXTRA_TRANSLATION_ONLY, true);
+            PendingIntent copyPi = PendingIntent.getBroadcast(context, (int) note.id, copy,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            b.addAction(new Notification.Action.Builder(null, context.getString(R.string.action_copy), copyPi).build());
+        }
+        nm.notify(ID_NOTE_BASE + (int) note.id, b.build());
         refreshSummary(context);
     }
 

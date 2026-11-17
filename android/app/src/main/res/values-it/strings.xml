@@ -233,4 +233,18 @@
     <string name="guide_collapse">tocca per chiudere</string>
     <string name="guide_image">Cattura del passo %1$d</string>
     <string name="guide_image_close">Cattura: tocca per chiudere, tocco lungo per aprirla nel browser</string>
+    <string name="ai_messages">Anche i messaggi scritti</string>
+    <string name="ai_messages_note">Traduce i messaggi scritti che arrivano in un\'altra lingua. La lingua si riconosce sul telefono: escono solo i messaggi da tradurre, mai quelli già nella tua lingua.</string>
+    <string name="channel_messages">Traduzioni dei messaggi</string>
+    <string name="msg_notif_title">%1$s · traduzione</string>
+    <string name="msg_kind_one">messaggio scritto</string>
+    <string name="msg_kind_many">%1$d messaggi scritti</string>
+    <string name="msg_translating">traduzione con %1$s…</string>
+    <string name="msg_translating_ai">traduzione con l\'IA…</string>
+    <string name="msg_translated_one">tradotto da %1$s</string>
+    <string name="msg_translated_many">tradotti da %1$s</string>
+    <string name="msg_failed">⚠ Traduzione non riuscita: %1$s. Tieni premuto per riprovare.</string>
+    <string name="msg_failed_short">Traduzione non riuscita: apri l\'app per riprovare.</string>
+    <string name="msg_truncated">Messaggio lungo: la notifica di WhatsApp ne mostra solo l\'inizio. Aprilo in WhatsApp per il resto.</string>
+    <string name="action_translate_again">Traduci di nuovo</string>
 </resources>

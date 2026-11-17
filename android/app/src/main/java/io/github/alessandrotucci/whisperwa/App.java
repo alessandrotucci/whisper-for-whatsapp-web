@@ -60,5 +60,6 @@ public final class App extends Application {
             }
         });
         TranscriptionQueue.get(this).resume();
+        MessageTranslator.get(this).resume();
     }
 }
