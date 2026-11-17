@@ -214,12 +214,46 @@ final class AiClient {
                 for (String m : ids) if (rx.matcher(m).find()) hits.add(m);
             }
             if (!hits.isEmpty()) {
-                // Senza data di creazione il nome più corto è di solito l'alias stabile.
-                hits.sort((x, y) -> x.length() != y.length() ? Integer.compare(x.length(), y.length()) : x.compareTo(y));
+                // Senza data di creazione il nome più corto è di solito l'alias stabile; a parità di
+                // lunghezza vince la versione più alta. Gli alias "~" di OpenRouter restano fuori.
+                List<String> plain = new ArrayList<>();
+                for (String m : hits) if (!m.startsWith("~")) plain.add(m);
+                if (!plain.isEmpty()) hits = plain;
+                hits.sort(AiClient::compareCandidates);
                 return hits.get(0);
             }
         }
         return ids.isEmpty() ? null : ids.get(0);
+    }
+
+    private static final Pattern DIGITS = Pattern.compile("\\d+");
+
+    /**
+     * Ordine dei candidati di recommended: nome più corto, poi numeri più alti (confrontati uno a
+     * uno, come le liste di Python), poi ordine alfabetico.
+     */
+    private static int compareCandidates(String x, String y) {
+        if (x.length() != y.length()) return Integer.compare(x.length(), y.length());
+        List<Long> nx = numbers(x), ny = numbers(y);
+        for (int i = 0; i < Math.min(nx.size(), ny.size()); i++) {
+            int c = Long.compare(ny.get(i), nx.get(i));
+            if (c != 0) return c;
+        }
+        if (nx.size() != ny.size()) return Integer.compare(nx.size(), ny.size());
+        return x.compareTo(y);
+    }
+
+    private static List<Long> numbers(String s) {
+        List<Long> out = new ArrayList<>();
+        java.util.regex.Matcher m = DIGITS.matcher(s);
+        while (m.find()) {
+            try {
+                out.add(Long.parseLong(m.group()));
+            } catch (NumberFormatException e) {
+                out.add(Long.MAX_VALUE);
+            }
+        }
+        return out;
     }
 
     /** Una richiesta di testo con prompt di sistema e messaggio utente; restituisce la risposta. */

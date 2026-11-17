@@ -19,6 +19,16 @@ lista completa. Serve Android 10 o successivo su un processore a 64 bit.
      e *Consenti*. Per WhatsApp Business la cartella è quella di `com.whatsapp.w4b`.
    - **Batteria**: togli le limitazioni, così le trascrizioni finiscono anche a schermo spento.
 
+**Revisione e traduzione con l'IA (facoltativa).** Nelle Impostazioni, *Aggiungi un account*
+collega uno o più account di IA (Claude, ChatGPT, Gemini, Grok, Mistral, OpenRouter e altri, con la
+guida per ottenere la chiave). Dopo ogni trascrizione il testo, non l'audio, va al primo account:
+corregge le parole capite male, sottolineate nella lista, e traduce i messaggi in un'altra lingua.
+Le chiavi restano sul telefono, nel Keystore di Android.
+
+**Lavoro in background.** Se il sistema ferma le trascrizioni, la notifica porta alla sezione
+*Lavoro in background* delle Impostazioni, con lo stato dei permessi e i pulsanti per sistemarli.
+Sui telefoni OPPO, OnePlus e realme tieni bassi i thread in background (2).
+
 Se un vocale non viene rilevato (chat silenziata, chat aperta mentre arriva), tienilo premuto in
 WhatsApp, *Condividi*, **Trascrivi**. Dal menu dell'app, *Cerca vocali nuovi* mette in coda quelli
 delle ultime 24 ore non ancora trascritti.
@@ -32,4 +42,5 @@ Android app of Whisper for WhatsApp: transcribes incoming WhatsApp and WhatsApp 
 messages on the phone, with no cloud, and shows the text as notifications. Install the APK, then
 follow the checklist at the top of the app: notifications, notification access (on Android 13+
 first allow restricted settings from App info, menu ⋮), a model, the voice notes folder and the
-battery exemption.
+battery exemption. Optionally, connect one or more AI accounts in Settings to fix misheard words
+and translate messages in another language; keys stay on the phone.
