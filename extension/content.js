@@ -3,6 +3,9 @@
 // page.js marca gli elementi dei vocali con data-wwt-voice="1" e data-wwt-key;
 // qui, per ognuno, si aggiunge sotto la bolla un riquadro .wwt-box che mostra
 // lo stato della trascrizione (pulsante, in coda, in corso, testo, errore).
+// Sotto i messaggi scritti in arrivo in un'altra lingua (data-wwt-text="1") un riquadro
+// .wwt-trbox offre o mostra la traduzione. La lingua la riconosce il browser: i messaggi
+// nella lingua dell'utente non vanno mai all'IA.
 (() => {
   'use strict';
   if (window.__wwtContentLoaded) return;
@@ -108,9 +111,25 @@
       }
       return false;
     }
+    if (msg.cmd === 'trUpdate') {
+      for (const u of msg.updates) {
+        const prev = trStates.get(u.key) || {};
+        trStates.set(u.key, u.state === 'done' && !u.translation ? { state: 'same' } : { ...u, text: prev.text, language: u.language || prev.language });
+        renderTrKey(u.key);
+      }
+      return false;
+    }
+    if (msg.cmd === 'translateChat') {
+      translateChat()
+        .then((n) => sendResponse({ ok: true, result: n }))
+        .catch((e) => sendResponse({ ok: false, error: e.message }));
+      return true;
+    }
     if (msg.cmd === 'reset') {
       states.clear();
       asked.clear();
+      trStates.clear();
+      trSeen.clear();
       document.querySelectorAll('.wwt-box').forEach((b) => b.remove());
       return false;
     }
@@ -328,7 +347,7 @@
   }
 
   function renderKey(key) {
-    document.querySelectorAll('.wwt-box').forEach((box) => {
+    document.querySelectorAll('.wwt-box:not(.wwt-trbox)').forEach((box) => {
       if (box.dataset.key === key) renderBox(box, key);
     });
   }
@@ -394,6 +413,211 @@
     }
   }
 
+  // ---------- traduzione dei messaggi scritti ----------
+
+  // Stati: offer (lingua diversa, si traduce a richiesta), running, done, error, same
+  // (nella lingua dell'utente o senza parole da tradurre: nessun riquadro).
+  const trStates = new Map();
+  const trSeen = new Set(); // chiavi già esaminate
+  let trCfg = null;
+  let trCfgAt = 0;
+  let trBusy = false;
+  const TR_CFG_TTL_MS = 60000;
+  // Sotto questa percentuale una lingua riconosciuta con poca sicurezza non conta.
+  const TR_MIN_PERCENT = 60;
+
+  async function trConfig() {
+    if (trCfg && Date.now() - trCfgAt < TR_CFG_TTL_MS) return trCfg;
+    const c = await send({ cmd: 'trConfig' });
+    if (c) {
+      trCfg = c;
+      trCfgAt = Date.now();
+    }
+    return trCfg;
+  }
+
+  async function detect(text) {
+    try {
+      if (chrome.i18n.detectLanguage) return await chrome.i18n.detectLanguage(text);
+    } catch (_) { /* si chiede al service worker */ }
+    return send({ cmd: 'detectLanguage', text });
+  }
+
+  function foreignLanguage(res, target) {
+    const top = res && res.languages && res.languages[0];
+    if (!top || !top.language || top.language === 'und') return null;
+    const lang = top.language.split('-')[0];
+    if (lang === String(target || '').split('-')[0]) return null;
+    if (!res.isReliable && top.percentage < TR_MIN_PERCENT) return null;
+    return lang;
+  }
+
+  function langName(code) {
+    try {
+      const ui = chrome.i18n.getUILanguage();
+      const n = new Intl.DisplayNames([ui], { type: 'language' }).of(code);
+      return n || code;
+    } catch (_) {
+      return code;
+    }
+  }
+
+  const textEls = () => document.querySelectorAll('#main [data-wwt-text="1"][data-wwt-key]');
+
+  // Messaggi scritti nuovi nel DOM: traduzioni salvate, poi lingua dei rimanenti; quelli
+  // in un'altra lingua partono da soli se sono arrivati con WhatsApp Web aperto e il modo
+  // è "auto", altrimenti ricevono il pulsante Traduci.
+  async function textScan() {
+    if (trBusy) return;
+    trBusy = true;
+    try {
+      const els = [...textEls()];
+      const cfg = els.length ? await trConfig() : trCfg;
+      if (!cfg || !cfg.active) {
+        document.querySelectorAll('.wwt-trbox').forEach((b) => b.remove());
+        return;
+      }
+      const fresh = els.filter((el) => !trSeen.has(el.getAttribute('data-wwt-key')));
+      if (fresh.length) {
+        const keys = fresh.map((el) => el.getAttribute('data-wwt-key'));
+        keys.forEach((k) => trSeen.add(k));
+        const saved = (await send({ cmd: 'trGet', keys })) || {};
+        const need = [];
+        for (const k of keys) {
+          const r = saved[k];
+          if (!r) need.push(k);
+          else trStates.set(k, r.state === 'done' && !r.translation ? { state: 'same' } : r);
+        }
+        if (need.length) {
+          const texts = await pageRequest('texts', { keys: need });
+          const isNew = new Map(fresh.map((el) => [el.getAttribute('data-wwt-key'), el.getAttribute('data-wwt-new') === '1']));
+          const toSend = [];
+          for (const { key, text } of texts) {
+            const lang = foreignLanguage(await detect(text), cfg.target);
+            if (!lang) {
+              trStates.set(key, { state: 'same' });
+            } else if (cfg.mode === 'auto' && isNew.get(key)) {
+              trStates.set(key, { state: 'running', language: lang, text });
+              toSend.push({ key, text });
+            } else {
+              trStates.set(key, { state: 'offer', language: lang, text });
+            }
+          }
+          if (toSend.length) send({ cmd: 'trEnqueue', items: toSend });
+        }
+      }
+      for (const el of textEls()) placeTrBox(el);
+    } catch (_) {
+      /* il prossimo giro riprova */
+    } finally {
+      trBusy = false;
+    }
+  }
+
+  function placeTrBox(msgEl) {
+    const key = msgEl.getAttribute('data-wwt-key');
+    const st = trStates.get(key);
+    let box = msgEl.querySelector(':scope .wwt-trbox');
+    if (box && box.dataset.key !== key) {
+      box.remove();
+      box = null;
+    }
+    if (!st || st.state === 'same') {
+      if (box) box.remove();
+      return;
+    }
+    if (!box) {
+      box = el('div', 'wwt-box wwt-trbox');
+      box.dataset.key = key;
+    }
+    if (!placeBox(msgEl, box)) return;
+    renderTr(box, key);
+  }
+
+  function renderTrKey(key) {
+    for (const msgEl of textEls()) if (msgEl.getAttribute('data-wwt-key') === key) placeTrBox(msgEl);
+  }
+
+  function requestTranslation(key) {
+    const st = trStates.get(key);
+    if (!st || !st.text) return;
+    trStates.set(key, { ...st, state: 'running', errors: null });
+    renderTrKey(key);
+    send({ cmd: 'trEnqueue', items: [{ key, text: st.text }] });
+  }
+
+  function renderTr(box, key) {
+    const st = trStates.get(key);
+    const sig = JSON.stringify(st) + '|' + (trCfg && trCfg.provider);
+    if (box.__wwtSig === sig) return;
+    box.__wwtSig = sig;
+    box.replaceChildren();
+    box.dataset.state = st.state;
+    box.classList.toggle('wwt-slim', st.state === 'offer');
+    const head = el('div', 'wwt-head');
+    head.append(el('span', 'wwt-icon', '🌐'));
+    const actions = el('span', 'wwt-actions');
+    if (st.state === 'offer') {
+      head.append(el('span', 'wwt-label', langName(st.language)));
+      actions.append(button(t('tr_translate'), t('tr_translate_title'), () => requestTranslation(key)));
+      head.append(actions);
+      box.append(head);
+      return;
+    }
+    if (st.state === 'running') {
+      head.append(el('span', 'wwt-spinner'), el('span', 'wwt-label', trCfg && trCfg.provider ? t('tr_running', trCfg.provider) : t('tr_running_ai')));
+      box.append(head);
+      return;
+    }
+    if (st.state === 'error') {
+      head.append(el('span', 'wwt-label', langName(st.language || '')));
+      actions.append(button(t('box_retry'), null, () => requestTranslation(key)));
+      head.append(actions);
+      const why = (st.errors || []).map((e) => (e.name ? e.name + ': ' : '') + aiErrText(e.code)).join('; ');
+      box.append(head, el('div', 'wwt-note', '⚠ ' + t('tr_failed', why || t('ai_err_http'))));
+      return;
+    }
+    const meta = [st.language, st.target].filter(Boolean).join(' → ');
+    head.append(el('span', 'wwt-label', t('box_translation') + (meta ? ' · ' + meta : '') + (st.provider ? ' · ' + st.provider : '')));
+    actions.append(
+      button(t('box_copy'), t('tr_copy_title'), (ev) => {
+        navigator.clipboard.writeText(st.translation || '').then(() => {
+          ev.target.textContent = t('box_copied');
+          setTimeout(() => (ev.target.textContent = t('box_copy')), 1200);
+        });
+      }),
+    );
+    head.append(actions);
+    // wwt-final-tr segna la traduzione, che page.js aggiunge al testo copiato.
+    box.append(head, el('div', 'wwt-text wwt-final-tr', st.translation || ''));
+  }
+
+  // Dal popup: traduce i messaggi scritti in un'altra lingua già caricati nella chat aperta.
+  async function translateChat() {
+    const cfg = await trConfig();
+    if (!cfg || !cfg.active) throw new Error(t('tr_off'));
+    const { items } = await pageRequest('chatTexts');
+    const saved = (await send({ cmd: 'trGet', keys: items.map((i) => i.key) })) || {};
+    const toSend = [];
+    for (const { key, text } of items) {
+      trSeen.add(key);
+      if (saved[key] && saved[key].state === 'done') {
+        trStates.set(key, saved[key].translation ? saved[key] : { state: 'same' });
+        continue;
+      }
+      const lang = foreignLanguage(await detect(text), cfg.target);
+      if (!lang) {
+        trStates.set(key, { state: 'same' });
+        continue;
+      }
+      trStates.set(key, { state: 'running', language: lang, text });
+      toSend.push({ key, text });
+    }
+    if (toSend.length) send({ cmd: 'trEnqueue', items: toSend });
+    for (const msgEl of textEls()) placeTrBox(msgEl);
+    return toSend.length;
+  }
+
   let scheduled = false;
   function schedule() {
     if (scheduled) return;
@@ -402,6 +626,7 @@
       scheduled = false;
       if (!alive()) return;
       try { scan(); } catch (_) { /* il prossimo giro riprova */ }
+      textScan();
     }, 150);
   }
   const observer = new MutationObserver(schedule);
@@ -409,7 +634,7 @@
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ['data-wwt-voice', 'data-wwt-key'],
+    attributeFilter: ['data-wwt-voice', 'data-wwt-text', 'data-wwt-key'],
   });
   const timer = setInterval(schedule, 2000);
 

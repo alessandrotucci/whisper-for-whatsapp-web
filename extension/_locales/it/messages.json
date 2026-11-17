@@ -838,5 +838,47 @@
   },
   "popup_ai_off": {
     "message": "funzioni spente"
+  },
+  "ai_text_translate": {
+    "message": "Traduci anche i messaggi scritti"
+  },
+  "ai_text_mode_auto": {
+    "message": "quelli in arrivo, da soli"
+  },
+  "ai_text_mode_manual": {
+    "message": "solo quando premo Traduci"
+  },
+  "ai_text_note": {
+    "message": "Vale per i messaggi in arrivo in un'altra lingua: la lingua la riconosce il browser, e i messaggi nella tua lingua non vanno all'IA. Più messaggi visibili insieme partono in una sola richiesta."
+  },
+  "tr_translate": {
+    "message": "Traduci"
+  },
+  "tr_translate_title": {
+    "message": "Traduci questo messaggio con l'IA"
+  },
+  "tr_running": {
+    "message": "traduzione con $1…"
+  },
+  "tr_running_ai": {
+    "message": "traduzione con l'IA…"
+  },
+  "tr_failed": {
+    "message": "Traduzione non riuscita: $1."
+  },
+  "tr_copy_title": {
+    "message": "Copia la traduzione"
+  },
+  "tr_off": {
+    "message": "la traduzione dei messaggi scritti è spenta nella configurazione"
+  },
+  "popup_translate_chat": {
+    "message": "Traduci i messaggi della chat aperta"
+  },
+  "popup_translating_n": {
+    "message": "$1 messaggi in traduzione."
+  },
+  "popup_translate_none": {
+    "message": "Nessun messaggio da tradurre nella chat aperta."
   }
 }

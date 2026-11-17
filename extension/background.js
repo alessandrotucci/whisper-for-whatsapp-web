@@ -8,6 +8,8 @@
 // Archivio: chrome.storage.local, chiave "t:<id messaggio>". Con un account di IA collegato
 // nel componente, il record ha anche "review": {state: running|done|error, ...}; il testo
 // di Whisper resta in "text", quello rivisto e la traduzione stanno in review.
+// Traduzioni dei messaggi scritti: chiave "x:<id messaggio>", {translation, language, provider, at};
+// translation null vuol dire che il messaggio era già nella lingua dell'utente.
 // Lavori aperti: chrome.storage.session, così sopravvivono al riavvio del service worker;
 // alla ripartenza tornano tutti in attesa dell'audio e si inviano di nuovo.
 
@@ -111,6 +113,13 @@ let ridSeq = 0;
 let downloading = null; // nome del modello in download
 let cudaInstalling = false;
 let reviews = new Map(); // id della revisione nel componente -> chiave del vocale
+let trPending = new Map(); // chiave del messaggio -> testo, in attesa di partire
+let trRunning = 0; // richieste di traduzione aperte nel componente
+let trTimer = null;
+let aiConfig = null; // {active, mode, target, at}: impostazioni dell'IA lette dal componente
+const TR_BATCH_ITEMS = 20;
+const TR_BATCH_CHARS = 6000;
+const AI_CONFIG_TTL_MS = 60000;
 let reviewSeq = 0;
 
 function connect() {
@@ -232,7 +241,7 @@ function hostTranscribe(audioB64, manual, context, onEvent) {
 // muta a lungo (modello in caricamento, vocale in coda dietro quelli di un altro browser).
 let keepAliveTimer = null;
 function updateKeepAlive() {
-  const busy = jobs.size > 0 || reviews.size > 0 || !!downloading || cudaInstalling || updating;
+  const busy = jobs.size > 0 || reviews.size > 0 || trRunning > 0 || trPending.size > 0 || !!downloading || cudaInstalling || updating;
   if (busy && !keepAliveTimer) {
     keepAliveTimer = setInterval(() => {
       chrome.runtime.getPlatformInfo().catch(() => {});
@@ -246,10 +255,10 @@ function updateKeepAlive() {
 function scheduleIdleDisconnect() {
   clearTimeout(idleTimer);
   updateKeepAlive();
-  if (!port || jobs.size || reviews.size || downloading || cudaInstalling) return;
+  if (!port || jobs.size || reviews.size || trRunning || trPending.size || downloading || cudaInstalling) return;
   const minutes = Math.max(1, Number(settings.idleMinutes) || 10);
   idleTimer = setTimeout(() => {
-    if (port && !jobs.size && !reviews.size && !downloading && !cudaInstalling) {
+    if (port && !jobs.size && !reviews.size && !trRunning && !trPending.size && !downloading && !cudaInstalling) {
       port.disconnect();
       port = null;
     }
@@ -526,6 +535,93 @@ function isHostSetupError(message) {
   return /native messaging host not found|forbidden|has exited|Error when communicating/i.test(message || '');
 }
 
+// ---------- traduzione dei messaggi scritti ----------
+
+// Impostazioni dell'IA che servono alle schede: se la traduzione dei messaggi scritti è
+// attiva, in che modo, verso quale lingua. Si rileggono dal componente al più ogni minuto.
+async function getAiConfig(force) {
+  if (!force && aiConfig && Date.now() - aiConfig.at < AI_CONFIG_TTL_MS) return aiConfig;
+  try {
+    const r = await hostRequest({ type: 'ai_status' }, ['ai_status', 'ai_error']);
+    scheduleIdleDisconnect();
+    const s = (r && r.settings) || {};
+    aiConfig = {
+      active: r.type === 'ai_status' && r.accounts.length > 0 && !!s.text_translate,
+      mode: s.text_mode || 'auto',
+      target: s.target_lang || chrome.i18n.getUILanguage().split('-')[0],
+      provider: r.accounts && r.accounts[0] ? r.accounts[0].name : null,
+      at: Date.now(),
+    };
+  } catch (e) {
+    aiConfig = { active: false, mode: 'auto', target: 'en', at: Date.now() };
+  }
+  return aiConfig;
+}
+
+async function getTranslations(keys) {
+  const res = await chrome.storage.local.get(keys.map((k) => 'x:' + k));
+  const out = {};
+  for (const k of keys) if (res['x:' + k]) out[k] = res['x:' + k];
+  return out;
+}
+
+function trEnqueue(items) {
+  for (const { key, text } of items) if (key && text && !trPending.has(key)) trPending.set(key, text);
+  updateKeepAlive();
+  clearTimeout(trTimer);
+  trTimer = setTimeout(trFlush, 400);
+}
+
+// Manda al componente i messaggi in attesa, a gruppi entro TR_BATCH_ITEMS e TR_BATCH_CHARS.
+function trFlush() {
+  trTimer = null;
+  while (trPending.size) {
+    const batch = [];
+    let chars = 0;
+    for (const [key, text] of trPending) {
+      if (batch.length && (batch.length >= TR_BATCH_ITEMS || chars + text.length > TR_BATCH_CHARS)) break;
+      batch.push({ id: key, text });
+      chars += text.length;
+    }
+    for (const it of batch) trPending.delete(it.id);
+    trSend(batch);
+  }
+}
+
+async function trSend(batch) {
+  trRunning++;
+  updateKeepAlive();
+  let updates;
+  try {
+    const r = await hostRequest(
+      { type: 'translate', items: batch, hint: settings.initialPrompt || null },
+      ['translate_result', 'ai_error'],
+      { timeoutMs: 180000 },
+    );
+    if (r.type === 'ai_error') {
+      const errors = (r.errors || [{ code: r.code, detail: r.detail }]).map((e) => ({ name: e.name, code: e.code }));
+      updates = batch.map((it) => ({ key: it.id, state: 'error', errors }));
+    } else {
+      const got = new Map((r.items || []).map((it) => [it.id, it]));
+      const toSave = {};
+      updates = batch.map((it) => {
+        const t = got.get(it.id);
+        if (!t) return { key: it.id, state: 'error', errors: [{ name: r.provider, code: 'format' }] };
+        const record = { translation: t.translation, language: t.language, target: r.target_lang, provider: r.provider, at: Date.now() };
+        toSave['x:' + it.id] = record;
+        return { key: it.id, state: 'done', ...record };
+      });
+      await chrome.storage.local.set(toSave);
+    }
+  } catch (e) {
+    updates = batch.map((it) => ({ key: it.id, state: 'error', errors: [{ code: 'host', detail: e.message }] }));
+  } finally {
+    trRunning--;
+    scheduleIdleDisconnect();
+  }
+  broadcast({ cmd: 'trUpdate', updates });
+}
+
 // ---------- messaggi da content script, popup e opzioni ----------
 
 const handlers = {
@@ -655,7 +751,7 @@ const handlers = {
   },
   async clearCache() {
     const all = await chrome.storage.local.get(null);
-    await chrome.storage.local.remove(Object.keys(all).filter((k) => k.startsWith('t:')));
+    await chrome.storage.local.remove(Object.keys(all).filter((k) => k.startsWith('t:') || k.startsWith('x:')));
     broadcast({ cmd: 'reset' });
     return true;
   },
@@ -675,9 +771,27 @@ const handlers = {
   reviewAgain({ key }) {
     return reviewAgain(key);
   },
+  trConfig({ force }) {
+    return getAiConfig(!!force);
+  },
+  async trGet({ keys }) {
+    const saved = await getTranslations(keys);
+    const out = {};
+    for (const k of keys) out[k] = saved[k] ? { state: 'done', ...saved[k] } : trPending.has(k) ? { state: 'running' } : null;
+    return out;
+  },
+  trEnqueue({ items }) {
+    trEnqueue(items || []);
+    return { ok: true };
+  },
+  detectLanguage({ text }) {
+    return chrome.i18n.detectLanguage(text);
+  },
   // Richieste di configurazione dell'IA dalle pagine dell'estensione; la risposta
   // ai_error diventa {ok: false, code, detail}.
   async ai({ message, done, timeoutMs }) {
+    // Una modifica delle impostazioni dell'IA vale subito anche per la traduzione dei messaggi.
+    if (message && message.type !== 'ai_status') aiConfig = null;
     try {
       const r = await hostRequest(message, [...done, 'ai_error'], { timeoutMs: timeoutMs == null ? 60000 : timeoutMs });
       scheduleIdleDisconnect();

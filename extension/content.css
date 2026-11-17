@@ -127,3 +127,12 @@
   align-items: center;
   flex-wrap: wrap;
 }
+
+.wwt-trbox {
+  border-left-color: #53bdeb;
+}
+
+.wwt-trbox.wwt-slim {
+  padding-top: 1px;
+  padding-bottom: 1px;
+}

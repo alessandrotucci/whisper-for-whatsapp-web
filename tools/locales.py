@@ -289,6 +289,20 @@ M = {
     "popup_ai_revise": ("correzione attiva", "fixing on"),
     "popup_ai_translate": ("traduzione attiva", "translation on"),
     "popup_ai_off": ("funzioni spente", "features off"),
+    "ai_text_translate": ("Traduci anche i messaggi scritti", "Also translate text messages"),
+    "ai_text_mode_auto": ("quelli in arrivo, da soli", "incoming ones, automatically"),
+    "ai_text_mode_manual": ("solo quando premo Traduci", "only when I press Translate"),
+    "ai_text_note": ("Vale per i messaggi in arrivo in un'altra lingua: la lingua la riconosce il browser, e i messaggi nella tua lingua non vanno all'IA. Più messaggi visibili insieme partono in una sola richiesta.", "Applies to incoming messages in another language: the browser detects the language, and messages in your language never go to the AI. Several visible messages go out in a single request."),
+    "tr_translate": ("Traduci", "Translate"),
+    "tr_translate_title": ("Traduci questo messaggio con l'IA", "Translate this message with AI"),
+    "tr_running": ("traduzione con $1…", "translating with $1…"),
+    "tr_running_ai": ("traduzione con l'IA…", "translating with AI…"),
+    "tr_failed": ("Traduzione non riuscita: $1.", "Translation failed: $1."),
+    "tr_copy_title": ("Copia la traduzione", "Copy the translation"),
+    "tr_off": ("la traduzione dei messaggi scritti è spenta nella configurazione", "text message translation is turned off in the setup"),
+    "popup_translate_chat": ("Traduci i messaggi della chat aperta", "Translate the open chat's messages"),
+    "popup_translating_n": ("$1 messaggi in traduzione.", "$1 messages being translated."),
+    "popup_translate_none": ("Nessun messaggio da tradurre nella chat aperta.", "No messages to translate in the open chat."),
 }
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "extension", "_locales")

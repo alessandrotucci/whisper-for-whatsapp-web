@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Traduzione messaggi: disegno</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1f2328;
+  --muted: #59636e;
+  --line: #d8dee4;
+  --panel: #f6f8fa;
+  --accent: #128c7e;
+  --accent-fg: #ffffff;
+  --ok: #1a7f37;
+  --err: #cf222e;
+  --code: #eef1f4;
+}
+
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 14px/1.5 "Segoe UI", system-ui, sans-serif;
+}
+
+h1 { font-size: 20px; margin: 0 0 4px; }
+h2 { font-size: 16px; margin: 28px 0 8px; }
+h3 { font-size: 14px; margin: 16px 0 6px; }
+p { margin: 6px 0; }
+a { color: var(--accent); }
+.muted { color: var(--muted); }
+.ok { color: var(--ok); }
+.err { color: var(--err); }
+
+button {
+  font: inherit;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--fg);
+  cursor: pointer;
+}
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+button:disabled { opacity: 0.5; cursor: default; }
+
+input[type="text"], input[type="number"], input[type="password"], select, textarea {
+  font: inherit;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--fg);
+  width: 100%;
+}
+textarea { min-height: 60px; resize: vertical; }
+
+code, pre {
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 12.5px;
+  background: var(--code);
+  border-radius: 4px;
+}
+code { padding: 1px 4px; }
+pre { padding: 10px 12px; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0; }
+code { overflow-wrap: anywhere; }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.field { margin: 10px 0; }
+.field label { display: block; font-weight: 600; margin-bottom: 3px; }
+.check { display: flex; gap: 8px; align-items: flex-start; margin: 8px 0; }
+.check input { margin-top: 4px; }
+table.kv { border-collapse: collapse; width: 100%; }
+table.kv td { padding: 3px 8px 3px 0; vertical-align: top; border-bottom: 1px solid var(--line); word-break: break-all; }
+table.kv td:first-child { color: var(--muted); white-space: nowrap; width: 1%; }
+.cmd { position: relative; }
+.cmd button { position: absolute; top: 6px; right: 6px; padding: 2px 8px; font-size: 12px; }
+.cmd pre { padding-right: 70px; }
+.tabs { display: flex; gap: 6px; margin: 8px 0; }
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+
+a.button {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--fg);
+  text-decoration: none;
+  font-weight: 600;
+}
+a.button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+
+.upd { border: 1px solid var(--accent); border-radius: 8px; padding: 10px 12px; margin: 10px 0; background: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
+.upd-title { font-weight: 600; color: var(--accent); }
+.upd-text { margin: 4px 0 6px; font-size: 13px; color: var(--muted); }
+.upd-row { font-size: 13px; margin: 2px 0; }
+.upd-status { margin: 8px 0 0; font-size: 13px; }
+.upd-actions { display: flex; gap: 12px; align-items: center; margin-top: 10px; font-size: 13px; }
+.upd-actions a { color: var(--muted); }
+.upd-actions button.link { margin-left: auto; border: none; background: none; padding: 0; color: var(--muted); font-size: 13px; }
+.cuda { border: 1px solid var(--line); border-radius: 8px; padding: 4px 12px; margin: 6px 0 10px; }
+.cuda p { margin: 6px 0; font-size: 13px; }
+.cuda progress { flex: 1; min-width: 160px; }
+.wwt-box {
+  box-sizing: border-box;
+  margin-top: 3px;
+  margin-bottom: 6px;
+  padding: 5px 9px 6px;
+  border-radius: 7.5px;
+  border-left: 3px solid #25d366;
+  background: rgba(128, 128, 128, 0.14);
+  color: inherit;
+  font-size: 13.6px;
+  line-height: 19px;
+  align-self: flex-start;
+  min-width: 0;
+  user-select: text;
+}
+
+.wwt-box.wwt-out {
+  align-self: flex-end;
+}
+
+.wwt-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.wwt-icon {
+  font-size: 13px;
+}
+
+.wwt-label {
+  flex: 1 1 auto;
+}
+
+.wwt-error {
+  color: #e5534b;
+}
+
+.wwt-actions {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.wwt-btn {
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  padding: 1px 8px;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.wwt-btn:hover {
+  background: rgba(37, 211, 102, 0.18);
+  border-color: #25d366;
+}
+
+.wwt-text {
+  margin-top: 3px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  opacity: 1;
+}
+
+.wwt-partial {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.wwt-spinner {
+  width: 11px;
+  height: 11px;
+  border: 2px solid rgba(128, 128, 128, 0.35);
+  border-top-color: #25d366;
+  border-radius: 50%;
+  animation: wwt-spin 0.9s linear infinite;
+}
+
+@keyframes wwt-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.wwt-fix {
+  text-decoration: underline dotted #25d366 2px;
+  text-underline-offset: 3px;
+  cursor: help;
+}
+
+.wwt-orig {
+  background: rgba(229, 83, 75, 0.16);
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+.wwt-tr {
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(128, 128, 128, 0.3);
+}
+
+.wwt-tr-label {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-bottom: 1px;
+}
+
+.wwt-final-tr {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.wwt-note {
+  margin-top: 5px;
+  font-size: 12px;
+  color: #c2410c;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+body { background: #e9edef; }
+.sheet { max-width: 1100px; margin: 0 auto; padding: 24px 16px 60px; }
+.mk-scene { font-size: 17px; margin: 34px 0 10px; padding-top: 14px; border-top: 2px solid #b8c2cc; }
+.mk-small { font-size: 12.5px; }
+.mk-light { font-weight: 400; font-size: 14px; }
+.frame { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,.08); overflow: hidden; }
+main.opt { max-width: 820px; margin: 0 auto; padding: 24px 16px 30px; }
+.step { display: flex; gap: 14px; padding: 14px 16px; margin: 12px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.step > .num { flex: 0 0 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 13px; border: 2px solid var(--accent); color: var(--accent); }
+.step > .body { flex: 1; min-width: 0; }
+.step h2 { margin: 2px 0 6px; font-size: 16px; }
+select.mk-inline { width: auto; display: inline-block; margin-left: 6px; padding: 2px 6px; }
+.mk-new { position: relative; border: 2px dashed #e5534b; border-radius: 8px; padding: 0 10px; margin: 6px -12px; }
+.mk-badge, .mk-newbtn::after { position: absolute; top: -10px; right: 8px; background: #e5534b; color: #fff; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 8px; }
+.mk-newbtn { position: relative; outline: 2px dashed #e5534b; outline-offset: 2px; }
+.mk-newbtn::after { content: "nuovo"; top: -12px; right: -6px; }
+
+.wa { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; background: #efeae2; border-radius: 10px; padding: 16px 22px; color: #111b21; font-family: "Segoe UI", system-ui, sans-serif; }
+@media (max-width: 900px) { .wa { grid-template-columns: 1fr; } }
+.wa-col { display: flex; flex-direction: column; }
+.mk-cap { align-self: stretch; margin: 14px 0 6px; font-size: 12px; font-weight: 600; color: #54656f; border-bottom: 1px dashed #b9b2a8; padding-bottom: 2px; }
+.mk-cap:first-child { margin-top: 0; }
+.bubble-in, .bubble-out { max-width: 380px; padding: 6px 9px 6px; border-radius: 7.5px; box-shadow: 0 1px .5px rgba(11,20,26,.13); font-size: 14.2px; line-height: 19px; margin-bottom: 4px; }
+.bubble-in { background: #fff; align-self: flex-start; }
+.bubble-out { background: #d9fdd3; align-self: flex-end; }
+.time { float: right; margin: 6px 0 -4px 10px; font-size: 11px; color: #667781; white-space: nowrap; }
+.wa .wwt-box { max-width: 380px; }
+.wwt-trbox { border-left-color: #53bdeb; }
+.wwt-slim { padding-top: 2px; padding-bottom: 2px; }
+.muted-l { opacity: .8; }
+.wwt-note { margin-top: 5px; font-size: 12px; color: #c2410c; }
+.mk-clip { background: #fff; color: #111b21; font-size: 12px; }
+.popup-frame { width: 330px; }
+.popup { padding: 12px 14px; }
+.popup h1 { font-size: 17px; }
+.popup .line { margin: 6px 0; }
+.popup .btns { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+</style></head><body>
+<div class="sheet">
+<header class="mk-title">
+  <h1>Traduzione dei messaggi scritti: disegno</h1>
+  <p class="muted">Costruito con i fogli di stile veri dell'estensione (ui.css, content.css e gli stili della pagina di configurazione) e con i testi italiani in uso. Le bolle di WhatsApp sono ricalcate a mano sul tema chiaro: colori e misure delle bolle sono stimati. Messaggi, nomi e orari sono inventati.</p>
+</header>
+
+<h2 class="mk-scene">A · In una chat: cosa compare sotto i messaggi scritti</h2>
+<p class="muted mk-small">Solo i messaggi in arrivo in una lingua diversa dalla tua hanno qualcosa sotto. I messaggi nella tua lingua e quelli che mandi tu restano come sono. La lingua la riconosce il browser sul computer: un messaggio in italiano non parte mai verso l'IA.</p>
+<div class="wa">
+  <div class="wa-col">
+    <div class="mk-cap">A1 · Messaggio arrivato a chat aperta: tradotto da solo</div>
+    <div class="bubble-in"><span class="txt">Bom dia! As lentes fotossensíveis com AR já chegaram?</span><span class="time">09:12</span></div>
+    <div class="wwt-box wwt-trbox">
+      <div class="wwt-head"><span class="wwt-icon">🌐</span><span class="wwt-label">Traduzione · pt → it · Gemini</span><span class="wwt-actions"><button class="wwt-btn">Copia</button></span></div>
+      <div class="wwt-text">Buongiorno! Le lenti fotocromatiche con AR sono già arrivate?</div>
+    </div>
+
+    <div class="mk-cap">A2 · Messaggio nella tua lingua: nulla sotto</div>
+    <div class="bubble-out"><span class="txt">Buongiorno, controllo subito.</span><span class="time">09:14 ✓✓</span></div>
+    <div class="bubble-in"><span class="txt">Grazie mille!</span><span class="time">09:15</span></div>
+
+    <div class="mk-cap">A3 · Traduzione in corso</div>
+    <div class="bubble-in"><span class="txt">Perfeito, então amanhã eu passo aí pra pegar as armações.</span><span class="time">09:21</span></div>
+    <div class="wwt-box wwt-trbox">
+      <div class="wwt-head"><span class="wwt-icon">🌐</span><span class="wwt-spinner"></span><span class="wwt-label">traduzione con Gemini…</span></div>
+    </div>
+  </div>
+
+  <div class="wa-col">
+    <div class="mk-cap">A4 · Messaggio vecchio in un'altra lingua: «Traduci» a richiesta</div>
+    <div class="bubble-in"><span class="txt">Vocês trabalham com lentes de policarbonato?</span><span class="time">ieri 18:40</span></div>
+    <div class="wwt-box wwt-trbox wwt-slim">
+      <div class="wwt-head"><span class="wwt-icon">🌐</span><span class="wwt-label muted-l">portoghese</span><span class="wwt-actions"><button class="wwt-btn">Traduci</button></span></div>
+    </div>
+
+    <div class="mk-cap">A5 · Nessun account ha risposto</div>
+    <div class="bubble-in"><span class="txt">Me avisa quando sair o pedido, por favor.</span><span class="time">09:30</span></div>
+    <div class="wwt-box wwt-trbox">
+      <div class="wwt-head"><span class="wwt-icon">🌐</span><span class="wwt-label">portoghese</span><span class="wwt-actions"><button class="wwt-btn">Riprova</button></span></div>
+      <div class="wwt-note">⚠ Traduzione non riuscita: Gemini: limite di richieste raggiunto; Groq: nessuna risposta entro il tempo massimo.</div>
+    </div>
+
+    <div class="mk-cap">A6 · Ctrl+C su più messaggi: cosa finisce negli appunti</div>
+    <pre class="mk-clip">[09:12, 17/11/2026] Cliente: Bom dia! As lentes fotossensíveis com AR já chegaram?
+    🌐 Buongiorno! Le lenti fotocromatiche con AR sono già arrivate?
+[09:14, 17/11/2026] Alessandro: Buongiorno, controllo subito.
+[09:15, 17/11/2026] Cliente: Grazie mille!</pre>
+    <p class="muted mk-small">Stesso formato delle trascrizioni dei vocali: la riga 🌐 sotto il messaggio. Il pulsante Copia del riquadro copia la sola traduzione.</p>
+  </div>
+</div>
+
+<h2 class="mk-scene">B · Configurazione: un interruttore in più nella sezione 4</h2>
+<div class="frame">
+<main class="opt">
+  <section class="step" data-state="active" style="margin-top:0">
+    <div class="num">4</div>
+    <div class="body">
+      <h2>Revisione e traduzione con l'IA <span class="muted mk-light">· facoltativo</span></h2>
+      <p class="muted">Collega uno o più account di IA. Dopo la trascrizione, il testo (non l'audio) va al primo account dell'elenco, che corregge le parole capite male e, se il messaggio è in un'altra lingua, lo traduce. La trascrizione originale resta sempre consultabile.</p>
+      <label class="check"><input type="checkbox" checked><span><strong>Correggi la trascrizione</strong><br><span class="muted mk-small">Le parole cambiate sono sottolineate; passandoci sopra si vede cosa aveva capito Whisper.</span></span></label>
+      <label class="check"><input type="checkbox" checked><span><strong>Traduci i messaggi in un'altra lingua in</strong> <select class="mk-inline"><option>Italiano (lingua del browser)</option></select></span></label>
+      <div class="mk-new">
+        <label class="check"><input type="checkbox" checked><span><strong>Traduci anche i messaggi scritti</strong> <select class="mk-inline"><option>quelli in arrivo, da soli</option><option>solo quando premo Traduci</option></select><br><span class="muted mk-small">Vale per i messaggi in arrivo in un'altra lingua: la lingua la riconosce il browser, e i messaggi nella tua lingua non vanno all'IA. Più messaggi visibili insieme partono in una sola richiesta.</span></span></label>
+        <span class="mk-badge">nuovo</span>
+      </div>
+      <h3>Account collegati, in ordine di preferenza</h3>
+      <p class="muted mk-small">… elenco invariato …</p>
+    </div>
+  </section>
+</main>
+</div>
+
+<h2 class="mk-scene">C · Popup dell'icona: un pulsante in più</h2>
+<div class="frame popup-frame">
+  <div class="popup">
+    <h1>Whisper per WhatsApp Web</h1>
+    <div class="line ok">Pronto · large-v3 · cpu</div>
+    <div class="line">IA: Gemini, poi Groq, poi OpenRouter · correzione e traduzione attive</div>
+    <div class="line">Nessuna trascrizione in corso.</div>
+    <label class="check"><input type="checkbox" checked> <span>Trascrivi in automatico i vocali in arrivo</span></label>
+    <div class="btns"><button class="primary">Trascrivi i vocali della chat aperta</button><button class="mk-newbtn">Traduci i messaggi della chat aperta</button><button>Svuota la coda</button><button>Configurazione e guida</button></div>
+  </div>
+</div>
+<p class="muted mk-small">Il pulsante nuovo traduce i messaggi in un'altra lingua già caricati nella chat aperta, a gruppi.</p>
+</div>
+</body></html>
