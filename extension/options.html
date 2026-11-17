@@ -41,6 +41,41 @@
     .upd-last { font-size: 12px; margin: 4px 0 0; }
     .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
     @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+    [hidden] { display: none !important; }
+    .light { font-weight: 400; font-size: 14px; }
+    .small { font-size: 12.5px; }
+    select.inline { width: auto; display: inline-block; margin-left: 6px; padding: 2px 6px; }
+    .ai-list { display: grid; gap: 8px; margin: 8px 0; }
+    .ai { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); flex-wrap: wrap; }
+    .ai:first-child { border-color: var(--accent); }
+    .ai-ord { width: 20px; text-align: center; font-weight: 700; color: var(--muted); }
+    .ai-logo { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 7px; display: inline-grid; place-items: center; color: #fff; font-weight: 700; font-size: 12px; }
+    .ai-name { flex: 1; min-width: 170px; line-height: 1.35; }
+    .ai-model { display: flex; flex-direction: column; min-width: 220px; max-width: 320px; }
+    .ai-model select { padding: 3px 6px; }
+    .ai-btns { display: flex; gap: 4px; flex-wrap: wrap; }
+    .ai-btns button { padding: 3px 9px; font-size: 13px; }
+    .ai-test { flex-basis: 100%; font-size: 12.5px; margin: 0 0 0 30px; }
+    dialog { border: none; border-radius: 12px; padding: 16px 18px; width: min(900px, calc(100vw - 32px)); background: var(--bg); color: var(--fg); box-shadow: 0 8px 30px rgba(0,0,0,.25); }
+    dialog.narrow { width: min(560px, calc(100vw - 32px)); }
+    dialog::backdrop { background: rgba(31,35,40,.45); }
+    .dlg-head { display: flex; align-items: center; gap: 10px; font-size: 16px; margin-bottom: 6px; }
+    button.plain { border: none; background: none; font-size: 17px; padding: 0 4px; }
+    button.close { margin-left: auto; }
+    .prov-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-top: 12px; }
+    .prov { display: flex; align-items: center; gap: 10px; text-align: left; padding: 8px 10px; background: var(--bg); line-height: 1.3; }
+    .prov:hover { border-color: var(--accent); }
+    .prov .muted { font-size: 12px; }
+    .tag { display: inline-block; padding: 0 6px; border-radius: 8px; font-size: 11.5px; background: color-mix(in srgb, var(--ok) 14%, var(--bg)); color: var(--ok); }
+    .tag.acc { background: color-mix(in srgb, #6467f2 16%, var(--bg)); color: #6467f2; }
+    .tag.loc { background: color-mix(in srgb, var(--muted) 16%, var(--bg)); color: var(--fg); }
+    .guide { margin: 8px 0 10px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--panel); }
+    .guide summary { font-size: 14px; }
+    .g-steps { margin: 6px 0; padding-left: 20px; }
+    .g-steps li { margin: 10px 0; font-size: 13px; }
+    .g-steps img { display: block; margin-top: 5px; max-width: 100%; max-height: 160px; border: 1px solid var(--line); border-radius: 6px; cursor: zoom-in; }
+    .g-steps img.big { max-height: none; cursor: zoom-out; }
+    .row.end { justify-content: flex-end; margin-top: 8px; }
   </style>
 </head>
 <body>
@@ -93,6 +128,50 @@
     </div>
   </section>
 
+  <section class="step" id="step4" data-state="active">
+    <div class="num">4</div>
+    <div class="body">
+      <h2><span data-i18n="ai_title"></span> <span class="muted light" data-i18n="ai_optional"></span></h2>
+      <p class="muted" data-i18n="ai_intro"></p>
+      <label class="check" id="aiReviseRow"><input type="checkbox" id="aiRevise"><span><strong data-i18n="ai_revise"></strong><br><span class="muted small" data-i18n="ai_revise_note"></span></span></label>
+      <label class="check" id="aiTranslateRow"><input type="checkbox" id="aiTranslate"><span><strong data-i18n="ai_translate"></strong> <select id="aiTarget" class="inline"></select></span></label>
+      <p class="muted small" id="aiEmptyNote" data-i18n="ai_empty_note" hidden></p>
+      <div id="aiAccountsBox" hidden>
+        <h3 data-i18n="ai_accounts"></h3>
+        <p class="muted small" id="aiTimeoutLine"></p>
+        <div class="ai-list" id="aiAccounts"></div>
+      </div>
+      <div class="row" style="margin-top: 10px"><button class="primary" id="aiAdd" data-i18n="ai_add"></button> <span id="aiMsg" class="muted"></span></div>
+      <label class="check" id="aiContextRow" hidden><input type="checkbox" id="aiContext"><span><strong data-i18n="ai_context"></strong><br><span class="muted small" data-i18n="ai_context_note"></span></span></label>
+      <p class="muted small" data-i18n="ai_keys_note"></p>
+    </div>
+  </section>
+
+  <dialog id="aiDialog">
+    <div class="dlg-head"><button class="plain" id="aiBack" hidden>&larr;</button><span id="aiDlgLogo"></span><strong id="aiDlgTitle"></strong><button class="plain close" id="aiClose">&#10005;</button></div>
+    <div id="aiPick">
+      <p class="muted small" data-i18n="ai_pick_note"></p>
+      <div class="prov-grid" id="aiProviders"></div>
+    </div>
+    <div id="aiForm" hidden>
+      <details class="guide" id="aiGuide" open><summary><span data-i18n="ai_guide"></span> <span class="muted small" id="aiGuideMeta"></span></summary>
+        <p class="muted small" data-i18n="ai_guide_what"></p>
+        <ol class="g-steps" id="aiGuideSteps"></ol>
+        <p class="small"><a id="aiGuideFull" target="_blank" rel="noopener" data-i18n="ai_guide_full"></a></p>
+      </details>
+      <div id="aiOauthBox" hidden><div class="row"><button class="primary" id="aiOauth" data-i18n="ai_oauth"></button> <a href="#" class="small" id="aiPasteKey" data-i18n="ai_paste_key"></a></div></div>
+      <div id="aiKeyBox">
+        <div class="field" id="aiUrlField"><label for="aiUrl" data-i18n="ai_url"></label><input type="text" id="aiUrl" spellcheck="false"></div>
+        <div class="field" id="aiKeyField"><label for="aiKey" data-i18n="ai_key"></label><input type="password" id="aiKey" autocomplete="off" spellcheck="false"></div>
+        <div class="row"><button id="aiVerify" data-i18n="ai_verify"></button> <span id="aiVerifyMsg"></span></div>
+        <div class="field" id="aiModelField" hidden><label for="aiModel" data-i18n="ai_model"></label><select id="aiModel"></select>
+          <p class="muted small" data-i18n="ai_model_note"></p></div>
+        <div class="row end"><button id="aiCancel" data-i18n="ai_cancel"></button><button class="primary" id="aiConnect" disabled data-i18n="ai_connect"></button></div>
+      </div>
+      <p id="aiFormMsg" class="small"></p>
+    </div>
+  </dialog>
+
   <details id="settingsBox">
     <summary data-i18n="opt_settings"></summary>
     <div class="panel" style="margin-top: 10px">
@@ -137,6 +216,7 @@
 </main>
 <script src="i18n.js"></script>
 <script src="options.js"></script>
+<script src="ai-options.js"></script>
 <script src="update-ui.js"></script>
 </body>
 </html>
