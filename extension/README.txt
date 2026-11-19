@@ -12,7 +12,7 @@ L'audio non lascia il PC: nessun servizio cloud, nessun account.
 Le pagine dell'estensione sono in italiano se il browser è in italiano,
 in inglese altrimenti.
 
-Requisiti: Windows 10 o 11 a 64 bit, Google Chrome o Microsoft Edge.
+Requisiti: Windows 10 o 11 a 64 bit, Google Chrome, Microsoft Edge o Mozilla Firefox.
 Con il modello large-v3 servono circa 4 GB di RAM liberi; un vocale di
 un minuto richiede un paio di minuti su una CPU normale. Su un PC meno
 potente scegli large-v3-turbo.
@@ -85,7 +85,7 @@ ENGLISH
 Transcribes WhatsApp Web voice messages on your own computer, with
 Whisper. Audio never leaves your PC: no cloud service, no account.
 
-Requirements: 64-bit Windows 10 or 11, Google Chrome or Microsoft Edge.
+Requirements: 64-bit Windows 10 or 11, Google Chrome, Microsoft Edge or Mozilla Firefox.
 The large-v3 model needs about 4 GB of free RAM; a one-minute voice
 message takes a couple of minutes on a typical CPU. On a slower PC pick
 large-v3-turbo.
