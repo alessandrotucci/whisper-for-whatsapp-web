@@ -27,7 +27,8 @@ Informativa sulla privacy: [PRIVACY.md](https://github.com/alessandrotucci/whisp
 collega uno o più account di IA (Claude, ChatGPT, Gemini, Grok, Mistral, OpenRouter e altri, con la
 guida per ottenere la chiave). Dopo ogni trascrizione il testo, non l'audio, va al primo account:
 corregge le parole capite male, sottolineate nella lista, e traduce i messaggi in un'altra lingua.
-Le chiavi restano sul telefono, nel Keystore di Android.
+Le chiavi restano sul telefono, nel Keystore di Android. L'app accetta solo indirizzi https, anche per
+Ollama e LM Studio nella rete di casa: la guida spiega come pubblicarli con un certificato valido.
 
 **Messaggi scritti.** Con un account di IA collegato vengono tradotti anche i messaggi scritti in
 un'altra lingua: una notifica per chat e per lingua, con la traduzione più recente in cima e il

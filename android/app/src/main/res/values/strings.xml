@@ -182,7 +182,7 @@
     <string name="ai_oauth_done">OpenRouter connected. You can go back to the app.</string>
     <string name="ai_paste_key">Paste a key</string>
     <string name="ai_url">Service address</string>
-    <string name="ai_url_local">Address of the computer on your network, for example %1$s</string>
+    <string name="ai_url_local">HTTPS address of the computer, for example %1$s. The server needs a certificate the phone trusts: see the guide.</string>
     <string name="ai_key">API key</string>
     <string name="ai_paste">Paste</string>
     <string name="ai_need_key">Paste the key first.</string>
@@ -206,6 +206,7 @@
     <string name="ai_err_network">service unreachable</string>
     <string name="ai_err_model">model not found</string>
     <string name="ai_err_format">invalid reply</string>
+    <string name="ai_err_https">an https address is required</string>
     <string name="ai_err_http">service error</string>
     <string name="ai_err_none">no account available</string>
     <string name="review_reviewing">reviewing with %1$s…</string>

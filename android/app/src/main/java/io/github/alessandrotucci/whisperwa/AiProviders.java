@@ -122,9 +122,9 @@ public final class AiProviders {
             new Provider("azure", "Azure OpenAI", "Microsoft", "openai", "",
                     "#0078d4", "Az", p("mini"), null, null)
                     .apiKeyHeader().needsUrl("https://<risorsa>.openai.azure.com/openai/v1"),
-            new Provider("ollama", "Ollama", "Ollama", "openai", "http://192.168.1.10:11434/v1",
+            new Provider("ollama", "Ollama", "Ollama", "openai", "https://computer.tua-rete.ts.net/v1",
                     "#333333", "Ol", p("qwen", "llama", "gemma", "mistral"), null, null).local(),
-            new Provider("lmstudio", "LM Studio", "LM Studio", "openai", "http://192.168.1.10:1234/v1",
+            new Provider("lmstudio", "LM Studio", "LM Studio", "openai", "https://computer.tua-rete.ts.net:1234/v1",
                     "#4338ca", "LM", p("qwen", "llama", "gemma", "mistral"), null, null).local(),
             new Provider("custom", "Altro", null, "openai", "",
                     "#59636e", "…", p(), null, null).needsUrl("https://…/v1"),

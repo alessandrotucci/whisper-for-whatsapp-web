@@ -2,7 +2,7 @@
 
 *English below.*
 
-Versione del 19 novembre 2026. Vale per l'app Android «WA Transcriber and Translator»
+Versione del 19 novembre 2026, aggiornata per la versione 1.4.1. Vale per l'app Android «WA Transcriber and Translator»
 (`io.github.alessandrotucci.whisperwa`), distribuita su Google Play e nelle release di questo
 repository. Sviluppatore: Alessandro Tucci. Contatti: le
 [issue del repository](https://github.com/alessandrotucci/whisper-for-whatsapp-web/issues) oppure
@@ -36,8 +36,8 @@ Il backup automatico di Android è disattivato: questi dati non vanno nel cloud 
   OpenRouter), solo se l'utente collega un account e accetta l'informativa in app: il testo di ogni
   trascrizione da rivedere o tradurre, i messaggi scritti in un'altra lingua se la traduzione dei
   messaggi è attiva, il nome della chat e, se l'utente attiva il contesto, gli ultimi messaggi della chat
-  con i nomi dei mittenti. La trasmissione è cifrata (HTTPS), salvo un server locale configurato
-  dall'utente con un indirizzo `http://`. Il fornitore tratta i testi secondo le proprie condizioni e
+  con i nomi dei mittenti. La trasmissione è sempre cifrata: l'app accetta solo indirizzi HTTPS, anche
+  per i server nella rete di casa. Il fornitore tratta i testi secondo le proprie condizioni e
   la propria informativa; l'app non ne controlla la conservazione.
 - **Download**: i modelli di trascrizione si scaricano da huggingface.co e le guide per ottenere le
   chiavi da raw.githubusercontent.com. Queste richieste non contengono dati dell'utente; come ogni
@@ -64,7 +64,7 @@ Le modifiche a questa informativa si pubblicano in questo file, con la data aggi
 
 # Privacy policy: WA Transcriber and Translator (Android)
 
-Version of 19 November 2026. It applies to the Android app "WA Transcriber and Translator"
+Version of 19 November 2026, updated for version 1.4.1. It applies to the Android app "WA Transcriber and Translator"
 (`io.github.alessandrotucci.whisperwa`), distributed on Google Play and in this repository's releases.
 Developer: Alessandro Tucci. Contact: the
 [repository issues](https://github.com/alessandrotucci/whisper-for-whatsapp-web/issues) or the email
@@ -99,8 +99,8 @@ Android automatic backup is turned off: this data does not go to Google's cloud.
   OpenRouter), only if the user connects an account and accepts the in-app notice: the text of each
   transcription to review or translate, written messages in another language if message translation is
   on, the chat name and, if the user turns on context, the latest messages of the chat with the
-  senders' names. Transmission is encrypted (HTTPS), except for a local server the user configures
-  with an `http://` address. The provider handles the text under its own terms and privacy policy; the
+  senders' names. Transmission is always encrypted: the app accepts only HTTPS addresses, also for
+  servers on the home network. The provider handles the text under its own terms and privacy policy; the
   app does not control how long it is kept.
 - **Downloads**: transcription models come from huggingface.co and the guides for getting keys from
   raw.githubusercontent.com. These requests contain no user data; like any network request, they reveal

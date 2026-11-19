@@ -450,6 +450,8 @@ final class AiReview {
                 return c.getString(R.string.ai_err_model);
             case "format":
                 return c.getString(R.string.ai_err_format);
+            case "https":
+                return c.getString(R.string.ai_err_https);
             default:
                 return c.getString(R.string.ai_err_http);
         }

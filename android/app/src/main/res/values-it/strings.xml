@@ -178,7 +178,7 @@
     <string name="ai_oauth_done">OpenRouter collegato. Puoi tornare all\'app.</string>
     <string name="ai_paste_key">Incolla una chiave</string>
     <string name="ai_url">Indirizzo del servizio</string>
-    <string name="ai_url_local">Indirizzo del computer nella tua rete, per esempio %1$s</string>
+    <string name="ai_url_local">Indirizzo https del computer, per esempio %1$s. Il server deve avere un certificato riconosciuto dal telefono: vedi la guida.</string>
     <string name="ai_key">Chiave API</string>
     <string name="ai_paste">Incolla</string>
     <string name="ai_need_key">Incolla prima la chiave.</string>
@@ -202,6 +202,7 @@
     <string name="ai_err_network">servizio non raggiungibile</string>
     <string name="ai_err_model">modello non trovato</string>
     <string name="ai_err_format">risposta non valida</string>
+    <string name="ai_err_https">serve un indirizzo https</string>
     <string name="ai_err_http">errore del servizio</string>
     <string name="ai_err_none">nessun account disponibile</string>
     <string name="review_reviewing">revisione con %1$s…</string>

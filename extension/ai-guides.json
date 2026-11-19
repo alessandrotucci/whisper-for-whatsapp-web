@@ -225,7 +225,7 @@
          "title": {"it": "Scarica un modello", "en": "Download a model"},
          "text": {"it": "Scegli un modello multilingue adatto alla memoria del computer, per esempio qwen3 o gemma3, e scaricalo dall'applicazione di Ollama. Poi premi Verifica qui sotto.", "en": "Pick a multilingual model that fits your computer's memory, for example qwen3 or gemma3, and download it from the Ollama app. Then press Verify below."},
          "mobile": {"title": {"it": "Modello e accesso dalla rete", "en": "Model and network access"},
-                    "text": {"it": "Scarica sul computer un modello multilingue, per esempio qwen3 o gemma3. Imposta la variabile d'ambiente OLLAMA_HOST=0.0.0.0 e riavvia Ollama, così risponde anche al telefono. Come indirizzo qui sotto usa quello del computer, per esempio http://192.168.1.10:11434/v1, non localhost.", "en": "Download a multilingual model on the computer, for example qwen3 or gemma3. Set the environment variable OLLAMA_HOST=0.0.0.0 and restart Ollama so that it also answers the phone. As the address below use the computer's one, for example http://192.168.1.10:11434/v1, not localhost."}}}
+                    "text": {"it": "Scarica sul computer un modello multilingue, per esempio qwen3 o gemma3. L'app accetta solo indirizzi https con un certificato valido: pubblica Ollama nella tua rete con un proxy che lo fornisce, per esempio Tailscale Serve o Caddy, e qui sotto usa quell'indirizzo, per esempio https://computer.tua-rete.ts.net/v1.", "en": "Download a multilingual model on the computer, for example qwen3 or gemma3. The app accepts only https addresses with a valid certificate: publish Ollama on your network through a proxy that provides one, for example Tailscale Serve or Caddy, and use that address below, for example https://computer.your-net.ts.net/v1."}}}
       ]
     },
     "lmstudio": {
@@ -240,7 +240,7 @@
          "title": {"it": "Avvia il server", "en": "Start the server"},
          "text": {"it": "Nella scheda Developer avvia il server locale (porta 1234), poi premi Verifica qui sotto.", "en": "In the Developer tab start the local server (port 1234), then press Verify below."},
          "mobile": {"title": {"it": "Avvia il server in rete", "en": "Start the server on the network"},
-                    "text": {"it": "Nella scheda Developer attiva Serve on Local Network e avvia il server (porta 1234). Come indirizzo qui sotto usa quello del computer, per esempio http://192.168.1.10:1234/v1, non localhost.", "en": "In the Developer tab turn on Serve on Local Network and start the server (port 1234). As the address below use the computer's one, for example http://192.168.1.10:1234/v1, not localhost."}}}
+                    "text": {"it": "Nella scheda Developer avvia il server (porta 1234). L'app accetta solo indirizzi https con un certificato valido: pubblica il server con un proxy che lo fornisce, per esempio Tailscale Serve o Caddy, e qui sotto usa quell'indirizzo, per esempio https://computer.tua-rete.ts.net/v1.", "en": "In the Developer tab start the server (port 1234). The app accepts only https addresses with a valid certificate: publish the server through a proxy that provides one, for example Tailscale Serve or Caddy, and use that address below, for example https://computer.your-net.ts.net/v1."}}}
       ]
     },
     "custom": {

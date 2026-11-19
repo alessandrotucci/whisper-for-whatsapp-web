@@ -153,11 +153,16 @@ final class AiClient {
         return h;
     }
 
+    /**
+     * L'indirizzo base del fornitore, senza barra finale. Si accettano solo indirizzi https: i testi
+     * dei messaggi non viaggiano mai in chiaro, neanche verso un server nella rete di casa.
+     */
     private static String base(AiProviders.Provider p, String baseUrl) throws AiError {
         String url = baseUrl != null && !baseUrl.trim().isEmpty() ? baseUrl.trim() : p.baseUrl;
         if (url == null) url = "";
         while (url.endsWith("/")) url = url.substring(0, url.length() - 1);
         if (url.isEmpty()) throw new AiError("http", "indirizzo mancante");
+        if (!url.regionMatches(true, 0, "https://", 0, 8)) throw new AiError("https", url);
         return url;
     }
 

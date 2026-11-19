@@ -1,7 +1,7 @@
 # Play Console: risposte e dichiarazioni
 
 Risposte proposte per le sezioni di *Monitora e migliora → Contenuti dell'app* e per la firma, ricavate dal
-codice della versione 1.4.0. Ogni punto dice da dove viene; dove la risposta è una scelta o un'interpretazione
+codice della versione 1.4.1. Ogni punto dice da dove viene; dove la risposta è una scelta o un'interpretazione
 della policy, lo dice.
 
 ## Firma dell'app (Play App Signing)
@@ -15,7 +15,7 @@ della policy, lo dice.
 - Chiave di caricamento: `wa-transcriber-upload.p12`, alias `upload`, RSA 4096, impronta SHA-256
   `BC:FA:D0:36:B0:2F:F6:3A:DE:41:25:FC:28:5A:4F:81:A6:28:39:71:12:0E:96:85:1D:08:3C:CB:3E:0E:7F:54`.
   L'AAB firmato con questa chiave è l'artifact `aab` di ogni build del workflow `android`.
-- Codice versione: Play rifiuta un AAB con un `versionCode` già caricato. La 1.4.0 ha `versionCode=14`.
+- Codice versione: Play rifiuta un AAB con un `versionCode` già caricato. La 1.4.1 ha `versionCode=15`.
 
 ## Norme sulla privacy
 
@@ -71,16 +71,14 @@ Fatti, dal codice:
   dell'utente: il testo delle trascrizioni, i messaggi scritti in un'altra lingua (se la traduzione dei messaggi
   è attiva), il nome della chat e, se l'utente attiva il contesto, gli ultimi messaggi della chat con i nomi dei
   mittenti.
-- Le chiamate ai fornitori sono HTTPS; Ollama e LM Studio, server locali che l'utente può configurare, usano di
-  solito un indirizzo `http://` nella rete di casa.
+- Tutte le chiamate ai fornitori sono HTTPS: dalla 1.4.1 l'app rifiuta gli indirizzi `http://`, anche per
+  Ollama e LM Studio nella rete di casa, e il manifest non permette traffico in chiaro.
 
 Risposte proposte. Google considera «raccolti» i dati che l'app trasmette fuori dal telefono, anche se lo
 sviluppatore non li riceve; dichiararli è la scelta prudente:
 
 - L'app raccoglie o condivide i tipi di dati richiesti? **Sì.**
-- I dati sono criptati in transito? **No.** Con i fornitori in cloud sì; la risposta onesta è No finché l'app
-  permette i server locali in `http://`. Se si vuole rispondere Sì, bisogna togliere il supporto a `http://`
-  (e `usesCleartextTraffic`).
+- I dati sono criptati in transito? **Sì** (dalla 1.4.1: solo HTTPS).
 - Gli utenti possono richiedere l'eliminazione dei dati? **Sì**: le voci si cancellano dalla lista, con
   *Cancella tutto* o disinstallando l'app; i testi presso il fornitore di IA seguono le regole del fornitore.
 - Tipo di dati: **Messaggi → Altri messaggi in-app**.
