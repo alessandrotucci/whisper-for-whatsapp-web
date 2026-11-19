@@ -127,8 +127,10 @@ function connect() {
   lastHostError = null;
   port = chrome.runtime.connectNative(HOST_NAME);
   port.onMessage.addListener(onHostMessage);
-  port.onDisconnect.addListener(() => {
-    const err = chrome.runtime.lastError ? chrome.runtime.lastError.message : chrome.i18n.getMessage('err_host_exited');
+  port.onDisconnect.addListener((p) => {
+    // Chrome ed Edge mettono il motivo in runtime.lastError, Firefox in port.error.
+    const reason = (p && p.error) || chrome.runtime.lastError;
+    const err = reason && reason.message ? reason.message : chrome.i18n.getMessage('err_host_exited');
     lastHostError = err;
     port = null;
     for (const p of pending.values()) {
@@ -851,6 +853,8 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   for (const t of await waTabs()) chrome.tabs.reload(t.id).catch(() => {});
 });
 
-importScripts('update.js');
+// In Chrome ed Edge lo sfondo è un service worker e carica qui gli altri script; in
+// Firefox è una pagina di eventi e il manifest li elenca già in background.scripts.
+if (typeof importScripts === 'function') importScripts('channel.js', 'update.js');
 
 restore();

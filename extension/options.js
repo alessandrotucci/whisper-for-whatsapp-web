@@ -470,6 +470,8 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden && !hostOk) checkHost();
 });
 
+$('versionLine').textContent = t('opt_version', chrome.runtime.getManifest().version);
+
 (async () => {
   await loadSettings();
   cacheInfo();
