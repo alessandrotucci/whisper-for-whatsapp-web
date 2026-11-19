@@ -180,9 +180,11 @@ public final class Db extends SQLiteOpenHelper {
     }
 
     /** Aggiunge un messaggio al gruppo e ne rimette in attesa la traduzione. */
-    public void appendMessage(long id, String text, long received) {
+    public void appendMessage(long id, String text, long received, String language) {
         getWritableDatabase().execSQL("UPDATE notes SET text = text || char(10) || ?, received = ?, review_state = "
-                + REVIEW_PENDING + ", review_error = NULL WHERE id = ?", new Object[]{text, received, id});
+                + REVIEW_PENDING + ", review_error = NULL, language = CASE WHEN language IS NULL THEN ? "
+                + "WHEN instr(',' || language || ',', ',' || ? || ',') > 0 THEN language ELSE language || ', ' || ? END "
+                + "WHERE id = ?", new Object[]{text, received, language, language, language, id});
     }
 
     /** Il gruppo di messaggi con la traduzione in attesa da più tempo, oppure null. */

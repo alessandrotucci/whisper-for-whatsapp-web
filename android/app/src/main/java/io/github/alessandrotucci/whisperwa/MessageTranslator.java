@@ -93,7 +93,7 @@ final class MessageTranslator {
         Db db = Db.get(app);
         Db.Note group = db.lastMessages(pkg, chat, time - GROUP_MS);
         if (group != null) {
-            db.appendMessage(group.id, text, time);
+            db.appendMessage(group.id, text, time, lang);
         } else {
             String source = "msg:" + pkg + ":" + chat + ":" + time + ":" + Integer.toHexString(text.hashCode());
             db.insertMessages(pkg, chat, sender, source, text, lang, time);
@@ -123,6 +123,10 @@ final class MessageTranslator {
         }
     }
 
+    private static boolean same(String a, String b) {
+        return a.replaceAll("\\s+", " ").trim().equalsIgnoreCase(b.replaceAll("\\s+", " ").trim());
+    }
+
     private void drain() {
         Db db = Db.get(app);
         Db.Note n;
@@ -135,13 +139,42 @@ final class MessageTranslator {
         translatingWith = null;
         TranscriptionQueue.get(app).changed();
         List<String> lines = new ArrayList<>(Arrays.asList(note.text.split("\n")));
+        String target = AiProviders.baseLang(AiStore.load(app).targetOrDefault());
+        List<String> langs = new ArrayList<>();
+        for (String line : lines) langs.add(detect(line));
         try {
-            AiReview.MessagesResult r = AiReview.translateMessages(app, lines, note.chat, name -> {
+            AiReview.AttemptListener attempt = name -> {
                 translatingWith = name;
                 TranscriptionQueue.get(app).changed();
-            });
+            };
+            AiReview.MessagesResult r = AiReview.translateMessages(app, lines, langs, note.chat, attempt);
+            // Un messaggio in un'altra lingua rimasto senza traduzione, o "tradotto" con il testo
+            // originale, si richiede da solo una volta.
+            List<Integer> missing = new ArrayList<>();
+            for (int i = 0; i < lines.size(); i++) {
+                String t = r.translations.get(i);
+                boolean foreign = langs.get(i) != null && !AiProviders.baseLang(langs.get(i)).equals(target);
+                if (foreign && (t == null || same(t, lines.get(i)))) missing.add(i);
+            }
+            if (!missing.isEmpty()) {
+                List<String> again = new ArrayList<>();
+                List<String> againLangs = new ArrayList<>();
+                for (int i : missing) {
+                    again.add(lines.get(i));
+                    againLangs.add(langs.get(i));
+                }
+                Log.i(TAG, "messaggi senza traduzione: " + missing.size() + ", nuova richiesta");
+                AiReview.MessagesResult r2 = AiReview.translateMessages(app, again, againLangs, note.chat, attempt);
+                for (int k = 0; k < missing.size(); k++) {
+                    String t = r2.translations.get(k);
+                    if (t != null && !same(t, again.get(k))) r.translations.set(missing.get(k), t);
+                }
+            }
             List<String> out = new ArrayList<>();
-            for (String t : r.translations) if (t != null) out.add(t);
+            for (int i = 0; i < lines.size(); i++) {
+                String t = r.translations.get(i);
+                if (t != null && !same(t, lines.get(i))) out.add(t);
+            }
             Log.i(TAG, "tradotti " + lines.size() + " messaggi con " + r.provider + " (" + r.model + ") in " + r.ms + " ms");
             if (out.isEmpty()) {
                 // Per l'IA nessun messaggio era da tradurre: il gruppo non resta nella lista.
