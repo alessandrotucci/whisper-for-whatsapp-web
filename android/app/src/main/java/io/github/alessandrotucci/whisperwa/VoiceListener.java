@@ -86,7 +86,7 @@ public final class VoiceListener extends NotificationListenerService {
                 // Le notifiche di risposta hanno come mittente un avviso che inizia con la freccia
                 // U+2937 («Hai ricevuto una risposta»): non è un nome, vale la chat.
                 if (sender != null && sender.toString().startsWith(REPLY_ARROW)) sender = null;
-                String chat = str(conversation != null ? conversation : title);
+                String chat = chatName(conversation != null ? conversation : title);
                 String who = sender != null ? sender.toString() : chat;
                 if (!text.toString().contains(MIC)) {
                     ChatContext.add(pkg, chat, who, text.toString(), time);
@@ -103,7 +103,7 @@ public final class VoiceListener extends NotificationListenerService {
 
         CharSequence text = extras.getCharSequence(Notification.EXTRA_TEXT);
         if (text != null && text.toString().contains(MIC)) {
-            hint(pkg, str(title), str(title), sbn.getPostTime(), null, now, out);
+            hint(pkg, chatName(title), chatName(title), sbn.getPostTime(), null, now, out);
         }
     }
 
@@ -133,4 +133,15 @@ public final class VoiceListener extends NotificationListenerService {
     private static String str(CharSequence s) {
         return s == null ? null : s.toString();
     }
+
+    /**
+     * Il nome della chat senza il contatore che WhatsApp aggiunge al titolo dei gruppi, per esempio
+     * «Famiglia (3 messaggi)»: il contatore cambia a ogni messaggio e il nome deve restare lo stesso.
+     */
+    static String chatName(CharSequence s) {
+        return s == null ? null : UNREAD_COUNT.matcher(s).replaceFirst("");
+    }
+
+    private static final java.util.regex.Pattern UNREAD_COUNT =
+            java.util.regex.Pattern.compile("\\s*\\(\\d+ [^()\\d]+\\)\\s*$");
 }
