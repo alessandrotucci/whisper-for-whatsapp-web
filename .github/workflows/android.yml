@@ -7,7 +7,10 @@
 #
 # La firma usa il keystore nei secret ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
 # ANDROID_KEY_ALIAS e ANDROID_KEY_PASSWORD; su un tag l'APK deve essere firmato con il
-# certificato atteso, altrimenti non si installerebbe sopra le versioni precedenti.
+# certificato atteso, altrimenti non si installerebbe sopra le versioni precedenti. L'AAB per
+# Google Play usa la chiave di caricamento nei secret ANDROID_UPLOAD_KEYSTORE_BASE64,
+# ANDROID_UPLOAD_KEYSTORE_PASSWORD, ANDROID_UPLOAD_KEY_ALIAS e ANDROID_UPLOAD_KEY_PASSWORD; senza
+# quei secret l'AAB non si costruisce.
 name: android
 
 on:
@@ -91,6 +94,38 @@ jobs:
         with:
           name: apk
           path: ${{ steps.apk.outputs.path }}
+
+      # L'AAB per Google Play si firma con la chiave di caricamento, distinta da quella di release:
+      # Play lo rifirma con la chiave di firma dell'app, che è la stessa dell'APK di GitHub.
+      - name: AAB per Google Play
+        id: aab
+        working-directory: android
+        env:
+          UPLOAD_KEYSTORE_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+          UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+          UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+        run: |
+          if [ -z "$UPLOAD_KEYSTORE_BASE64" ]; then
+            echo "::notice::chiave di caricamento assente: nessun AAB"
+            exit 0
+          fi
+          echo "$UPLOAD_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/upload.jks" \
+          ANDROID_KEYSTORE_PASSWORD="$UPLOAD_KEYSTORE_PASSWORD" \
+          ANDROID_KEY_ALIAS="$UPLOAD_KEY_ALIAS" \
+          ANDROID_KEY_PASSWORD="$UPLOAD_KEY_PASSWORD" \
+            ./gradlew --no-daemon --stacktrace bundleRelease
+          aab=$(ls app/build/outputs/bundle/release/*.aab | head -1)
+          out="$GITHUB_WORKSPACE/build/WATranscriberAndTranslator-android-${{ steps.version.outputs.name }}.aab"
+          cp "$aab" "$out"
+          echo "path=$out" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v7
+        if: steps.aab.outputs.path != ''
+        with:
+          name: aab
+          path: ${{ steps.aab.outputs.path }}
 
       - name: Release
         if: startsWith(github.ref, 'refs/tags/android-v')
