@@ -1,8 +1,8 @@
 ; Installer del componente locale di Whisper for WhatsApp Web.
 ;
 ; Installa whisper_host.exe per il solo utente corrente (nessun privilegio di
-; amministratore), scrive il manifest di native messaging e lo registra per
-; Chrome ed Edge in HKCU. Il modello non fa parte dell'installer: lo si sceglie
+; amministratore), scrive i manifest di native messaging e li registra in HKCU:
+; uno per Chrome ed Edge (allowed_origins), uno per Firefox (allowed_extensions). Il modello non fa parte dell'installer: lo si sceglie
 ; o scarica dalla pagina delle opzioni dell'estensione.
 ;
 ; Compilazione (dalla radice del repository, dopo PyInstaller):
@@ -15,6 +15,8 @@
 #define HostName "local.wa_whisper.host"
 ; Origini ammesse dal manifest, già nel formato JSON. Un ID per ogni pubblicazione dell'estensione.
 #define ExtOrigins '"chrome-extension://mmfdonlfmjnahpaebjhjlgkpplkfplop/"'
+; Id delle estensioni per Firefox, già nel formato JSON.
+#define FirefoxIds '"wa-web-transcriber@alessandrotucci.github.io"'
 
 [Setup]
 AppId={{023E3E70-C041-4C94-BDC3-CC1A03EEA358}
@@ -55,9 +57,11 @@ Source: "..\build\dist\whisper_host\*"; DestDir: "{app}\host"; Flags: ignorevers
 [Registry]
 Root: HKCU; Subkey: "Software\Google\Chrome\NativeMessagingHosts\{#HostName}"; ValueType: string; ValueName: ""; ValueData: "{app}\{#HostName}.json"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Microsoft\Edge\NativeMessagingHosts\{#HostName}"; ValueType: string; ValueName: ""; ValueData: "{app}\{#HostName}.json"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Mozilla\NativeMessagingHosts\{#HostName}"; ValueType: string; ValueName: ""; ValueData: "{app}\{#HostName}.firefox.json"; Flags: uninsdeletekey
 
 [UninstallDelete]
 Type: files; Name: "{app}\{#HostName}.json"
+Type: files; Name: "{app}\{#HostName}.firefox.json"
 Type: filesandordirs; Name: "{localappdata}\WhisperForWhatsAppWeb"
 
 [Code]
@@ -107,5 +111,15 @@ begin
       '}' + #13#10;
     if not SaveStringToFile(ExpandConstant('{app}\{#HostName}.json'), Json, False) then
       RaiseException('Impossibile scrivere il manifest di native messaging.');
+    Json :=
+      '{' + #13#10 +
+      '  "name": "{#HostName}",' + #13#10 +
+      '  "description": "Whisper for WhatsApp Web - trascrizione locale",' + #13#10 +
+      '  "path": "' + JsonEscape(ExpandConstant('{app}\host\whisper_host.exe')) + '",' + #13#10 +
+      '  "type": "stdio",' + #13#10 +
+      '  "allowed_extensions": [{#FirefoxIds}]' + #13#10 +
+      '}' + #13#10;
+    if not SaveStringToFile(ExpandConstant('{app}\{#HostName}.firefox.json'), Json, False) then
+      RaiseException('Impossibile scrivere il manifest di native messaging per Firefox.');
   end;
 end;
