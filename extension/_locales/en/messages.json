@@ -851,6 +851,33 @@
   "tr_translate": {
     "message": "Translate"
   },
+  "lang_others": {
+    "message": "Other languages"
+  },
+  "lang_no_translate": {
+    "message": "$1: don't translate"
+  },
+  "lang_menu_text": {
+    "message": "The message is in:"
+  },
+  "lang_menu_chip": {
+    "message": "Translate this message:"
+  },
+  "lang_menu_voice": {
+    "message": "Transcribe again in:"
+  },
+  "lang_detect_ai": {
+    "message": "detect with AI"
+  },
+  "lang_text_title": {
+    "message": "Correct the message language"
+  },
+  "lang_voice_title": {
+    "message": "Transcribe the voice message again in another language"
+  },
+  "lang_chip_title": {
+    "message": "Translate this message"
+  },
   "tr_translate_title": {
     "message": "Translate this message with AI"
   },

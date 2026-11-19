@@ -171,6 +171,14 @@ function check(name, cond, detail) {
   await tick();
   const trs2 = await send({ cmd: 'trGet', keys: ['m3'] }, tab);
   check('una traduzione fallita non resta in archivio', trs2.m3 === null, trs2);
+  // Lingua scelta a mano: trascrizione con la lingua imposta, messaggio segnato come già tradotto.
+  await send({ cmd: 'enqueue', key: 'k7', manual: true, force: true, language: 'es' }, tab);
+  await tick();
+  const j7 = posted.filter((m) => m.type === 'transcribe').pop();
+  check('ritrascrizione con la lingua scelta', j7 && j7.language === 'es', j7);
+  const same = await send({ cmd: 'trSetSame', key: 'm9', language: 'it' }, tab);
+  const m9 = await send({ cmd: 'trGet', keys: ['m9'] }, tab);
+  check('messaggio segnato nella lingua dell\'utente', same === true && m9.m9 && m9.m9.state === 'done' && m9.m9.translation === null && m9.m9.manual, m9);
   const info = await send({ cmd: 'updateInfo' });
   check('updateInfo ha le versioni installate', info && info.current && info.current.extension, info);
   const stats = await send({ cmd: 'cacheStats' });

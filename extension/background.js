@@ -75,7 +75,7 @@ function restore() {
 }
 
 function persistQueue() {
-  const list = [...jobs.values()].map((j) => ({ key: j.key, tabId: j.tabId, manual: j.manual, chat: j.chat, addedAt: j.addedAt, retries: j.retries }));
+  const list = [...jobs.values()].map((j) => ({ key: j.key, tabId: j.tabId, manual: j.manual, chat: j.chat, addedAt: j.addedAt, retries: j.retries, language: j.language || null }));
   return chrome.storage.session.set({ jobs: list });
 }
 
@@ -212,7 +212,7 @@ function notifyPages(message) {
   chrome.runtime.sendMessage(message).catch(() => {});
 }
 
-function hostTranscribe(audioB64, manual, context, onEvent) {
+function hostTranscribe(audioB64, manual, context, onEvent, language) {
   const id = 'j' + Date.now().toString(36) + '-' + (++jobSeq);
   const promise = new Promise((resolve, reject) => {
     pending.set(id, { resolve, reject, onEvent });
@@ -221,7 +221,7 @@ function hostTranscribe(audioB64, manual, context, onEvent) {
         type: 'transcribe',
         id,
         audio: audioB64,
-        language: settings.language || null,
+        language: language || settings.language || null,
         initial_prompt: settings.initialPrompt || null,
         beam_size: Number(settings.beamSize) || 5,
         vad_filter: !!settings.vadFilter,
@@ -344,7 +344,7 @@ async function fetchAudio(job) {
 
 // ---------- lavori ----------
 
-async function enqueue(key, { tabId, manual, chat, force }) {
+async function enqueue(key, { tabId, manual, chat, force, language }) {
   await restore();
   if (!force) {
     const cached = (await getCached([key]))[key];
@@ -365,7 +365,7 @@ async function enqueue(key, { tabId, manual, chat, force }) {
     }
     return stateOf(key);
   }
-  jobs.set(key, { key, tabId, manual: !!manual, chat: chat || '', addedAt: Date.now(), retries: 0, state: 'queued' });
+  jobs.set(key, { key, tabId, manual: !!manual, chat: chat || '', addedAt: Date.now(), retries: 0, state: 'queued', language: language || null });
   insertToFetch(key, manual);
   await persistQueue();
   broadcastQueue();
@@ -438,7 +438,7 @@ function submit(job, b64, context) {
       job.progress = ev.progress;
     }
     broadcastQueue();
-  });
+  }, job.language);
   job.hostJobId = id;
   broadcastQueue();
   promise.then((res) => finishResult(job, res), (e) => finishError(job, e));
@@ -635,8 +635,8 @@ const handlers = {
     for (const k of keys) out[k] = cached[k] ? { state: 'done', ...cached[k] } : stateOf(k);
     return out;
   },
-  enqueue({ key, manual, force, chat }, sender) {
-    return enqueue(key, { tabId: sender.tab && sender.tab.id, manual, force, chat });
+  enqueue({ key, manual, force, chat, language }, sender) {
+    return enqueue(key, { tabId: sender.tab && sender.tab.id, manual, force, chat, language });
   },
   async autoEnqueue({ key, fromMe, chat, visible }, sender) {
     await restore();
@@ -794,6 +794,12 @@ const handlers = {
   trEnqueue({ items }) {
     trEnqueue(items || []);
     return { ok: true };
+  },
+  // L'utente ha detto che il messaggio è già nella sua lingua: niente traduzione, salvato.
+  async trSetSame({ key, language }) {
+    trPending.delete(key);
+    await chrome.storage.local.set({ ['x:' + key]: { translation: null, language, manual: true, at: Date.now() } });
+    return true;
   },
   detectLanguage({ text }) {
     return chrome.i18n.detectLanguage(text);

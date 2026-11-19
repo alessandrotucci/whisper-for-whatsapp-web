@@ -851,6 +851,33 @@
   "tr_translate": {
     "message": "Traduci"
   },
+  "lang_others": {
+    "message": "Altre lingue"
+  },
+  "lang_no_translate": {
+    "message": "$1: non tradurre"
+  },
+  "lang_menu_text": {
+    "message": "Il messaggio è in:"
+  },
+  "lang_menu_chip": {
+    "message": "Traduci questo messaggio:"
+  },
+  "lang_menu_voice": {
+    "message": "Trascrivi di nuovo in:"
+  },
+  "lang_detect_ai": {
+    "message": "rileva con l'IA"
+  },
+  "lang_text_title": {
+    "message": "Correggi la lingua del messaggio"
+  },
+  "lang_voice_title": {
+    "message": "Trascrivi di nuovo il vocale in un'altra lingua"
+  },
+  "lang_chip_title": {
+    "message": "Traduci questo messaggio"
+  },
   "tr_translate_title": {
     "message": "Traduci questo messaggio con l'IA"
   },
