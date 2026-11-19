@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Lingua: disegno</title>
+<style>
+.wwt-box {
+  box-sizing: border-box;
+  margin-top: 3px;
+  margin-bottom: 6px;
+  padding: 5px 9px 6px;
+  border-radius: 7.5px;
+  border-left: 3px solid #25d366;
+  background: rgba(128, 128, 128, 0.14);
+  color: inherit;
+  font-size: 13.6px;
+  line-height: 19px;
+  align-self: flex-start;
+  min-width: 0;
+  user-select: text;
+}
+
+.wwt-box.wwt-out {
+  align-self: flex-end;
+}
+
+.wwt-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.wwt-icon {
+  font-size: 13px;
+}
+
+.wwt-label {
+  flex: 1 1 auto;
+}
+
+.wwt-error {
+  color: #e5534b;
+}
+
+.wwt-actions {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.wwt-btn {
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  padding: 1px 8px;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.wwt-seg {
+  display: inline-flex;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.wwt-seg button {
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  padding: 1px 8px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.wwt-seg button + button {
+  border-left: 1px solid rgba(128, 128, 128, 0.45);
+}
+
+.wwt-seg button.on {
+  background: rgba(37, 211, 102, 0.22);
+  font-weight: 600;
+  cursor: default;
+}
+
+.wwt-seg button:not(.on):hover {
+  background: rgba(37, 211, 102, 0.12);
+}
+
+.wwt-btn:hover {
+  background: rgba(37, 211, 102, 0.18);
+  border-color: #25d366;
+}
+
+.wwt-text {
+  margin-top: 3px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  opacity: 1;
+}
+
+.wwt-partial {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.wwt-spinner {
+  width: 11px;
+  height: 11px;
+  border: 2px solid rgba(128, 128, 128, 0.35);
+  border-top-color: #25d366;
+  border-radius: 50%;
+  animation: wwt-spin 0.9s linear infinite;
+}
+
+@keyframes wwt-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.wwt-fix {
+  text-decoration: underline dotted #25d366 2px;
+  text-underline-offset: 3px;
+  cursor: help;
+}
+
+.wwt-orig {
+  background: rgba(229, 83, 75, 0.16);
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+.wwt-tr {
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(128, 128, 128, 0.3);
+}
+
+.wwt-tr-label {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-bottom: 1px;
+}
+
+.wwt-final-tr {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.wwt-note {
+  margin-top: 5px;
+  font-size: 12px;
+  color: #c2410c;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.wwt-trbox {
+  border-left-color: #53bdeb;
+}
+
+.wwt-trbox.wwt-slim {
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+body { background: #e9edef; margin: 0; color: #1f2328; font: 14px/1.5 "Segoe UI", system-ui, sans-serif; }
+.sheet { max-width: 1100px; margin: 0 auto; padding: 24px 16px 60px; }
+h1 { font-size: 20px; margin: 0 0 6px; }
+.muted { color: #59636e; }
+.mk-small { font-size: 12.5px; }
+.mk-scene { font-size: 17px; margin: 30px 0 10px; padding-top: 14px; border-top: 2px solid #b8c2cc; }
+.wa { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; background: #efeae2; border-radius: 10px; padding: 16px 22px; color: #111b21; }
+@media (max-width: 900px) { .wa { grid-template-columns: 1fr; } }
+.wa-col { display: flex; flex-direction: column; }
+.mk-cap { align-self: stretch; margin: 14px 0 6px; font-size: 12px; font-weight: 600; color: #54656f; border-bottom: 1px dashed #b9b2a8; padding-bottom: 2px; }
+.mk-cap:first-child { margin-top: 0; }
+.bubble-in, .bubble-out { width: 300px; padding: 8px 9px 6px; border-radius: 7.5px; box-shadow: 0 1px .5px rgba(11,20,26,.13); display: flex; align-items: flex-end; gap: 8px; }
+.bubble-in { background: #fff; align-self: flex-start; }
+.bubble-out { background: #d9fdd3; align-self: flex-end; }
+.voice { flex: 1; color: #54656f; font-size: 13px; letter-spacing: -1px; }
+.time { font-size: 11px; color: #667781; white-space: nowrap; }
+.wa .wwt-box { max-width: 440px; }
+.wwt-fix { text-decoration: underline dotted #25d366 2px; text-underline-offset: 3px; }
+.wwt-orig { background: rgba(229, 83, 75, .16); border-radius: 3px; padding: 0 2px; }
+.wwt-tr { margin-top: 6px; padding-top: 5px; border-top: 1px solid rgba(128,128,128,.3); }
+.wwt-tr-label { font-size: 12px; opacity: .75; margin-bottom: 1px; }
+.wwt-seg { display: inline-flex; border: 1px solid rgba(128, 128, 128, 0.45); border-radius: 10px; overflow: hidden; }
+.wwt-seg button { font: inherit; font-size: 12px; line-height: 18px; padding: 1px 8px; border: none; background: transparent; color: inherit; cursor: pointer; }
+.wwt-seg button + button { border-left: 1px solid rgba(128, 128, 128, 0.45); }
+.wwt-seg button.on { background: rgba(37, 211, 102, 0.22); color: #0b6e4f; font-weight: 600; }
+.mk-new { outline: 2px dashed #e5534b; outline-offset: 2px; }
+.bubble-in2{position:relative;max-width:380px;padding:6px 9px;border-radius:7.5px;box-shadow:0 1px .5px rgba(11,20,26,.13);background:#fff;align-self:flex-start;margin-bottom:4px}.bubble-in2 .time{float:right;margin:6px 0 -4px 10px}
+.mk-sel{border-bottom:1px dotted currentColor;cursor:pointer;padding:0 2px}
+.mk-menu{align-self:flex-start;margin:6px 0 4px 24px;background:#fff;border:1px solid #c9d1d9;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.15);font-size:13px;min-width:220px;padding:4px 0}
+.mk-menu div{padding:3px 12px}.mk-menu .on{background:rgba(37,211,102,.18);font-weight:600}.mk-menu .mk-mh{font-size:11.5px;color:#59636e;padding-bottom:4px}
+.mk-chip{position:absolute;right:-30px;bottom:2px;background:#fff;border:1px solid rgba(128,128,128,.45);border-radius:10px;font-size:12px;padding:0 5px}
+</style></head><body>
+<div class="sheet">
+<h1>Correzione della lingua rilevata: disegno</h1>
+<p class="muted">Costruito con il foglio di stile vero del riquadro (content.css) e i testi in uso; bolle di WhatsApp ricalcate a mano, misure stimate; testi d'esempio inventati. Il contorno tratteggiato rosso segna ciò che cambia. L'elenco delle lingue è un menu del browser: qui è disegnato aperto per mostrarne il contenuto.</p>
+
+<h2 class="mk-scene">Messaggi scritti</h2>
+<div class="wa">
+  <div class="wa-col">
+    <div class="mk-cap">L1 · La lingua nel riquadro diventa un menu</div>
+    <div class="bubble-in2"><span class="txt">Bora!</span><span class="time">16:01</span></div>
+    <div class="wwt-box wwt-trbox">
+      <div class="wwt-head"><span class="wwt-icon">🌐</span><span class="wwt-label">Traduzione · <span class="mk-sel mk-new">portoghese ▾</span> → it · Groq</span><span class="wwt-actions"><button class="wwt-btn">Copia</button></span></div>
+      <div class="wwt-text">Andiamo!</div>
+    </div>
+    <div class="mk-menu">
+      <div class="mk-mh">Il messaggio è in:</div>
+      <div class="on">portoghese (rilevata)</div><div>italiano: non tradurre</div><div>spagnolo</div><div>inglese</div><div>francese</div><div>tedesco</div><div class="muted">altre lingue…</div>
+    </div>
+    <p class="muted mk-small">Scegliendo un'altra lingua il messaggio si traduce di nuovo dicendo all'IA in che lingua è; scegliendo «italiano: non tradurre» il riquadro sparisce. La scelta resta salvata per quel messaggio.</p>
+  </div>
+  <div class="wa-col">
+    <div class="mk-cap">L2 · Messaggio breve scambiato per italiano: nessun riquadro, «🌐» al passaggio del mouse</div>
+    <div class="bubble-in2 hover"><span class="txt">Tá bom, valeu</span><span class="time">16:05</span><span class="mk-chip mk-new">🌐</span></div>
+    <p class="muted mk-small">Sui messaggi in arrivo senza riquadro, passando con il mouse sulla bolla compare un piccolo «🌐» nell'angolo. Un clic apre lo stesso menu di L1, con «rileva con l'IA» in cima: il messaggio si traduce e da lì in poi ha il suo riquadro.</p>
+    <div class="mk-menu">
+      <div class="mk-mh">Traduci questo messaggio:</div>
+      <div class="on">rileva con l'IA</div><div>portoghese</div><div>spagnolo</div><div>inglese</div><div>francese</div><div class="muted">altre lingue…</div>
+    </div>
+  </div>
+</div>
+
+<h2 class="mk-scene">Vocali</h2>
+<div class="wa">
+  <div class="wa-col">
+    <div class="mk-cap">L3 · La lingua di Whisper diventa un menu</div>
+    <div class="bubble-in"><div class="voice">▶ ━━━━━━━━━━━ 0:03</div><div class="time">16:10</div></div>
+    <div class="wwt-box">
+      <div class="wwt-head"><span class="wwt-icon">🎙</span><span class="wwt-label"><span class="mk-sel mk-new">gl ▾</span> · 3 s · Groq</span><span class="wwt-actions"><button class="wwt-btn">Copia</button><button class="wwt-btn">↻</button></span></div>
+      <div class="wwt-text">Bo día, xa chegaron?</div>
+      <div class="wwt-tr"><div class="wwt-tr-label">Traduzione · it</div>Buongiorno, sono già arrivate?</div>
+    </div>
+  </div>
+  <div class="wa-col">
+    <div class="mk-cap">L3 · Menu aperto</div>
+    <div class="mk-menu">
+      <div class="mk-mh">Trascrivi di nuovo in:</div>
+      <div class="on">galiziano (rilevata da Whisper)</div><div>portoghese</div><div>spagnolo</div><div>italiano</div><div>inglese</div><div class="muted">altre lingue…</div>
+    </div>
+    <p class="muted mk-small">Per un vocale la lingua sbagliata rovina la trascrizione stessa, non solo la traduzione: scegliendo un'altra lingua il vocale si trascrive di nuovo con quella lingua imposta a Whisper (come «↻», ma con la lingua giusta), poi revisione e traduzione ripartono.</p>
+  </div>
+</div>
+</div>
+</body></html>

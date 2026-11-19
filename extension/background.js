@@ -8,6 +8,8 @@
 // Archivio: chrome.storage.local, chiave "t:<id messaggio>". Con un account di IA collegato
 // nel componente, il record ha anche "review": {state: running|done|error, ...}; il testo
 // di Whisper resta in "text", quello rivisto e la traduzione stanno in review.
+// Traduzioni dei messaggi scritti: chiave "x:<id messaggio>", {translation, language, provider, at};
+// translation null vuol dire che il messaggio era già nella lingua dell'utente.
 // Lavori aperti: chrome.storage.session, così sopravvivono al riavvio del service worker;
 // alla ripartenza tornano tutti in attesa dell'audio e si inviano di nuovo.
 
@@ -73,7 +75,7 @@ function restore() {
 }
 
 function persistQueue() {
-  const list = [...jobs.values()].map((j) => ({ key: j.key, tabId: j.tabId, manual: j.manual, chat: j.chat, addedAt: j.addedAt, retries: j.retries }));
+  const list = [...jobs.values()].map((j) => ({ key: j.key, tabId: j.tabId, manual: j.manual, chat: j.chat, addedAt: j.addedAt, retries: j.retries, language: j.language || null }));
   return chrome.storage.session.set({ jobs: list });
 }
 
@@ -111,6 +113,13 @@ let ridSeq = 0;
 let downloading = null; // nome del modello in download
 let cudaInstalling = false;
 let reviews = new Map(); // id della revisione nel componente -> chiave del vocale
+let trPending = new Map(); // chiave del messaggio -> {text, language}, in attesa di partire
+let trRunning = 0; // richieste di traduzione aperte nel componente
+let trTimer = null;
+let aiConfig = null; // {active, mode, target, at}: impostazioni dell'IA lette dal componente
+const TR_BATCH_ITEMS = 20;
+const TR_BATCH_CHARS = 6000;
+const AI_CONFIG_TTL_MS = 60000;
 let reviewSeq = 0;
 
 function connect() {
@@ -203,7 +212,7 @@ function notifyPages(message) {
   chrome.runtime.sendMessage(message).catch(() => {});
 }
 
-function hostTranscribe(audioB64, manual, context, onEvent) {
+function hostTranscribe(audioB64, manual, context, onEvent, language) {
   const id = 'j' + Date.now().toString(36) + '-' + (++jobSeq);
   const promise = new Promise((resolve, reject) => {
     pending.set(id, { resolve, reject, onEvent });
@@ -212,7 +221,7 @@ function hostTranscribe(audioB64, manual, context, onEvent) {
         type: 'transcribe',
         id,
         audio: audioB64,
-        language: settings.language || null,
+        language: language || settings.language || null,
         initial_prompt: settings.initialPrompt || null,
         beam_size: Number(settings.beamSize) || 5,
         vad_filter: !!settings.vadFilter,
@@ -232,7 +241,7 @@ function hostTranscribe(audioB64, manual, context, onEvent) {
 // muta a lungo (modello in caricamento, vocale in coda dietro quelli di un altro browser).
 let keepAliveTimer = null;
 function updateKeepAlive() {
-  const busy = jobs.size > 0 || reviews.size > 0 || !!downloading || cudaInstalling || updating;
+  const busy = jobs.size > 0 || reviews.size > 0 || trRunning > 0 || trPending.size > 0 || !!downloading || cudaInstalling || updating;
   if (busy && !keepAliveTimer) {
     keepAliveTimer = setInterval(() => {
       chrome.runtime.getPlatformInfo().catch(() => {});
@@ -246,10 +255,10 @@ function updateKeepAlive() {
 function scheduleIdleDisconnect() {
   clearTimeout(idleTimer);
   updateKeepAlive();
-  if (!port || jobs.size || reviews.size || downloading || cudaInstalling) return;
+  if (!port || jobs.size || reviews.size || trRunning || trPending.size || downloading || cudaInstalling) return;
   const minutes = Math.max(1, Number(settings.idleMinutes) || 10);
   idleTimer = setTimeout(() => {
-    if (port && !jobs.size && !reviews.size && !downloading && !cudaInstalling) {
+    if (port && !jobs.size && !reviews.size && !trRunning && !trPending.size && !downloading && !cudaInstalling) {
       port.disconnect();
       port = null;
     }
@@ -335,7 +344,7 @@ async function fetchAudio(job) {
 
 // ---------- lavori ----------
 
-async function enqueue(key, { tabId, manual, chat, force }) {
+async function enqueue(key, { tabId, manual, chat, force, language }) {
   await restore();
   if (!force) {
     const cached = (await getCached([key]))[key];
@@ -356,7 +365,7 @@ async function enqueue(key, { tabId, manual, chat, force }) {
     }
     return stateOf(key);
   }
-  jobs.set(key, { key, tabId, manual: !!manual, chat: chat || '', addedAt: Date.now(), retries: 0, state: 'queued' });
+  jobs.set(key, { key, tabId, manual: !!manual, chat: chat || '', addedAt: Date.now(), retries: 0, state: 'queued', language: language || null });
   insertToFetch(key, manual);
   await persistQueue();
   broadcastQueue();
@@ -429,7 +438,7 @@ function submit(job, b64, context) {
       job.progress = ev.progress;
     }
     broadcastQueue();
-  });
+  }, job.language);
   job.hostJobId = id;
   broadcastQueue();
   promise.then((res) => finishResult(job, res), (e) => finishError(job, e));
@@ -469,6 +478,7 @@ async function onReview(msg) {
       segments: r.segments,
       revised: r.revised,
       translation: r.translation,
+      translationFailed: !!r.translation_failed,
       targetLang: r.target_lang,
       language: r.language,
       provider: r.provider,
@@ -476,7 +486,7 @@ async function onReview(msg) {
       failed: (r.errors || []).map((e) => ({ name: e.name, code: e.code })),
     };
   } else if (msg.state === 'error') {
-    record.review = { state: 'error', errors: (msg.errors || []).map((e) => ({ name: e.name, code: e.code, detail: e.detail })) };
+    record.review = { state: 'error', revise: msg.revise !== false, errors: (msg.errors || []).map((e) => ({ name: e.name, code: e.code, detail: e.detail })) };
   } else {
     delete record.review;
   }
@@ -526,6 +536,95 @@ function isHostSetupError(message) {
   return /native messaging host not found|forbidden|has exited|Error when communicating/i.test(message || '');
 }
 
+// ---------- traduzione dei messaggi scritti ----------
+
+// Impostazioni dell'IA che servono alle schede: se la traduzione dei messaggi scritti è
+// attiva, in che modo, verso quale lingua. Si rileggono dal componente al più ogni minuto.
+async function getAiConfig(force) {
+  if (!force && aiConfig && Date.now() - aiConfig.at < AI_CONFIG_TTL_MS) return aiConfig;
+  try {
+    const r = await hostRequest({ type: 'ai_status' }, ['ai_status', 'ai_error']);
+    scheduleIdleDisconnect();
+    const s = (r && r.settings) || {};
+    aiConfig = {
+      active: r.type === 'ai_status' && r.accounts.length > 0 && !!s.text_translate,
+      mode: s.text_mode || 'auto',
+      target: s.target_lang || chrome.i18n.getUILanguage().split('-')[0],
+      provider: r.accounts && r.accounts[0] ? r.accounts[0].name : null,
+      at: Date.now(),
+    };
+  } catch (e) {
+    aiConfig = { active: false, mode: 'auto', target: 'en', at: Date.now() };
+  }
+  return aiConfig;
+}
+
+async function getTranslations(keys) {
+  const res = await chrome.storage.local.get(keys.map((k) => 'x:' + k));
+  const out = {};
+  for (const k of keys) if (res['x:' + k]) out[k] = res['x:' + k];
+  return out;
+}
+
+function trEnqueue(items) {
+  for (const { key, text, language } of items) if (key && text && !trPending.has(key)) trPending.set(key, { text, language });
+  updateKeepAlive();
+  clearTimeout(trTimer);
+  trTimer = setTimeout(trFlush, 400);
+}
+
+// Manda al componente i messaggi in attesa, a gruppi entro TR_BATCH_ITEMS e TR_BATCH_CHARS.
+function trFlush() {
+  trTimer = null;
+  while (trPending.size) {
+    const batch = [];
+    let chars = 0;
+    for (const [key, { text, language }] of trPending) {
+      if (batch.length && (batch.length >= TR_BATCH_ITEMS || chars + text.length > TR_BATCH_CHARS)) break;
+      batch.push(language ? { id: key, text, language } : { id: key, text });
+      chars += text.length;
+    }
+    for (const it of batch) trPending.delete(it.id);
+    trSend(batch);
+  }
+}
+
+async function trSend(batch) {
+  trRunning++;
+  updateKeepAlive();
+  let updates;
+  try {
+    const r = await hostRequest(
+      { type: 'translate', items: batch, hint: settings.initialPrompt || null },
+      ['translate_result', 'ai_error'],
+      { timeoutMs: 180000 },
+    );
+    if (r.type === 'ai_error') {
+      const errors = (r.errors || [{ code: r.code, detail: r.detail }]).map((e) => ({ name: e.name, code: e.code }));
+      updates = batch.map((it) => ({ key: it.id, state: 'error', errors }));
+    } else {
+      const got = new Map((r.items || []).map((it) => [it.id, it]));
+      const toSave = {};
+      updates = batch.map((it) => {
+        const t = got.get(it.id);
+        if (!t) return { key: it.id, state: 'error', errors: [{ name: r.provider, code: 'format' }] };
+        // Lingua straniera ma nessuna traduzione: si mostra l'errore e non si salva, così si può riprovare.
+        if (t.failed) return { key: it.id, state: 'error', language: t.language, errors: [{ name: r.provider, code: 'notr' }] };
+        const record = { translation: t.translation, language: t.language, target: r.target_lang, provider: r.provider, at: Date.now() };
+        toSave['x:' + it.id] = record;
+        return { key: it.id, state: 'done', ...record };
+      });
+      await chrome.storage.local.set(toSave);
+    }
+  } catch (e) {
+    updates = batch.map((it) => ({ key: it.id, state: 'error', errors: [{ code: 'host', detail: e.message }] }));
+  } finally {
+    trRunning--;
+    scheduleIdleDisconnect();
+  }
+  broadcast({ cmd: 'trUpdate', updates });
+}
+
 // ---------- messaggi da content script, popup e opzioni ----------
 
 const handlers = {
@@ -536,8 +635,8 @@ const handlers = {
     for (const k of keys) out[k] = cached[k] ? { state: 'done', ...cached[k] } : stateOf(k);
     return out;
   },
-  enqueue({ key, manual, force, chat }, sender) {
-    return enqueue(key, { tabId: sender.tab && sender.tab.id, manual, force, chat });
+  enqueue({ key, manual, force, chat, language }, sender) {
+    return enqueue(key, { tabId: sender.tab && sender.tab.id, manual, force, chat, language });
   },
   async autoEnqueue({ key, fromMe, chat, visible }, sender) {
     await restore();
@@ -655,7 +754,7 @@ const handlers = {
   },
   async clearCache() {
     const all = await chrome.storage.local.get(null);
-    await chrome.storage.local.remove(Object.keys(all).filter((k) => k.startsWith('t:')));
+    await chrome.storage.local.remove(Object.keys(all).filter((k) => k.startsWith('t:') || k.startsWith('x:')));
     broadcast({ cmd: 'reset' });
     return true;
   },
@@ -675,9 +774,41 @@ const handlers = {
   reviewAgain({ key }) {
     return reviewAgain(key);
   },
+  // Testo scelto con l'interruttore del riquadro, salvato con la revisione del vocale.
+  async setView({ key, view }) {
+    const record = (await getCached([key]))[key];
+    if (!record || !record.review || (view !== 'whisper' && view !== 'revised')) return false;
+    record.review.view = view;
+    await chrome.storage.local.set({ ['t:' + key]: record });
+    return true;
+  },
+  trConfig({ force }) {
+    return getAiConfig(!!force);
+  },
+  async trGet({ keys }) {
+    const saved = await getTranslations(keys);
+    const out = {};
+    for (const k of keys) out[k] = saved[k] ? { state: 'done', ...saved[k] } : trPending.has(k) ? { state: 'running' } : null;
+    return out;
+  },
+  trEnqueue({ items }) {
+    trEnqueue(items || []);
+    return { ok: true };
+  },
+  // L'utente ha detto che il messaggio è già nella sua lingua: niente traduzione, salvato.
+  async trSetSame({ key, language }) {
+    trPending.delete(key);
+    await chrome.storage.local.set({ ['x:' + key]: { translation: null, language, manual: true, at: Date.now() } });
+    return true;
+  },
+  detectLanguage({ text }) {
+    return chrome.i18n.detectLanguage(text);
+  },
   // Richieste di configurazione dell'IA dalle pagine dell'estensione; la risposta
   // ai_error diventa {ok: false, code, detail}.
   async ai({ message, done, timeoutMs }) {
+    // Una modifica delle impostazioni dell'IA vale subito anche per la traduzione dei messaggi.
+    if (message && message.type !== 'ai_status') aiConfig = null;
     try {
       const r = await hostRequest(message, [...done, 'ai_error'], { timeoutMs: timeoutMs == null ? 60000 : timeoutMs });
       scheduleIdleDisconnect();

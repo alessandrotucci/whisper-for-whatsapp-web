@@ -563,17 +563,11 @@
   "upd_versions": {
     "message": "Extension $1 · local component $2"
   },
-  "box_transcription_whisper": {
-    "message": "Whisper transcription"
-  },
   "box_reviewing": {
     "message": "reviewing with $1…"
   },
   "box_reviewing_ai": {
     "message": "AI review…"
-  },
-  "box_reviewed_by": {
-    "message": "reviewed by $1"
   },
   "box_fix_title": {
     "message": "Whisper: “$1”"
@@ -581,17 +575,17 @@
   "box_fix_added": {
     "message": "word added by the review"
   },
-  "box_show_original": {
-    "message": "Original"
+  "box_seg_transcription": {
+    "message": "Transcription"
   },
-  "box_show_original_title": {
-    "message": "Show the Whisper text"
+  "box_seg_transcription_title": {
+    "message": "Show the Whisper text, with the later corrected words highlighted"
   },
-  "box_show_revised": {
-    "message": "Reviewed"
+  "box_seg_revision": {
+    "message": "Review"
   },
-  "box_show_revised_title": {
-    "message": "Show the AI-reviewed text"
+  "box_seg_revision_title": {
+    "message": "Show the AI-corrected text, with changed words underlined"
   },
   "box_translation": {
     "message": "Translation"
@@ -600,7 +594,7 @@
     "message": "Review failed: $1."
   },
   "box_review_retry": {
-    "message": "Retry with AI"
+    "message": "Retry"
   },
   "ai_err_key": {
     "message": "key rejected"
@@ -619,6 +613,9 @@
   },
   "ai_err_format": {
     "message": "invalid reply"
+  },
+  "ai_err_notr": {
+    "message": "reply without translation"
   },
   "ai_err_http": {
     "message": "service error"
@@ -838,5 +835,74 @@
   },
   "popup_ai_off": {
     "message": "features off"
+  },
+  "ai_text_translate": {
+    "message": "Also translate text messages"
+  },
+  "ai_text_mode_auto": {
+    "message": "incoming ones, automatically"
+  },
+  "ai_text_mode_manual": {
+    "message": "only when I press Translate"
+  },
+  "ai_text_note": {
+    "message": "Applies to incoming messages in another language: the browser detects the language, and messages in your language never go to the AI. Several visible messages go out in a single request."
+  },
+  "tr_translate": {
+    "message": "Translate"
+  },
+  "lang_others": {
+    "message": "Other languages"
+  },
+  "lang_no_translate": {
+    "message": "$1: don't translate"
+  },
+  "lang_menu_text": {
+    "message": "The message is in:"
+  },
+  "lang_menu_chip": {
+    "message": "Translate this message:"
+  },
+  "lang_menu_voice": {
+    "message": "Transcribe again in:"
+  },
+  "lang_detect_ai": {
+    "message": "detect with AI"
+  },
+  "lang_text_title": {
+    "message": "Correct the message language"
+  },
+  "lang_voice_title": {
+    "message": "Transcribe the voice message again in another language"
+  },
+  "lang_chip_title": {
+    "message": "Translate this message"
+  },
+  "tr_translate_title": {
+    "message": "Translate this message with AI"
+  },
+  "tr_running": {
+    "message": "translating with $1…"
+  },
+  "tr_running_ai": {
+    "message": "translating with AI…"
+  },
+  "tr_failed": {
+    "message": "Translation failed: $1."
+  },
+  "tr_copy_title": {
+    "message": "Copy the translation"
+  },
+  "tr_off": {
+    "message": "text message translation is turned off in the setup"
+  },
+  "popup_translate_chat": {
+    "message": "Translate the open chat's messages"
+  },
+  "popup_translating_n": {
+    "message": "$1 messages being translated."
+  },
+  "popup_translate_none": {
+    "message": "No messages to translate in the open chat."
   }
 }

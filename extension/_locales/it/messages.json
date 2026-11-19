@@ -563,17 +563,11 @@
   "upd_versions": {
     "message": "Estensione $1 · componente locale $2"
   },
-  "box_transcription_whisper": {
-    "message": "Trascrizione di Whisper"
-  },
   "box_reviewing": {
     "message": "revisione con $1…"
   },
   "box_reviewing_ai": {
     "message": "revisione con l'IA…"
-  },
-  "box_reviewed_by": {
-    "message": "rivista da $1"
   },
   "box_fix_title": {
     "message": "Whisper: «$1»"
@@ -581,17 +575,17 @@
   "box_fix_added": {
     "message": "parola aggiunta dalla revisione"
   },
-  "box_show_original": {
-    "message": "Originale"
+  "box_seg_transcription": {
+    "message": "Trascrizione"
   },
-  "box_show_original_title": {
-    "message": "Mostra il testo di Whisper"
+  "box_seg_transcription_title": {
+    "message": "Mostra il testo di Whisper, con evidenziate le parole poi corrette"
   },
-  "box_show_revised": {
-    "message": "Rivista"
+  "box_seg_revision": {
+    "message": "Revisione"
   },
-  "box_show_revised_title": {
-    "message": "Mostra il testo rivisto dall'IA"
+  "box_seg_revision_title": {
+    "message": "Mostra il testo corretto dall'IA, con sottolineate le parole cambiate"
   },
   "box_translation": {
     "message": "Traduzione"
@@ -600,7 +594,7 @@
     "message": "Revisione non riuscita: $1."
   },
   "box_review_retry": {
-    "message": "Riprova con l'IA"
+    "message": "Riprova"
   },
   "ai_err_key": {
     "message": "chiave rifiutata"
@@ -619,6 +613,9 @@
   },
   "ai_err_format": {
     "message": "risposta non valida"
+  },
+  "ai_err_notr": {
+    "message": "risposta senza traduzione"
   },
   "ai_err_http": {
     "message": "errore del servizio"
@@ -838,5 +835,74 @@
   },
   "popup_ai_off": {
     "message": "funzioni spente"
+  },
+  "ai_text_translate": {
+    "message": "Traduci anche i messaggi scritti"
+  },
+  "ai_text_mode_auto": {
+    "message": "quelli in arrivo, da soli"
+  },
+  "ai_text_mode_manual": {
+    "message": "solo quando premo Traduci"
+  },
+  "ai_text_note": {
+    "message": "Vale per i messaggi in arrivo in un'altra lingua: la lingua la riconosce il browser, e i messaggi nella tua lingua non vanno all'IA. Più messaggi visibili insieme partono in una sola richiesta."
+  },
+  "tr_translate": {
+    "message": "Traduci"
+  },
+  "lang_others": {
+    "message": "Altre lingue"
+  },
+  "lang_no_translate": {
+    "message": "$1: non tradurre"
+  },
+  "lang_menu_text": {
+    "message": "Il messaggio è in:"
+  },
+  "lang_menu_chip": {
+    "message": "Traduci questo messaggio:"
+  },
+  "lang_menu_voice": {
+    "message": "Trascrivi di nuovo in:"
+  },
+  "lang_detect_ai": {
+    "message": "rileva con l'IA"
+  },
+  "lang_text_title": {
+    "message": "Correggi la lingua del messaggio"
+  },
+  "lang_voice_title": {
+    "message": "Trascrivi di nuovo il vocale in un'altra lingua"
+  },
+  "lang_chip_title": {
+    "message": "Traduci questo messaggio"
+  },
+  "tr_translate_title": {
+    "message": "Traduci questo messaggio con l'IA"
+  },
+  "tr_running": {
+    "message": "traduzione con $1…"
+  },
+  "tr_running_ai": {
+    "message": "traduzione con l'IA…"
+  },
+  "tr_failed": {
+    "message": "Traduzione non riuscita: $1."
+  },
+  "tr_copy_title": {
+    "message": "Copia la traduzione"
+  },
+  "tr_off": {
+    "message": "la traduzione dei messaggi scritti è spenta nella configurazione"
+  },
+  "popup_translate_chat": {
+    "message": "Traduci i messaggi della chat aperta"
+  },
+  "popup_translating_n": {
+    "message": "$1 messaggi in traduzione."
+  },
+  "popup_translate_none": {
+    "message": "Nessun messaggio da tradurre nella chat aperta."
   }
 }

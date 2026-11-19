@@ -79,8 +79,10 @@
     const has = state.accounts.length > 0;
     $('aiRevise').checked = has && !!s.revise;
     $('aiTranslate').checked = has && !!s.translate;
-    for (const id of ['aiRevise', 'aiTranslate', 'aiTarget', 'aiContext']) $(id).disabled = !has;
-    $('aiReviseRow').style.opacity = $('aiTranslateRow').style.opacity = has ? '' : '0.55';
+    $('aiText').checked = has && !!s.text_translate;
+    $('aiTextMode').value = s.text_mode || 'auto';
+    for (const id of ['aiRevise', 'aiTranslate', 'aiTarget', 'aiContext', 'aiText', 'aiTextMode']) $(id).disabled = !has;
+    $('aiReviseRow').style.opacity = $('aiTranslateRow').style.opacity = $('aiTextRow').style.opacity = has ? '' : '0.55';
     fillTargets(s.target_lang || UI_LANG);
     $('aiEmptyNote').hidden = has;
     $('aiAccountsBox').hidden = !has;
@@ -203,6 +205,8 @@
 
   $('aiRevise').addEventListener('change', (e) => saveSettings({ revise: e.target.checked }));
   $('aiTranslate').addEventListener('change', (e) => saveSettings({ translate: e.target.checked }));
+  $('aiText').addEventListener('change', (e) => saveSettings({ text_translate: e.target.checked }));
+  $('aiTextMode').addEventListener('change', (e) => saveSettings({ text_mode: e.target.value }));
   $('aiTarget').addEventListener('change', (e) => saveSettings({ target_lang: e.target.value }));
   $('aiContext').addEventListener('change', async (e) => {
     const on = e.target.checked;

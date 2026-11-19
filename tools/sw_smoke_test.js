@@ -131,6 +131,9 @@ function check(name, cond, detail) {
   await tick();
   const rv2 = await send({ cmd: 'get', keys: ['k4'] }, tab);
   check('revisione conclusa in archivio', rv2.k4 && rv2.k4.review.state === 'done' && rv2.k4.review.translation === 'lenti fotocromatiche' && rv2.k4.text === 'lentes olfato sensível', rv2);
+  const setv = await send({ cmd: 'setView', key: 'k4', view: 'whisper' }, tab);
+  const rvView = await send({ cmd: 'get', keys: ['k4'] }, tab);
+  check('la scelta Trascrizione / Revisione resta salvata', setv === true && rvView.k4.review.view === 'whisper', rvView);
   const again = await send({ cmd: 'reviewAgain', key: 'k4' }, tab);
   const rvMsg = posted.filter((m) => m.type === 'review').pop();
   check("Riprova con l'IA manda il testo di Whisper", again && again.ok && rvMsg && rvMsg.text === 'lentes olfato sensível' && rvMsg.language === 'pt', rvMsg);
@@ -144,6 +147,38 @@ function check(name, cond, detail) {
   fromHost({ type: 'ai_error', rid: aiReq.rid, code: 'key', detail: 'x' });
   const aiR = await aiP;
   check('ai_error diventa ok false con il codice', aiR && aiR.ok === false && aiR.code === 'key', aiR);
+  // Traduzione dei messaggi scritti: impostazioni dal componente, richieste a gruppi, archivio.
+  const cfgP = send({ cmd: 'trConfig', force: true });
+  await tick();
+  const stReq = posted.filter((m) => m.type === 'ai_status').pop();
+  fromHost({ type: 'ai_status', rid: stReq.rid, providers: [], accounts: [{ name: 'Gemini' }], settings: { text_translate: true, text_mode: 'auto', target_lang: 'it' } });
+  const cfg = await cfgP;
+  check('impostazioni della traduzione dal componente', cfg && cfg.active && cfg.mode === 'auto' && cfg.target === 'it' && cfg.provider === 'Gemini', cfg);
+  await send({ cmd: 'trEnqueue', items: [{ key: 'm1', text: 'Bom dia' }, { key: 'm2', text: 'Tudo bem?' }] }, tab);
+  const inFlight = await send({ cmd: 'trGet', keys: ['m1'] }, tab);
+  check('messaggio in attesa di traduzione', inFlight.m1 && inFlight.m1.state === 'running', inFlight);
+  await tick(500);
+  const trReq = posted.filter((m) => m.type === 'translate').pop();
+  check('una sola richiesta per i messaggi insieme', trReq && trReq.items.length === 2 && trReq.items[0].id === 'm1', trReq);
+  fromHost({ type: 'translate_result', rid: trReq.rid, items: [{ id: 'm1', language: 'pt', translation: 'Buongiorno' }, { id: 'm2', language: 'it', translation: null }], target_lang: 'it', provider: 'Gemini' });
+  await tick();
+  const trs = await send({ cmd: 'trGet', keys: ['m1', 'm2', 'm3'] }, tab);
+  check('traduzioni in archivio', trs.m1 && trs.m1.state === 'done' && trs.m1.translation === 'Buongiorno' && trs.m2 && trs.m2.translation === null && trs.m3 === null, trs);
+  await send({ cmd: 'trEnqueue', items: [{ key: 'm3', text: 'Oi' }] }, tab);
+  await tick(500);
+  const trReq2 = posted.filter((m) => m.type === 'translate').pop();
+  fromHost({ type: 'ai_error', rid: trReq2.rid, code: 'all_failed', errors: [{ name: 'Gemini', code: 'rate' }] });
+  await tick();
+  const trs2 = await send({ cmd: 'trGet', keys: ['m3'] }, tab);
+  check('una traduzione fallita non resta in archivio', trs2.m3 === null, trs2);
+  // Lingua scelta a mano: trascrizione con la lingua imposta, messaggio segnato come già tradotto.
+  await send({ cmd: 'enqueue', key: 'k7', manual: true, force: true, language: 'es' }, tab);
+  await tick();
+  const j7 = posted.filter((m) => m.type === 'transcribe').pop();
+  check('ritrascrizione con la lingua scelta', j7 && j7.language === 'es', j7);
+  const same = await send({ cmd: 'trSetSame', key: 'm9', language: 'it' }, tab);
+  const m9 = await send({ cmd: 'trGet', keys: ['m9'] }, tab);
+  check('messaggio segnato nella lingua dell\'utente', same === true && m9.m9 && m9.m9.state === 'done' && m9.m9.translation === null && m9.m9.manual, m9);
   const info = await send({ cmd: 'updateInfo' });
   check('updateInfo ha le versioni installate', info && info.current && info.current.extension, info);
   const stats = await send({ cmd: 'cacheStats' });

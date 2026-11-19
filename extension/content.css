@@ -57,6 +57,38 @@
   cursor: pointer;
 }
 
+.wwt-seg {
+  display: inline-flex;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.wwt-seg button {
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  padding: 1px 8px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.wwt-seg button + button {
+  border-left: 1px solid rgba(128, 128, 128, 0.45);
+}
+
+.wwt-seg button.on {
+  background: rgba(37, 211, 102, 0.22);
+  font-weight: 600;
+  cursor: default;
+}
+
+.wwt-seg button:not(.on):hover {
+  background: rgba(37, 211, 102, 0.12);
+}
+
 .wwt-btn:hover {
   background: rgba(37, 211, 102, 0.18);
   border-color: #25d366;
@@ -126,4 +158,70 @@
   gap: 6px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.wwt-trbox {
+  border-left-color: #53bdeb;
+}
+
+.wwt-trbox.wwt-slim {
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+
+.wwt-lang {
+  font: inherit;
+  font-size: 12px;
+  color: inherit;
+  background: transparent;
+  border: none;
+  border-bottom: 1px dotted currentColor;
+  border-radius: 0;
+  padding: 0 1px;
+  margin: 0 2px;
+  max-width: 14em;
+  field-sizing: content;
+  cursor: pointer;
+}
+
+.wwt-lang option,
+.wwt-lang optgroup,
+.wwt-chip option,
+.wwt-chip optgroup {
+  color: #111b21;
+  background: #fff;
+}
+
+.wwt-grow0 {
+  flex: 0 0 auto;
+}
+
+.wwt-chipwrap {
+  position: relative;
+  height: 0;
+  align-self: flex-start;
+}
+
+.wwt-chip {
+  position: absolute;
+  right: -34px;
+  bottom: 6px;
+  width: 28px;
+  font: inherit;
+  font-size: 12px;
+  color: inherit;
+  background: rgba(128, 128, 128, 0.18);
+  border: 1px solid rgba(128, 128, 128, 0.45);
+  border-radius: 10px;
+  padding: 0 2px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s;
+  appearance: none;
+  text-align: center;
+}
+
+[data-wwt-text="1"]:hover .wwt-chip,
+.wwt-chip:focus {
+  opacity: 1;
 }

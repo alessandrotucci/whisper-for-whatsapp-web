@@ -48,6 +48,8 @@ Revisione e traduzione con l'IA (modulo ai_review; le chiavi non tornano mai al 
                                                      -> ai_oauth_url, poi ai_added | ai_error
   {"type": "review", "id": "...", "text": "...", "language": "pt", "hint": "...", "context": "..."}
                                                      -> review
+  {"type": "translate", "items": [{"id": "...", "text": "..."}], "hint": "...", "context": "..."}
+                                                     -> translate_result | ai_error
 
 Dopo una trascrizione, se c'è almeno un account e serve una revisione, il
 risultato porta "review": {"state": "running", "provider": "..."} e segue
@@ -97,7 +99,7 @@ from multiprocessing.connection import Client, Listener
 import ai_review
 import cuda_libs
 
-HOST_VERSION = "1.5.0"
+HOST_VERSION = "1.6.0"
 FROZEN = getattr(sys, "frozen", False)
 
 
@@ -950,7 +952,7 @@ class Host:
             self.engine_q.put((kind, msg))
         elif kind in ("set_config", "download_model", "cuda_install", "update_host", "update_extension"):
             self.jobs.put(msg)
-        elif kind.startswith("ai_") or kind == "review":
+        elif kind.startswith("ai_") or kind in ("review", "translate"):
             threading.Thread(target=self.do_ai, args=(msg,), daemon=True).start()
         else:
             self.reply(msg, {"type": "error", "id": msg.get("id"), "message": "tipo sconosciuto: %s" % kind})
@@ -1001,13 +1003,15 @@ class Host:
             errors = getattr(e, "errors", None) or [{"code": e.code, "detail": e.detail}]
             self.log("revisione %s non riuscita: %s" % (jid, "; ".join(
                 "%s %s" % (x.get("name", ""), x.get("code")) for x in errors)))
-            self.reply(msg, {"type": "review", "id": jid, "state": "error", "errors": errors})
+            revise = bool(self.ai.load()["settings"].get("revise"))
+            self.reply(msg, {"type": "review", "id": jid, "state": "error", "errors": errors, "revise": revise})
             return
         if res is None:
             self.reply(msg, {"type": "review", "id": jid, "state": "skipped"})
             return
-        self.log("revisione %s con %s %s in %d ms%s" % (
-            jid, res["provider"], res["model"], res["ms"], ", correzione scartata" if res["rejected"] else ""))
+        self.log("revisione %s con %s %s in %d ms%s%s%s" % (
+            jid, res["provider"], res["model"], res["ms"], ", correzione scartata" if res["rejected"] else "",
+            "" if res["translation"] or not res["language"] else ", senza traduzione", failed_accounts(res["errors"])))
         self.reply(msg, {"type": "review", "id": jid, "state": "done", "review": res})
 
     def ai_status(self):
@@ -1018,6 +1022,12 @@ class Host:
         try:
             if kind == "review":
                 self.run_review(msg)
+            elif kind == "translate":
+                items = [i for i in (msg.get("items") or []) if (i.get("text") or "").strip()]
+                res = ai_review.translate_texts(self.ai, items, msg.get("hint"), msg.get("context"))
+                self.log("traduzione di %d messaggi con %s %s in %d ms%s" % (
+                    len(items), res["provider"], res["model"], res["ms"], failed_accounts(res["errors"])))
+                self.reply(msg, dict(res, type="translate_result"))
             elif kind == "ai_status":
                 self.reply(msg, self.ai_status())
             elif kind == "ai_models":
@@ -1063,7 +1073,8 @@ class Host:
             else:
                 self.reply(msg, {"type": "error", "message": "tipo sconosciuto: %s" % kind})
         except ai_review.AIError as e:
-            self.reply(msg, {"type": "ai_error", "code": e.code, "detail": e.detail})
+            self.reply(msg, {"type": "ai_error", "code": e.code, "detail": e.detail,
+                             "errors": getattr(e, "errors", None)})
         except Exception as e:  # noqa: BLE001
             self.log(traceback.format_exc())
             self.reply(msg, {"type": "ai_error", "code": "http", "detail": "%s: %s" % (type(e).__name__, e)})
@@ -1206,6 +1217,15 @@ class Host:
     def apply_config(self, msg):
         self.set_config(msg.get("config"))
         self.reply(msg, dict(type="pong", **self.tr.describe()))
+
+
+def failed_accounts(errors):
+    """Gli account falliti prima di quello riuscito, per il log: nome, codice e dettaglio breve."""
+    if not errors:
+        return ""
+    return "; prima: " + ", ".join(
+        "%s %s%s" % (e.get("name", "?"), e.get("code"), " (%s)" % e["detail"][:80] if e.get("detail") else "")
+        for e in errors)
 
 
 def open_log(prefix=""):

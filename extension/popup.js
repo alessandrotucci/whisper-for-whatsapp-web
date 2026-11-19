@@ -99,6 +99,21 @@ $('chat').addEventListener('click', async () => {
   refresh();
 });
 
+// Traduce i messaggi scritti in un'altra lingua già caricati nella chat aperta.
+$('translateChat').addEventListener('click', async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab || !/^https:\/\/web\.whatsapp\.com\//.test(tab.url || '')) {
+    $('msg').textContent = t('popup_open_wa');
+    return;
+  }
+  const r = await chrome.tabs.sendMessage(tab.id, { cmd: 'translateChat' }).catch((e) => ({ ok: false, error: e.message }));
+  if (!r || !r.ok) {
+    $('msg').textContent = t('box_error', r ? r.error : t('popup_no_reply'));
+    return;
+  }
+  $('msg').textContent = r.result ? t('popup_translating_n', r.result) : t('popup_translate_none');
+});
+
 $('clearQueue').addEventListener('click', async () => {
   await send({ cmd: 'clearQueue' });
   refresh();
