@@ -1,6 +1,8 @@
-App Android di Whisper for WhatsApp: trascrive sul telefono, senza cloud, i vocali che arrivano su
-WhatsApp e WhatsApp Business, e mostra il testo nelle notifiche. Toccando una notifica si apre la
-lista completa. Serve Android 10 o successivo su un processore a 64 bit.
+**WA Transcriber and Translator**, l'app Android di Whisper for WhatsApp: trascrive sul telefono,
+senza cloud, i vocali che arrivano su WhatsApp e WhatsApp Business, e mostra il testo nelle notifiche.
+Toccando una notifica si apre la lista completa. Serve Android 10 o successivo su un processore a 64 bit.
+Dalla 1.3.0 l'app si chiama così anche sul telefono; è la stessa app, e si aggiorna sopra le precedenti.
+Informativa sulla privacy: [PRIVACY.md](https://github.com/alessandrotucci/whisper-for-whatsapp-web/blob/main/android/PRIVACY.md).
 
 ## Installazione
 
@@ -8,7 +10,8 @@ lista completa. Serve Android 10 o successivo su un processore a 64 bit.
    di consentire l'installazione di app da questa fonte (il browser o il gestore file): consentila.
 2. Apri l'app e segui le righe in cima alla schermata:
    - **Notifiche**: consenti, per vedere le trascrizioni.
-   - **Accesso alle notifiche**: serve a sapere quando arriva un vocale. Da Android 13, per le app
+   - **Accesso alle notifiche**: serve a sapere quando arriva un vocale. Prima l'app spiega cosa
+     legge e chiede il consenso. Da Android 13, per le app
      installate da file, l'interruttore è grigio («impostazione con restrizioni»): apri *Info app*,
      menu ⋮, *Consenti impostazioni con restrizioni*, e torna ad attivarlo.
    - **Modello**: scaricalo dalle Impostazioni. large-v3 (1,1 GB) è il consigliato;
@@ -17,7 +20,8 @@ lista completa. Serve Android 10 o successivo su un processore a 64 bit.
    - **Cartella dei vocali**: il selettore si apre su
      `Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Voice Notes`; tocca *Usa questa cartella*
      e *Consenti*. Per WhatsApp Business la cartella è quella di `com.whatsapp.w4b`.
-   - **Batteria**: togli le limitazioni, così le trascrizioni finiscono anche a schermo spento.
+   - **Batteria**: *Apri* porta a *Info app*: tocca *Batteria* e scegli *Senza restrizioni*, così le
+     trascrizioni finiscono anche a schermo spento.
 
 **Revisione e traduzione con l'IA (facoltativa).** Nelle Impostazioni, *Aggiungi un account*
 collega uno o più account di IA (Claude, ChatGPT, Gemini, Grok, Mistral, OpenRouter e altri, con la
@@ -45,7 +49,7 @@ la versione precedente senza perdere modello e trascrizioni.
 
 ---
 
-Android app of Whisper for WhatsApp: transcribes incoming WhatsApp and WhatsApp Business voice
+**WA Transcriber and Translator**, the Android app of Whisper for WhatsApp: transcribes incoming WhatsApp and WhatsApp Business voice
 messages on the phone, with no cloud, and shows the text as notifications. Install the APK, then
 follow the checklist at the top of the app: notifications, notification access (on Android 13+
 first allow restricted settings from App info, menu ⋮), a model, the voice notes folder and the

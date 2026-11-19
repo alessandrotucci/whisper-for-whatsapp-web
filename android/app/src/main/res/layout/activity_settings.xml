@@ -140,6 +140,16 @@
                 android:text="@string/ai_empty_note" />
 
             <TextView
+                android:id="@+id/ai_consent_note"
+                style="@style/Hint"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:textColor="?android:attr/colorAccent"
+                android:text="@string/ai_consent_note"
+                android:visibility="gone" />
+
+            <TextView
                 android:id="@+id/ai_accounts_title"
                 style="@style/SectionTitle"
                 android:paddingTop="16dp"

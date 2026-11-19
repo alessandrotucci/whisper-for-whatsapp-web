@@ -55,7 +55,7 @@ public final class VoiceListener extends NotificationListenerService {
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
         String pkg = sbn.getPackageName();
-        if (!Packages.isWhatsApp(pkg)) return;
+        if (!Packages.isWhatsApp(pkg) || !Consent.listener(this)) return;
         List<VoiceScanner.Hint> found = new ArrayList<>();
         Notification n = sbn.getNotification();
         Bundle extras = n.extras;

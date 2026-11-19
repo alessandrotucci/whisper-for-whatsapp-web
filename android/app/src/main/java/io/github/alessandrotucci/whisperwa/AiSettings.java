@@ -41,6 +41,7 @@ final class AiSettings {
     private final Spinner target;
     private final TextView reviseNote;
     private final TextView emptyNote;
+    private final TextView consentNote;
     private final TextView accountsTitle;
     private final LinearLayout accounts;
     private final Button add;
@@ -59,6 +60,7 @@ final class AiSettings {
         target = activity.findViewById(R.id.ai_target);
         reviseNote = activity.findViewById(R.id.ai_revise_note);
         emptyNote = activity.findViewById(R.id.ai_empty_note);
+        consentNote = activity.findViewById(R.id.ai_consent_note);
         accountsTitle = activity.findViewById(R.id.ai_accounts_title);
         accounts = activity.findViewById(R.id.ai_accounts);
         add = activity.findViewById(R.id.btn_ai_add);
@@ -103,7 +105,9 @@ final class AiSettings {
         });
         target.setOnItemSelectedListener(new Selection(pos -> AiStore.update(activity, d -> d.target = targetCodes.get(pos))));
         timeout.setOnItemSelectedListener(new Selection(pos -> AiStore.update(activity, d -> d.timeoutS = TIMEOUTS[pos])));
-        add.setOnClickListener(v -> activity.startActivity(new Intent(activity, AiAddActivity.class)));
+        add.setOnClickListener(v -> Consent.askAi(activity,
+                () -> activity.startActivity(new Intent(activity, AiAddActivity.class))));
+        consentNote.setOnClickListener(v -> Consent.askAi(activity, this::refresh));
     }
 
     static String displayLanguage(String code) {
@@ -138,6 +142,7 @@ final class AiSettings {
         target.setAlpha(alpha);
         reviseNote.setVisibility(has ? View.VISIBLE : View.GONE);
         emptyNote.setVisibility(has ? View.GONE : View.VISIBLE);
+        consentNote.setVisibility(has && !Consent.ai(activity) ? View.VISIBLE : View.GONE);
         accountsTitle.setVisibility(has ? View.VISIBLE : View.GONE);
         more.setVisibility(has ? View.VISIBLE : View.GONE);
         add.setText(has ? R.string.ai_add_more : R.string.ai_add);

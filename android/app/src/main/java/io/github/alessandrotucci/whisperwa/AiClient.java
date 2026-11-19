@@ -148,7 +148,7 @@ final class AiClient {
         h.put("Authorization", "Bearer " + key);
         if ("openrouter".equals(p.id)) {
             h.put("HTTP-Referer", "https://github.com/alessandrotucci/whisper-for-whatsapp-web");
-            h.put("X-Title", "Whisper for WhatsApp");
+            h.put("X-Title", "WA Transcriber and Translator");
         }
         return h;
     }

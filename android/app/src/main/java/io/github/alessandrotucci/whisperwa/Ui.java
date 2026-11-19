@@ -84,14 +84,4 @@ final class Ui {
     static boolean batteryUnrestricted(Activity a) {
         return a.getSystemService(android.os.PowerManager.class).isIgnoringBatteryOptimizations(a.getPackageName());
     }
-
-    @android.annotation.SuppressLint("BatteryLife")
-    static void requestBatteryUnrestricted(Activity a) {
-        try {
-            a.startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                    Uri.fromParts("package", a.getPackageName(), null)));
-        } catch (ActivityNotFoundException e) {
-            a.startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
-        }
-    }
 }

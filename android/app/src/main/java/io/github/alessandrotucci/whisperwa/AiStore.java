@@ -94,15 +94,17 @@ final class AiStore {
         boolean context;
         boolean messages;
         final List<Account> accounts = new ArrayList<>();
+        /** Consenso all'invio dei testi all'IA ({@link Consent#ai}): senza, nessuna funzione è attiva. */
+        boolean consented;
 
         /** La lingua della traduzione: quella scelta, oppure quella del telefono. */
         String targetOrDefault() {
             return target != null && !target.isEmpty() ? target : Locale.getDefault().getLanguage();
         }
 
-        /** Vero se c'è almeno un account e almeno una delle due funzioni è attiva. */
+        /** Vero se c'è il consenso, almeno un account e almeno una delle due funzioni è attiva. */
         boolean active() {
-            return !accounts.isEmpty() && (revise || translate);
+            return consented && !accounts.isEmpty() && (revise || translate);
         }
 
         /** Vero se i messaggi scritti in un'altra lingua si traducono. */
@@ -130,6 +132,7 @@ final class AiStore {
     static Data load(Context context) {
         synchronized (LOCK) {
             Data d = new Data();
+            d.consented = Consent.ai(context);
             String raw = sp(context).getString("data", null);
             if (raw == null) return d;
             try {

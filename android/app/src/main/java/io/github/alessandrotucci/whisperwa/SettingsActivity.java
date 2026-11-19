@@ -122,7 +122,8 @@ public final class SettingsActivity extends Activity {
                 startActivityForResult(Ui.folderPicker(Packages.WHATSAPP), REQ_FOLDER_WHATSAPP));
         findViewById(R.id.btn_folder_business).setOnClickListener(v ->
                 startActivityForResult(Ui.folderPicker(Packages.BUSINESS), REQ_FOLDER_BUSINESS));
-        findViewById(R.id.btn_listener).setOnClickListener(v -> Ui.openListenerSettings(this));
+        findViewById(R.id.btn_listener).setOnClickListener(v ->
+                Consent.askListener(this, () -> Ui.openListenerSettings(this)));
         findViewById(R.id.btn_test_file).setOnClickListener(v -> startActivityForResult(
                 new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("audio/*"),
                 REQ_TEST_FILE));
@@ -227,7 +228,7 @@ public final class SettingsActivity extends Activity {
         boolean unrestricted = Ui.batteryUnrestricted(this);
         bindCheck(R.id.bg_battery, unrestricted ? CHECK_OK : CHECK_ERROR, R.string.bg_battery_title,
                 unrestricted ? R.string.bg_battery_off : R.string.bg_battery_on,
-                unrestricted ? 0 : R.string.bg_remove, () -> Ui.requestBatteryUnrestricted(this));
+                unrestricted ? 0 : R.string.bg_remove, () -> Ui.openAppDetails(this));
 
         BackgroundWork.Oem oem = BackgroundWork.oem();
         boolean vendor = oem != BackgroundWork.Oem.OTHER;

@@ -93,6 +93,7 @@ public final class MainActivity extends Activity {
         TranscriptionQueue.get(this).addListener(refresher);
         refresh();
         refreshSetup();
+        Consent.promptPending(this, this::refreshSetup);
     }
 
     @Override
@@ -128,10 +129,13 @@ public final class MainActivity extends Activity {
                     () -> requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_NOTIFICATIONS));
         }
         if (!Ui.listenerGranted(this)) {
-            addSetupRow(R.string.setup_listener, R.string.setup_open_settings, () -> Ui.openListenerSettings(this));
+            addSetupRow(R.string.setup_listener, R.string.setup_open_settings,
+                    () -> Consent.askListener(this, () -> Ui.openListenerSettings(this)));
             if (Build.VERSION.SDK_INT >= 33) {
                 addSetupRow(R.string.setup_restricted, R.string.setup_app_info, () -> Ui.openAppDetails(this));
             }
+        } else if (!Consent.listener(this)) {
+            addSetupRow(R.string.setup_consent, R.string.setup_read, () -> Consent.askListener(this, this::refreshSetup));
         }
         if (Models.selectedInstalled(this) == null) {
             addSetupRow(R.string.setup_model, R.string.setup_download,
@@ -148,7 +152,7 @@ public final class MainActivity extends Activity {
                     () -> startActivityForResult(Ui.folderPicker(Packages.BUSINESS), REQ_FOLDER_BUSINESS));
         }
         if (!Ui.batteryUnrestricted(this)) {
-            addSetupRow(R.string.setup_battery, R.string.setup_allow, () -> Ui.requestBatteryUnrestricted(this));
+            addSetupRow(R.string.setup_battery, R.string.bg_open, () -> Ui.openAppDetails(this));
         }
         long killed = BackgroundWork.recentKill(this);
         if (killed > 0) {
@@ -197,6 +201,10 @@ public final class MainActivity extends Activity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
+        if (id == R.id.menu_privacy) {
+            Consent.showPrivacy(this);
+            return true;
+        }
         if (id == R.id.menu_settings) {
             startActivity(new Intent(this, SettingsActivity.class));
             return true;

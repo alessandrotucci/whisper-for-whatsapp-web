@@ -9,6 +9,10 @@
         android:showAsAction="never"
         android:title="@string/settings" />
     <item
+        android:id="@+id/menu_privacy"
+        android:showAsAction="never"
+        android:title="@string/menu_privacy" />
+    <item
         android:id="@+id/menu_clear"
         android:showAsAction="never"
         android:title="@string/menu_clear" />
