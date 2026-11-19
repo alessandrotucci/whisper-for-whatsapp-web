@@ -111,4 +111,6 @@ WA Transcriber and Translator is not affiliated with WhatsApp, Meta or the other
 - **Icona** 512 × 512, PNG a 32 bit: `icona-512.png`, generata dal disegno vettoriale dell'icona dell'app.
 - **Immagine in evidenza** 1024 × 500, PNG senza trasparenza: `in-evidenza-1024x500.png`.
 - **Screenshot del telefono**: da 2 a 8, lato lungo al più il doppio del lato corto. Le catture del telefono di
-  prova sono 1080 × 2400 (rapporto 2,22), quindi vanno ritagliate a 1080 × 2160: cartella `screenshot/`.
+  prova sono 1080 × 2400 (rapporto 2,22): in `screenshot/` sono ritagliate a 1080 × 2140, senza barra di stato
+  e barra di navigazione. Ci sono le Impostazioni (modello, revisione e traduzione con l'IA); la lista e le
+  notifiche richiedono voci di prova senza dati di terzi.
