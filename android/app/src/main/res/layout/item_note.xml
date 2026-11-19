@@ -70,4 +70,73 @@
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:textColor="@color/warn"
         android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/note_actions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/note_play"
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:background="@drawable/chip_outline"
+            android:gravity="center"
+            android:maxLines="1"
+            android:paddingHorizontal="12dp"
+            android:textSize="14sp" />
+
+        <ProgressBar
+            android:id="@+id/note_progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:max="1000"
+            android:progressTint="@color/accent"
+            android:visibility="gone" />
+
+        <View
+            android:id="@+id/note_spacer"
+            android:layout_width="8dp"
+            android:layout_height="1dp" />
+
+        <LinearLayout
+            android:id="@+id/note_seg"
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:background="@drawable/chip_outline"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/note_seg_transcript"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:maxLines="1"
+                android:paddingHorizontal="12dp"
+                android:text="@string/seg_transcript"
+                android:textSize="14sp" />
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="match_parent"
+                android:background="@color/chip_stroke" />
+
+            <TextView
+                android:id="@+id/note_seg_review"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:maxLines="1"
+                android:paddingHorizontal="12dp"
+                android:text="@string/seg_review"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </LinearLayout>
 </LinearLayout>

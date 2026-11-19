@@ -247,4 +247,7 @@
     <string name="msg_failed_short">Traduzione non riuscita: apri l\'app per riprovare.</string>
     <string name="msg_truncated">Messaggio lungo: la notifica di WhatsApp ne mostra solo l\'inizio. Aprilo in WhatsApp per il resto.</string>
     <string name="action_translate_again">Traduci di nuovo</string>
+    <string name="seg_transcript">Trascrizione</string>
+    <string name="seg_review">Revisione</string>
+    <string name="audio_missing">L\'audio non è più disponibile su questo telefono</string>
 </resources>

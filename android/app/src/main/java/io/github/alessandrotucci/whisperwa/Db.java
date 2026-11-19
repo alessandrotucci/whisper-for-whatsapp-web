@@ -300,7 +300,6 @@ public final class Db extends SQLiteOpenHelper {
         v.put("work_ms", workMs);
         v.put("model", model);
         v.putNull("error");
-        v.putNull("local_path");
         v.put("review_state", REVIEW_NONE);
         v.putNull("review_text");
         v.putNull("review_segments");
@@ -340,6 +339,17 @@ public final class Db extends SQLiteOpenHelper {
         ContentValues r = new ContentValues();
         r.put("review_state", REVIEW_PENDING);
         getWritableDatabase().update("notes", r, "review_state = " + REVIEW_RUNNING, null);
+    }
+
+    /** Righe con una copia locale dell'audio, per la pulizia delle copie dei file condivisi. */
+    public List<Note> withLocalCopy() {
+        return query("local_path IS NOT NULL", null, null, null);
+    }
+
+    public void clearLocalPath(long id) {
+        ContentValues v = new ContentValues();
+        v.putNull("local_path");
+        update(id, v);
     }
 
     public void delete(long id) {

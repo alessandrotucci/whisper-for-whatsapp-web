@@ -251,4 +251,7 @@
     <string name="msg_failed_short">Translation failed: open the app to retry.</string>
     <string name="msg_truncated">Long message: the WhatsApp notification shows only its beginning. Open it in WhatsApp for the rest.</string>
     <string name="action_translate_again">Translate again</string>
+    <string name="seg_transcript">Transcription</string>
+    <string name="seg_review">Review</string>
+    <string name="audio_missing">The audio is no longer available on this phone</string>
 </resources>

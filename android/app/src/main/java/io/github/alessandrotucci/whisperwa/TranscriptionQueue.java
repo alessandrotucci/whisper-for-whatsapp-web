@@ -247,7 +247,6 @@ public final class TranscriptionQueue {
             Log.i(TAG, "trascritto " + note.name + ": audio " + audioMs + " ms, lavoro " + workMs + " ms, modello "
                     + model.id + ", thread " + threads + ", lingua " + r.language);
             db.markDone(note.id, r.text, r.language, audioMs, workMs, model.id);
-            deleteLocalCopy(note);
             if (!r.text.isEmpty() && AiStore.load(app).needsReview(r.language)) {
                 db.setReviewState(note.id, Db.REVIEW_PENDING);
                 reviewNow = true;
@@ -314,12 +313,6 @@ public final class TranscriptionQueue {
         changed();
     }
 
-    private static void deleteLocalCopy(Db.Note note) {
-        if (note.localPath != null) {
-            //noinspection ResultOfMethodCallIgnored
-            new File(note.localPath).delete();
-        }
-    }
 
     private boolean ensureModel(Models.Model model) {
         if (ctx != 0 && model.id.equals(ctxModel)) return true;

@@ -21,7 +21,8 @@ import java.util.UUID;
 /**
  * Riceve file audio condivisi (da WhatsApp: tieni premuto il vocale, Condividi) e li mette in
  * coda. Il permesso su un URI condiviso dura quanto l'attività che lo riceve, quindi il file si
- * copia subito in filesDir/shared e la copia si cancella a trascrizione finita.
+ * copia subito in filesDir/shared. La copia resta per l'ascolto dalla lista e la cancella
+ * {@link SharedCopies}.
  *
  * <p>Gestisce anche la scelta di un file dalle impostazioni, con l'azione OPEN.
  */

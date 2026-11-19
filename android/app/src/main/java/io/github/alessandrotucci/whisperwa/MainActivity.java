@@ -51,8 +51,6 @@ public final class MainActivity extends Activity {
     private static final int MENU_RETRY = 2;
     private static final int MENU_DELETE = 3;
     private static final int MENU_CANCEL = 4;
-    private static final int MENU_SHOW_WHISPER = 5;
-    private static final int MENU_SHOW_REVISED = 6;
     private static final int MENU_REVIEW_AGAIN = 7;
     private static final int MENU_TRANSLATE_AGAIN = 8;
 
@@ -60,6 +58,7 @@ public final class MainActivity extends Activity {
     private TextView status;
     private ListView list;
     private NoteAdapter adapter;
+    private VoicePlayer player;
     private long highlight = -1;
     private final Runnable refresher = this::refresh;
 
@@ -72,7 +71,8 @@ public final class MainActivity extends Activity {
         status = findViewById(R.id.status);
         list = findViewById(R.id.list);
         list.setEmptyView(findViewById(R.id.empty));
-        adapter = new NoteAdapter(this);
+        player = new VoicePlayer(this, () -> adapter.notifyDataSetChanged());
+        adapter = new NoteAdapter(this, player, this::refresh);
         list.setAdapter(adapter);
         registerForContextMenu(list);
         list.setOnItemClickListener((parent, view, position, id) -> list.showContextMenuForChild(view));
@@ -99,6 +99,7 @@ public final class MainActivity extends Activity {
     protected void onPause() {
         super.onPause();
         TranscriptionQueue.get(this).removeListener(refresher);
+        player.stop();
     }
 
     private void refresh() {
@@ -209,7 +210,9 @@ public final class MainActivity extends Activity {
             new android.app.AlertDialog.Builder(this)
                     .setMessage(R.string.clear_confirm)
                     .setPositiveButton(R.string.clear_yes, (d, w) -> {
+                        player.stop();
                         Db.get(this).deleteAll();
+                        SharedCopies.deleteAll(this);
                         Notifier.cancelAll(this);
                         refresh();
                     })
@@ -235,10 +238,6 @@ public final class MainActivity extends Activity {
             return;
         }
         if (note.status == Db.DONE && note.text != null) menu.add(0, MENU_COPY, 0, R.string.action_copy);
-        if (note.hasRevision()) {
-            menu.add(0, note.showWhisper ? MENU_SHOW_REVISED : MENU_SHOW_WHISPER, 0,
-                    note.showWhisper ? R.string.action_show_revised : R.string.action_show_whisper);
-        }
         if (note.status == Db.DONE && note.text != null && !note.text.isEmpty()
                 && note.reviewState != Db.REVIEW_PENDING && note.reviewState != Db.REVIEW_RUNNING
                 && AiStore.load(this).active()) {
@@ -261,11 +260,6 @@ public final class MainActivity extends Activity {
                 return true;
             case MENU_CANCEL:
                 TranscriptionQueue.get(this).cancelCurrent();
-                return true;
-            case MENU_SHOW_WHISPER:
-            case MENU_SHOW_REVISED:
-                Db.get(this).setShowWhisper(note.id, item.getItemId() == MENU_SHOW_WHISPER);
-                refresh();
                 return true;
             case MENU_REVIEW_AGAIN:
                 TranscriptionQueue.get(this).reviewAgain(note.id);
@@ -309,9 +303,13 @@ public final class MainActivity extends Activity {
 
         private float touchX;
         private float touchY;
+        private final VoicePlayer player;
+        private final Runnable reload;
 
-        NoteAdapter(Context context) {
+        NoteAdapter(Context context, VoicePlayer player, Runnable reload) {
             super(context, R.layout.item_note);
+            this.player = player;
+            this.reload = reload;
         }
 
         void setNotes(List<Db.Note> notes) {
@@ -328,6 +326,7 @@ public final class MainActivity extends Activity {
             Db.Note n = getItem(position);
             Context c = getContext();
             ((TextView) v.findViewById(R.id.note_title)).setText(n.title());
+            v.findViewById(R.id.note_actions).setVisibility(View.GONE);
             if (n.isMessage()) return messageView(v, n, c);
             StringBuilder meta = new StringBuilder();
             meta.append(DateUtils.formatDateTime(c, n.received,
@@ -387,8 +386,61 @@ public final class MainActivity extends Activity {
                         warn.setVisibility(View.VISIBLE);
                         warn.setText(c.getString(R.string.review_failed, n.reviewError == null ? "" : n.reviewError));
                     }
+                    bindActions(v, n, c);
             }
             return v;
+        }
+
+        /**
+         * Riga dei pulsanti di un vocale trascritto: ascolto dell'audio originale e, se l'IA ha
+         * cambiato delle parole, scelta tra trascrizione e revisione.
+         */
+        private void bindActions(View v, Db.Note n, Context c) {
+            v.findViewById(R.id.note_actions).setVisibility(View.VISIBLE);
+            TextView play = v.findViewById(R.id.note_play);
+            android.widget.ProgressBar progress = v.findViewById(R.id.note_progress);
+            boolean available = VoicePlayer.audioOf(n) != null;
+            boolean current = player.playingId() == n.id;
+            String total = DateUtils.formatElapsedTime((n.audioMs + 500) / 1000);
+            if (current) {
+                String pos = DateUtils.formatElapsedTime(player.position() / 1000);
+                play.setText((player.isPlaying() ? "\u23F8 " : "\u25B6 ") + pos + " / " + total);
+                progress.setVisibility(View.VISIBLE);
+                progress.setProgress(n.audioMs > 0 ? (int) Math.min(1000, player.position() * 1000L / n.audioMs) : 0);
+            } else {
+                play.setText("\u25B6 " + total);
+                progress.setVisibility(View.GONE);
+            }
+            play.setAlpha(available ? 1f : 0.4f);
+            play.setOnClickListener(x -> player.toggle(n));
+            v.findViewById(R.id.note_spacer).setVisibility(current ? View.VISIBLE : View.GONE);
+            View seg = v.findViewById(R.id.note_seg);
+            seg.setVisibility(n.hasRevision() ? View.VISIBLE : View.GONE);
+            if (!n.hasRevision()) return;
+            TextView tr = v.findViewById(R.id.note_seg_transcript);
+            TextView rv = v.findViewById(R.id.note_seg_review);
+            int on = c.getColor(R.color.chip_on_text);
+            int off = body(c);
+            tr.setBackgroundResource(n.showWhisper ? R.drawable.seg_on_start : 0);
+            rv.setBackgroundResource(n.showWhisper ? 0 : R.drawable.seg_on_end);
+            tr.setTextColor(n.showWhisper ? on : off);
+            rv.setTextColor(n.showWhisper ? off : on);
+            tr.setTypeface(null, n.showWhisper ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+            rv.setTypeface(null, n.showWhisper ? android.graphics.Typeface.NORMAL : android.graphics.Typeface.BOLD);
+            tr.setOnClickListener(x -> {
+                Db.get(c).setShowWhisper(n.id, true);
+                reload.run();
+            });
+            rv.setOnClickListener(x -> {
+                Db.get(c).setShowWhisper(n.id, false);
+                reload.run();
+            });
+        }
+
+        private static int body(Context c) {
+            android.util.TypedValue tv = new android.util.TypedValue();
+            c.getTheme().resolveAttribute(android.R.attr.textColorSecondary, tv, true);
+            return tv.resourceId != 0 ? c.getColor(tv.resourceId) : tv.data;
         }
 
         /** Una voce di messaggi scritti: originali, traduzione sotto, stato nella riga dei dettagli. */

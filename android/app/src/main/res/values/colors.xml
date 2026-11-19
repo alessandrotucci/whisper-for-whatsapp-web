@@ -3,6 +3,9 @@
     <color name="accent">#1DA462</color>
     <color name="icon_background">#128C4A</color>
     <color name="warn">#E0A030</color>
+    <color name="chip_stroke">#5D6158</color>
+    <color name="chip_on">#24402F</color>
+    <color name="chip_on_text">#8FE0B1</color>
     <color name="ok">#3DA86A</color>
     <color name="err">#E05A4A</color>
 </resources>
