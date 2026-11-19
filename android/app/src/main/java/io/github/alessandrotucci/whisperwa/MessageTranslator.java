@@ -77,6 +77,13 @@ final class MessageTranslator {
         worker.execute(this::drain);
     }
 
+    /** Traduce di nuovo da capo un gruppo dicendo all'IA che i messaggi sono nella lingua data. */
+    void retryIn(long noteId, String language) {
+        Db.get(app).setMessagesLanguage(noteId, language);
+        TranscriptionQueue.get(app).changed();
+        worker.execute(this::drain);
+    }
+
     /** Rimette in attesa la traduzione di un gruppo e la rifà. */
     void retry(long noteId) {
         Db.get(app).clearTranslation(noteId);
@@ -199,13 +206,14 @@ final class MessageTranslator {
         }
         String target = AiProviders.baseLang(AiStore.load(app).targetOrDefault());
         List<String> langs = new ArrayList<>();
-        for (String line : lines) langs.add(detect(line));
+        boolean stated = note.forcedLang != null;
+        for (String line : lines) langs.add(stated ? note.forcedLang : detect(line));
         try {
             AiReview.AttemptListener attempt = name -> {
                 translatingWith = name;
                 TranscriptionQueue.get(app).changed();
             };
-            AiReview.MessagesResult r = AiReview.translateMessages(app, lines, langs, note.chat, attempt);
+            AiReview.MessagesResult r = AiReview.translateMessages(app, lines, langs, stated, note.chat, attempt);
             // Un messaggio in un'altra lingua rimasto senza traduzione, o "tradotto" con il testo
             // originale, si richiede da solo una volta.
             List<Integer> missing = new ArrayList<>();
@@ -222,7 +230,7 @@ final class MessageTranslator {
                     againLangs.add(langs.get(i));
                 }
                 Log.i(TAG, "messaggi senza traduzione: " + missing.size() + ", nuova richiesta");
-                AiReview.MessagesResult r2 = AiReview.translateMessages(app, again, againLangs, note.chat, attempt);
+                AiReview.MessagesResult r2 = AiReview.translateMessages(app, again, againLangs, stated, note.chat, attempt);
                 for (int k = 0; k < missing.size(); k++) {
                     String t = r2.translations.get(k);
                     if (t != null && !same(t, again.get(k))) r.translations.set(missing.get(k), t);

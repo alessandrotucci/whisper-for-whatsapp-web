@@ -315,6 +315,15 @@ final class AiReview {
     }
 
     static String[] buildMessagesPrompt(List<String> messages, List<String> languages, String target, String chat) {
+        return buildMessagesPrompt(messages, languages, false, target, chat);
+    }
+
+    /**
+     * Con stated vero la lingua dei messaggi l'ha indicata l'utente, correggendo quella rilevata:
+     * il prompt lo dice, e chiede di tradurre da quella lingua.
+     */
+    static String[] buildMessagesPrompt(List<String> messages, List<String> languages, boolean stated, String target,
+                                        String chat) {
         String name = AiProviders.langName(target);
         String system = String.format(Locale.ROOT,
                 "You translate WhatsApp text messages into %s. The messages are informal written chat: they may contain "
@@ -341,7 +350,10 @@ final class AiReview {
         }
         StringBuilder user = new StringBuilder();
         if (chat != null && !chat.isEmpty()) user.append("Chat: ").append(chat).append('\n');
-        user.append("Messages, as a JSON array, in the order they were received (\"language\", when present, is the "
+        user.append(stated
+                ? "Messages, as a JSON array, in the order they were received (\"language\" is the language stated by "
+                + "the user, who corrected the detected one: translate from it):\n<<<\n"
+                : "Messages, as a JSON array, in the order they were received (\"language\", when present, is the "
                 + "language detected on the device):\n<<<\n").append(arr).append("\n>>>");
         return new String[]{system, user.toString()};
     }
@@ -374,11 +386,11 @@ final class AiReview {
     }
 
     /** Traduce un gruppo di messaggi scritti con la catena degli account; solleva AllFailed se nessuno risponde. */
-    static MessagesResult translateMessages(Context context, List<String> messages, List<String> languages, String chat,
-                                            AttemptListener listener) throws AllFailed {
+    static MessagesResult translateMessages(Context context, List<String> messages, List<String> languages, boolean stated,
+                                            String chat, AttemptListener listener) throws AllFailed {
         AiStore.Data data = AiStore.load(context);
         String target = data.targetOrDefault();
-        String[] prompt = buildMessagesPrompt(messages, languages, target, chat);
+        String[] prompt = buildMessagesPrompt(messages, languages, stated, target, chat);
         List<Failure> errors = new ArrayList<>();
         int timeoutMs = Math.max(1, data.timeoutS) * 1000;
         for (AiStore.Account acc : data.accounts) {

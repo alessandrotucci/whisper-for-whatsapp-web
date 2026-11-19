@@ -72,6 +72,8 @@ public final class Db extends SQLiteOpenHelper {
         public String reviewError;
         public boolean showWhisper;
         public int kind;
+        /** Lingua scelta dall'utente al posto di quella rilevata, oppure null. */
+        public String forcedLang;
 
         public boolean isMessage() {
             return kind == KIND_MESSAGE;
@@ -130,7 +132,7 @@ public final class Db extends SQLiteOpenHelper {
     }
 
     private Db(Context context) {
-        super(context, "notes.db", null, 4);
+        super(context, "notes.db", null, 5);
     }
 
     @Override
@@ -153,7 +155,8 @@ public final class Db extends SQLiteOpenHelper {
                 + "error TEXT,"
                 + "attempts INTEGER NOT NULL DEFAULT 0,"
                 + REVIEW_COLUMNS + ","
-                + KIND_COLUMN + ")");
+                + KIND_COLUMN + ","
+                + FORCED_LANG_COLUMN + ")");
         db.execSQL("CREATE INDEX notes_status ON notes(status, received)");
     }
 
@@ -164,9 +167,11 @@ public final class Db extends SQLiteOpenHelper {
             for (String col : REVIEW_COLUMNS.split(",")) db.execSQL("ALTER TABLE notes ADD COLUMN " + col);
         }
         if (oldVersion < 4) db.execSQL("ALTER TABLE notes ADD COLUMN " + KIND_COLUMN);
+        if (oldVersion < 5) db.execSQL("ALTER TABLE notes ADD COLUMN " + FORCED_LANG_COLUMN);
     }
 
     private static final String KIND_COLUMN = "kind INTEGER NOT NULL DEFAULT 0";
+    private static final String FORCED_LANG_COLUMN = "forced_lang TEXT";
 
     private static final String REVIEW_COLUMNS = "review_state INTEGER NOT NULL DEFAULT 0,"
             + "review_text TEXT,"
@@ -375,10 +380,30 @@ public final class Db extends SQLiteOpenHelper {
     }
 
     public void requeue(long id) {
+        requeueIn(id, null);
+    }
+
+    /** Rimette in coda un vocale da trascrivere nella lingua data, o con quella rilevata se null. */
+    public void requeueIn(long id, String language) {
         ContentValues v = new ContentValues();
         v.put("status", PENDING);
         v.putNull("error");
         v.put("attempts", 0);
+        v.put("forced_lang", language);
+        update(id, v);
+    }
+
+    /**
+     * Imposta la lingua di un gruppo di messaggi scelta dall'utente e lo rimette in attesa di
+     * traduzione da capo: i messaggi successivi della chat in quella lingua si aggiungono al gruppo.
+     */
+    public void setMessagesLanguage(long id, String language) {
+        ContentValues v = new ContentValues();
+        v.put("language", language);
+        v.put("forced_lang", language);
+        v.putNull("translation");
+        v.putNull("review_error");
+        v.put("review_state", REVIEW_PENDING);
         update(id, v);
     }
 
@@ -445,6 +470,7 @@ public final class Db extends SQLiteOpenHelper {
                 n.reviewError = c.getString(c.getColumnIndexOrThrow("review_error"));
                 n.showWhisper = c.getInt(c.getColumnIndexOrThrow("show_whisper")) != 0;
                 n.kind = c.getInt(c.getColumnIndexOrThrow("kind"));
+                n.forcedLang = c.getString(c.getColumnIndexOrThrow("forced_lang"));
                 out.add(n);
             }
         }

@@ -34,6 +34,7 @@ import android.widget.Toast;
 
 import org.json.JSONArray;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -72,7 +73,7 @@ public final class MainActivity extends Activity {
         list = findViewById(R.id.list);
         list.setEmptyView(findViewById(R.id.empty));
         player = new VoicePlayer(this, () -> adapter.notifyDataSetChanged());
-        adapter = new NoteAdapter(this, player, this::refresh);
+        adapter = new NoteAdapter(this, player, this::refresh, this::pickLanguage);
         list.setAdapter(adapter);
         registerForContextMenu(list);
         list.setOnItemClickListener((parent, view, position, id) -> list.showContextMenuForChild(view));
@@ -296,6 +297,81 @@ public final class MainActivity extends Activity {
         }
     }
 
+    /** Nome della lingua nella lingua dell'interfaccia, in minuscolo come nelle frasi: «portoghese». */
+    static String languageName(String code) {
+        String base = AiProviders.baseLang(code);
+        String name = new java.util.Locale(base).getDisplayLanguage();
+        return name.isEmpty() || name.equals(base) ? AiProviders.langName(base) : name;
+    }
+
+    /** La prima lingua di un gruppo di messaggi ("pt, es" -> "pt"), oppure null. */
+    static String firstLanguage(String languages) {
+        if (languages == null) return null;
+        String first = languages.split(",")[0].trim();
+        return first.isEmpty() ? null : AiProviders.baseLang(first);
+    }
+
+    /**
+     * Scelta della lingua di una voce. Per un vocale: «Trascrivi di nuovo in», che rimette in coda
+     * la trascrizione con la lingua imposta. Per un gruppo di messaggi: la lingua dei messaggi, che
+     * li fa tradurre di nuovo dicendola all'IA; la lingua della traduzione toglie il gruppo.
+     */
+    private void pickLanguage(Db.Note note) {
+        boolean message = note.isMessage();
+        String current = message ? firstLanguage(note.language) : AiProviders.baseLang(note.language);
+        String target = AiProviders.baseLang(AiStore.load(this).targetOrDefault());
+        List<String> codes = new ArrayList<>();
+        List<CharSequence> labels = new ArrayList<>();
+        codes.add(current);
+        labels.add(choice(languageName(current),
+                getString(message ? R.string.lang_detected_ai : R.string.lang_detected_whisper)));
+        if (message && !target.equals(current)) {
+            codes.add(target);
+            labels.add(choice(languageName(target), getString(R.string.lang_no_translate)));
+        }
+        List<String> others = new ArrayList<>(AiProviders.LANG_NAMES.keySet());
+        others.remove(current);
+        if (message) others.remove(target);
+        java.text.Collator collator = java.text.Collator.getInstance();
+        others.sort((x, y) -> collator.compare(languageName(x), languageName(y)));
+        for (String code : others) {
+            codes.add(code);
+            labels.add(languageName(code));
+        }
+        new android.app.AlertDialog.Builder(this)
+                .setTitle(message ? R.string.lang_messages_in : R.string.lang_transcribe_in)
+                .setSingleChoiceItems(labels.toArray(new CharSequence[0]), 0, (d, which) -> {
+                    d.dismiss();
+                    String code = codes.get(which);
+                    if (code.equals(current)) return;
+                    if (!message) {
+                        Db.get(this).requeueIn(note.id, code);
+                        TranscriptionQueue.get(this).kick();
+                    } else if (code.equals(target)) {
+                        Db.get(this).delete(note.id);
+                        Notifier.cancelTranscript(this, note.id);
+                        android.widget.Toast.makeText(this, getString(R.string.lang_removed, languageName(code)),
+                                android.widget.Toast.LENGTH_SHORT).show();
+                    } else {
+                        MessageTranslator.get(this).retryIn(note.id, code);
+                    }
+                    refresh();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    /** Voce dell'elenco con la lingua e, più piccola e attenuata, una nota: «portoghese · rilevata dall'IA». */
+    private CharSequence choice(String name, String note) {
+        android.text.SpannableStringBuilder s = new android.text.SpannableStringBuilder(name);
+        int start = s.length();
+        s.append(" \u00B7 ").append(note);
+        s.setSpan(new android.text.style.RelativeSizeSpan(0.8f), start, s.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        s.setSpan(new android.text.style.ForegroundColorSpan(NoteAdapter.body(this)), start, s.length(),
+                android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return s;
+    }
+
     private Db.Note noteAt(ContextMenu.ContextMenuInfo info) {
         if (!(info instanceof AdapterView.AdapterContextMenuInfo)) return null;
         int pos = ((AdapterView.AdapterContextMenuInfo) info).position;
@@ -313,11 +389,28 @@ public final class MainActivity extends Activity {
         private float touchY;
         private final VoicePlayer player;
         private final Runnable reload;
+        private final java.util.function.Consumer<Db.Note> onLanguage;
 
-        NoteAdapter(Context context, VoicePlayer player, Runnable reload) {
+        NoteAdapter(Context context, VoicePlayer player, Runnable reload, java.util.function.Consumer<Db.Note> onLanguage) {
             super(context, R.layout.item_note);
             this.player = player;
             this.reload = reload;
+            this.onLanguage = onLanguage;
+        }
+
+        /**
+         * Pulsante della lingua sulla riga del nome: la lingua usata, che toccata apre la scelta di
+         * un'altra. Attenuato quando la scelta non si può fare, con il motivo al tocco.
+         */
+        private void bindLanguage(View v, Db.Note n, String code, boolean enabled, int reason) {
+            TextView lang = v.findViewById(R.id.note_lang);
+            lang.setText(languageName(code) + " \u25BE");
+            lang.setVisibility(View.VISIBLE);
+            lang.setAlpha(enabled ? 1f : 0.4f);
+            lang.setOnClickListener(x -> {
+                if (enabled) onLanguage.accept(n);
+                else android.widget.Toast.makeText(getContext(), reason, android.widget.Toast.LENGTH_SHORT).show();
+            });
         }
 
         void setNotes(List<Db.Note> notes) {
@@ -336,7 +429,18 @@ public final class MainActivity extends Activity {
             ((TextView) v.findViewById(R.id.note_title)).setText(n.title());
             v.findViewById(R.id.note_actions).setVisibility(View.GONE);
             v.findViewById(R.id.note_progress).setVisibility(View.GONE);
-            if (n.isMessage()) return messageView(v, n, c);
+            v.findViewById(R.id.note_lang).setVisibility(View.GONE);
+            if (n.isMessage()) {
+                String first = firstLanguage(n.language);
+                if (first != null) {
+                    boolean busy = n.reviewState == Db.REVIEW_PENDING || n.reviewState == Db.REVIEW_RUNNING;
+                    bindLanguage(v, n, first, !busy, R.string.lang_busy);
+                }
+                return messageView(v, n, c);
+            }
+            if (n.status == Db.DONE && n.language != null && !n.language.isEmpty()) {
+                bindLanguage(v, n, n.language, VoicePlayer.audioOf(n) != null, R.string.audio_missing);
+            }
             StringBuilder meta = new StringBuilder();
             meta.append(DateUtils.formatDateTime(c, n.received,
                     DateUtils.FORMAT_SHOW_DATE | DateUtils.FORMAT_SHOW_TIME | DateUtils.FORMAT_ABBREV_MONTH));
@@ -366,7 +470,9 @@ public final class MainActivity extends Activity {
             warn.setTextColor(c.getColor(R.color.warn));
             switch (n.status) {
                 case Db.PENDING:
-                    body.setText(R.string.status_pending);
+                    body.setText(n.forcedLang != null
+                            ? c.getString(R.string.status_pending_lang, languageName(n.forcedLang))
+                            : c.getString(R.string.status_pending));
                     break;
                 case Db.RUNNING:
                     body.setText(R.string.status_running);

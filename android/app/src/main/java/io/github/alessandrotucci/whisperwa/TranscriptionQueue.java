@@ -219,7 +219,8 @@ public final class TranscriptionQueue {
             }
             Log.i(TAG, "inizio " + note.name + ": tentativo " + (note.attempts + 1) + ", thread " + threads
                     + (visible ? " (app visibile)" : " (app non visibile)") + ", modello " + model.id);
-            WhisperLib.Result r = WhisperLib.transcribe(ctx, samples, Prefs.language(app),
+            String language = note.forcedLang != null ? note.forcedLang : Prefs.language(app);
+            WhisperLib.Result r = WhisperLib.transcribe(ctx, samples, language,
                     threads, percent -> {
                         if (percent != last[0]) {
                             last[0] = percent;

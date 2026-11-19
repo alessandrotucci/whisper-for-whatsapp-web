@@ -270,4 +270,14 @@
     <string name="setup_consent">Read and accept the notice on notifications: until then the app does not detect incoming voice messages.</string>
     <string name="setup_read">Read</string>
     <string name="ai_consent_note">Sending to the AI is paused: tap here to read the notice and accept it.</string>
+
+    <!-- Correzione della lingua -->
+    <string name="lang_transcribe_in">Transcribe again in:</string>
+    <string name="lang_messages_in">The messages are in:</string>
+    <string name="lang_detected_whisper">detected by Whisper</string>
+    <string name="lang_detected_ai">detected by the AI</string>
+    <string name="lang_no_translate">do not translate</string>
+    <string name="lang_removed">Messages in %1$s: removed from the list</string>
+    <string name="lang_busy">Translation in progress: wait for it to finish</string>
+    <string name="status_pending_lang">Queued: transcription in %1$s</string>
 </resources>

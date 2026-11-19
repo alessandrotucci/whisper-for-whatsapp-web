@@ -266,4 +266,14 @@
     <string name="setup_consent">Leggi e accetta l\'informativa sulle notifiche: fino ad allora l\'app non rileva i vocali in arrivo.</string>
     <string name="setup_read">Leggi</string>
     <string name="ai_consent_note">Invio all\'IA sospeso: tocca qui per leggere l\'informativa e accettarla.</string>
+
+    <!-- Correzione della lingua -->
+    <string name="lang_transcribe_in">Trascrivi di nuovo in:</string>
+    <string name="lang_messages_in">I messaggi sono in:</string>
+    <string name="lang_detected_whisper">rilevata da Whisper</string>
+    <string name="lang_detected_ai">rilevata dall\'IA</string>
+    <string name="lang_no_translate">non tradurre</string>
+    <string name="lang_removed">Messaggi in %1$s: tolti dalla lista</string>
+    <string name="lang_busy">Traduzione in corso: aspetta che finisca</string>
+    <string name="status_pending_lang">In coda: trascrizione in %1$s</string>
 </resources>
