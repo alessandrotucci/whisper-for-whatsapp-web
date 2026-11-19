@@ -32,7 +32,7 @@ param(
     [string]$ComputeType = 'int8',
     [string]$InstallDir = (Join-Path $env:LOCALAPPDATA 'WhatsAppWhisper'),
     # ID dell'estensione; più ID separati da virgola (es. installazione da store).
-    [string[]]$ExtensionId = @('mmfdonlfmjnahpaebjhjlgkpplkfplop'),
+    [string[]]$ExtensionId = @('mmfdonlfmjnahpaebjhjlgkpplkfplop', 'glolhnekllllekiicnekgekcghgpioma', 'pdkbbmadgjfgbghdanfnahdkecalpgbb', 'gippfnckahifomefkcjekddjphgdghkp'),
     # Crea il venv e installa faster-whisper senza chiedere.
     [switch]$CreateVenv,
     # Esegue l'autotest senza chiedere.

@@ -99,7 +99,7 @@ from multiprocessing.connection import Client, Listener
 import ai_review
 import cuda_libs
 
-HOST_VERSION = "1.7.0"
+HOST_VERSION = "1.7.1"
 FROZEN = getattr(sys, "frozen", False)
 
 

@@ -13,8 +13,9 @@
 #endif
 #define AppName "Whisper for WhatsApp Web"
 #define HostName "local.wa_whisper.host"
-; Origini ammesse dal manifest, già nel formato JSON. Un ID per ogni pubblicazione dell'estensione.
-#define ExtOrigins '"chrome-extension://mmfdonlfmjnahpaebjhjlgkpplkfplop/"'
+; Origini ammesse dal manifest, già nel formato JSON. Un ID per ogni pubblicazione dell'estensione:
+; GitHub, Chrome Web Store, Edge Add-ons, Opera Add-ons.
+#define ExtOrigins '"chrome-extension://mmfdonlfmjnahpaebjhjlgkpplkfplop/", "chrome-extension://glolhnekllllekiicnekgekcghgpioma/", "chrome-extension://pdkbbmadgjfgbghdanfnahdkecalpgbb/", "chrome-extension://gippfnckahifomefkcjekddjphgdghkp/"'
 ; Id delle estensioni per Firefox, già nel formato JSON.
 #define FirefoxIds '"wa-web-transcriber@alessandrotucci.github.io"'
 
