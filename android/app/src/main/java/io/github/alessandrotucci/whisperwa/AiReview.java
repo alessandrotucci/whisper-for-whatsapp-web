@@ -231,6 +231,9 @@ final class AiReview {
         String[] prompt = buildPrompt(text, language, revise, translate, target, hint, data.context ? chatContext : null);
         List<Failure> errors = new ArrayList<>();
         int timeoutMs = Math.max(1, data.timeoutS) * 1000;
+        // Prima revisione riuscita ma senza traduzione di un messaggio in un'altra lingua: si prova
+        // l'account successivo e, se nessuno traduce, vale questa.
+        Result untranslated = null;
         for (AiStore.Account acc : data.accounts) {
             AiProviders.Provider p = acc.provider();
             if (p == null) continue;
@@ -270,8 +273,10 @@ final class AiReview {
             if (msgLang.isEmpty() && language != null) msgLang = language;
             msgLang = msgLang.toLowerCase(Locale.ROOT);
             if (msgLang.length() > 5) msgLang = msgLang.substring(0, 5);
-            if (translation != null && !msgLang.isEmpty()
-                    && AiProviders.baseLang(msgLang).equals(AiProviders.baseLang(target))) {
+            boolean foreign = !msgLang.isEmpty()
+                    && !AiProviders.baseLang(msgLang).equals(AiProviders.baseLang(target));
+            if (translation != null && !msgLang.isEmpty() && !foreign) translation = null;
+            if (translation != null && (translation.equalsIgnoreCase(corrected) || translation.equalsIgnoreCase(text))) {
                 translation = null;
             }
             AiStore.mark(context, acc.id, null);
@@ -285,9 +290,18 @@ final class AiReview {
             r.provider = p.name;
             r.model = acc.model;
             r.ms = SystemClock.elapsedRealtime() - t0;
+            if (translate && foreign && translation == null) {
+                Log.w(TAG, "revisione con " + p.name + " senza traduzione dal " + msgLang + ": si prova l'account successivo");
+                if (untranslated == null) {
+                    r.errors.addAll(errors);
+                    untranslated = r;
+                }
+                continue;
+            }
             r.errors.addAll(errors);
             return r;
         }
+        if (untranslated != null) return untranslated;
         throw new AllFailed(errors);
     }
 
