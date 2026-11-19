@@ -524,7 +524,7 @@
               trStates.set(key, { state: 'same' });
             } else if (cfg.mode === 'auto' && isNew.get(key)) {
               trStates.set(key, { state: 'running', language: lang, text });
-              toSend.push({ key, text });
+              toSend.push({ key, text, language: lang });
             } else {
               trStates.set(key, { state: 'offer', language: lang, text });
             }
@@ -569,7 +569,7 @@
     if (!st || !st.text) return;
     trStates.set(key, { ...st, state: 'running', errors: null });
     renderTrKey(key);
-    send({ cmd: 'trEnqueue', items: [{ key, text: st.text }] });
+    send({ cmd: 'trEnqueue', items: [{ key, text: st.text, language: st.language }] });
   }
 
   function renderTr(box, key) {
@@ -637,7 +637,7 @@
         continue;
       }
       trStates.set(key, { state: 'running', language: lang, text });
-      toSend.push({ key, text });
+      toSend.push({ key, text, language: lang });
     }
     if (toSend.length) send({ cmd: 'trEnqueue', items: toSend });
     for (const msgEl of textEls()) placeTrBox(msgEl);

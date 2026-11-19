@@ -113,7 +113,7 @@ let ridSeq = 0;
 let downloading = null; // nome del modello in download
 let cudaInstalling = false;
 let reviews = new Map(); // id della revisione nel componente -> chiave del vocale
-let trPending = new Map(); // chiave del messaggio -> testo, in attesa di partire
+let trPending = new Map(); // chiave del messaggio -> {text, language}, in attesa di partire
 let trRunning = 0; // richieste di traduzione aperte nel componente
 let trTimer = null;
 let aiConfig = null; // {active, mode, target, at}: impostazioni dell'IA lette dal componente
@@ -566,7 +566,7 @@ async function getTranslations(keys) {
 }
 
 function trEnqueue(items) {
-  for (const { key, text } of items) if (key && text && !trPending.has(key)) trPending.set(key, text);
+  for (const { key, text, language } of items) if (key && text && !trPending.has(key)) trPending.set(key, { text, language });
   updateKeepAlive();
   clearTimeout(trTimer);
   trTimer = setTimeout(trFlush, 400);
@@ -578,9 +578,9 @@ function trFlush() {
   while (trPending.size) {
     const batch = [];
     let chars = 0;
-    for (const [key, text] of trPending) {
+    for (const [key, { text, language }] of trPending) {
       if (batch.length && (batch.length >= TR_BATCH_ITEMS || chars + text.length > TR_BATCH_CHARS)) break;
-      batch.push({ id: key, text });
+      batch.push(language ? { id: key, text, language } : { id: key, text });
       chars += text.length;
     }
     for (const it of batch) trPending.delete(it.id);
