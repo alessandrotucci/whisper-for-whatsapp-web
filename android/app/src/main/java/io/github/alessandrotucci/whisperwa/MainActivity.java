@@ -327,6 +327,7 @@ public final class MainActivity extends Activity {
             Context c = getContext();
             ((TextView) v.findViewById(R.id.note_title)).setText(n.title());
             v.findViewById(R.id.note_actions).setVisibility(View.GONE);
+            v.findViewById(R.id.note_progress).setVisibility(View.GONE);
             if (n.isMessage()) return messageView(v, n, c);
             StringBuilder meta = new StringBuilder();
             meta.append(DateUtils.formatDateTime(c, n.received,
@@ -401,7 +402,7 @@ public final class MainActivity extends Activity {
             android.widget.ProgressBar progress = v.findViewById(R.id.note_progress);
             boolean available = VoicePlayer.audioOf(n) != null;
             boolean current = player.playingId() == n.id;
-            String total = DateUtils.formatElapsedTime((n.audioMs + 500) / 1000);
+            String total = DateUtils.formatElapsedTime(n.audioMs / 1000);
             if (current) {
                 String pos = DateUtils.formatElapsedTime(player.position() / 1000);
                 play.setText((player.isPlaying() ? "\u23F8 " : "\u25B6 ") + pos + " / " + total);
@@ -413,10 +414,10 @@ public final class MainActivity extends Activity {
             }
             play.setAlpha(available ? 1f : 0.4f);
             play.setOnClickListener(x -> player.toggle(n));
-            v.findViewById(R.id.note_spacer).setVisibility(current ? View.VISIBLE : View.GONE);
             View seg = v.findViewById(R.id.note_seg);
-            seg.setVisibility(n.hasRevision() ? View.VISIBLE : View.GONE);
-            if (!n.hasRevision()) return;
+            boolean changed = changedWords(n);
+            seg.setVisibility(changed ? View.VISIBLE : View.GONE);
+            if (!changed) return;
             TextView tr = v.findViewById(R.id.note_seg_transcript);
             TextView rv = v.findViewById(R.id.note_seg_review);
             int on = c.getColor(R.color.chip_on_text);
@@ -435,6 +436,20 @@ public final class MainActivity extends Activity {
                 Db.get(c).setShowWhisper(n.id, false);
                 reload.run();
             });
+        }
+
+        /** Vero se la revisione ha cambiato almeno una parola: solo allora serve scegliere il testo. */
+        private static boolean changedWords(Db.Note n) {
+            if (!n.hasRevision() || n.reviewSegments == null) return false;
+            try {
+                JSONArray parts = new JSONArray(n.reviewSegments);
+                for (int i = 0; i < parts.length(); i++) {
+                    if (!parts.getJSONArray(i).isNull(1)) return true;
+                }
+            } catch (Exception ignored) {
+                // Pezzi illeggibili: nessuna scelta da offrire.
+            }
+            return false;
         }
 
         private static int body(Context c) {
