@@ -40,7 +40,7 @@ public final class Notifier {
      * originali seguono, ciascuno al più ORIGINAL_MAX caratteri, finché il totale resta sotto
      * TEXT_BUDGET.
      */
-    private static final int TRANSLATIONS_BUDGET = 600;
+    private static final int TRANSLATIONS_BUDGET = 300;
     private static final int TRANSLATION_MIN = 60;
     private static final int ORIGINAL_MAX = 200;
     private static final int TEXT_BUDGET = 950;
