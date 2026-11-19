@@ -9,8 +9,12 @@ voci che Firefox non conosce. channel.js dice "store": Firefox installa solo
 estensioni firmate da Mozilla, che le aggiorna, quindi il componente locale non
 sostituisce i file dell'estensione.
 
+Il pacchetto "store" è quello per Chrome Web Store, Edge Add-ons e Opera Add-ons: lo stesso
+codice di extension/, senza la chiave pubblica (gli store assegnano il proprio id) e con
+channel.js "store". In tutti e due i pacchetti per gli store il nome è STORE_NAME.
+
 Uso:
-  python tools/build_extension.py firefox [--out build/ext/firefox] [--zip build/installer/x.zip]
+  python tools/build_extension.py firefox|store [--out build/ext/<bersaglio>] [--zip build/installer/x.zip]
 """
 import argparse
 import json
@@ -22,6 +26,7 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 SRC = os.path.join(ROOT, "extension")
 
 GECKO_ID = "wa-web-transcriber@alessandrotucci.github.io"
+STORE_NAME = "WA Web Transcriber, Translator and Reviewer"
 GECKO_MIN_VERSION = "128.0"
 
 
@@ -58,14 +63,47 @@ def firefox_manifest(m):
     return m
 
 
+def store_manifest(m):
+    m = dict(m)
+    m.pop("key", None)
+    return m
+
+
+def set_store_name(out):
+    """Il nome dell'estensione, in ogni lingua, diventa STORE_NAME."""
+    loc = os.path.join(out, "_locales")
+    for lang in os.listdir(loc):
+        path = os.path.join(loc, lang, "messages.json")
+        with open(path, encoding="utf-8") as f:
+            msgs = json.load(f)
+        msgs["extName"]["message"] = STORE_NAME
+        with open(path, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(msgs, f, ensure_ascii=False, indent=2)
+            f.write("\n")
+
+
+def write_channel(out, store_label):
+    with open(os.path.join(out, "channel.js"), "w", encoding="utf-8", newline="\n") as f:
+        f.write("// Canale di aggiornamento dell'estensione: \"store\", la aggiorna %s.\n"
+                "const UPDATE_CHANNEL = 'store';\n" % store_label)
+
+
 def build(target, out):
-    if target != "firefox":
+    if target not in ("firefox", "store"):
         raise SystemExit("bersaglio sconosciuto: %s" % target)
     if os.path.isdir(out):
         shutil.rmtree(out)
     shutil.copytree(SRC, out, ignore=shutil.ignore_patterns("README.txt"))
     with open(os.path.join(SRC, "manifest.json"), encoding="utf-8") as f:
         manifest = json.load(f)
+    manifest.pop("short_name", None)
+    set_store_name(out)
+    if target == "store":
+        with open(os.path.join(out, "manifest.json"), "w", encoding="utf-8", newline="\n") as f:
+            json.dump(store_manifest(manifest), f, indent=2, ensure_ascii=False)
+            f.write("\n")
+        write_channel(out, "lo store del browser")
+        return out
     with open(os.path.join(out, "manifest.json"), "w", encoding="utf-8", newline="\n") as f:
         json.dump(firefox_manifest(manifest), f, indent=2, ensure_ascii=False)
         f.write("\n")
@@ -79,9 +117,7 @@ def build(target, out):
         html = html[:first] + '<script src="compat.js"></script>\n' + html[first:]
         with open(path, "w", encoding="utf-8", newline="") as f:
             f.write(html)
-    with open(os.path.join(out, "channel.js"), "w", encoding="utf-8", newline="\n") as f:
-        f.write("// Canale di aggiornamento dell'estensione: \"store\", la aggiorna Mozilla.\n"
-                "const UPDATE_CHANNEL = 'store';\n")
+    write_channel(out, "Mozilla")
     return out
 
 
@@ -96,7 +132,7 @@ def make_zip(folder, path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("target", choices=["firefox"])
+    ap.add_argument("target", choices=["firefox", "store"])
     ap.add_argument("--out")
     ap.add_argument("--zip")
     a = ap.parse_args()

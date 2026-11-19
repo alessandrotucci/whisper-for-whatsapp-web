@@ -54,8 +54,10 @@ jobs:
         shell: pwsh
         run: Compress-Archive -Path extension\*, build\release.json -DestinationPath build\installer\whisper-for-whatsapp-web-extension.zip
 
-      - name: Pacchetto per Firefox
-        run: python tools/build_extension.py firefox --zip build/installer/whisper-for-whatsapp-web-firefox.zip
+      - name: Pacchetti per gli store
+        run: |
+          python tools/build_extension.py firefox --zip build/installer/whisper-for-whatsapp-web-firefox.zip
+          python tools/build_extension.py store --zip build/installer/whisper-for-whatsapp-web-store.zip
 
       - uses: actions/upload-artifact@v7
         with:
