@@ -1008,8 +1008,9 @@ class Host:
         if res is None:
             self.reply(msg, {"type": "review", "id": jid, "state": "skipped"})
             return
-        self.log("revisione %s con %s %s in %d ms%s" % (
-            jid, res["provider"], res["model"], res["ms"], ", correzione scartata" if res["rejected"] else ""))
+        self.log("revisione %s con %s %s in %d ms%s%s%s" % (
+            jid, res["provider"], res["model"], res["ms"], ", correzione scartata" if res["rejected"] else "",
+            "" if res["translation"] or not res["language"] else ", senza traduzione", failed_accounts(res["errors"])))
         self.reply(msg, {"type": "review", "id": jid, "state": "done", "review": res})
 
     def ai_status(self):
@@ -1023,8 +1024,8 @@ class Host:
             elif kind == "translate":
                 items = [i for i in (msg.get("items") or []) if (i.get("text") or "").strip()]
                 res = ai_review.translate_texts(self.ai, items, msg.get("hint"), msg.get("context"))
-                self.log("traduzione di %d messaggi con %s %s in %d ms" % (
-                    len(items), res["provider"], res["model"], res["ms"]))
+                self.log("traduzione di %d messaggi con %s %s in %d ms%s" % (
+                    len(items), res["provider"], res["model"], res["ms"], failed_accounts(res["errors"])))
                 self.reply(msg, dict(res, type="translate_result"))
             elif kind == "ai_status":
                 self.reply(msg, self.ai_status())
@@ -1215,6 +1216,15 @@ class Host:
     def apply_config(self, msg):
         self.set_config(msg.get("config"))
         self.reply(msg, dict(type="pong", **self.tr.describe()))
+
+
+def failed_accounts(errors):
+    """Gli account falliti prima di quello riuscito, per il log: nome, codice e dettaglio breve."""
+    if not errors:
+        return ""
+    return "; prima: " + ", ".join(
+        "%s %s%s" % (e.get("name", "?"), e.get("code"), " (%s)" % e["detail"][:80] if e.get("detail") else "")
+        for e in errors)
 
 
 def open_log(prefix=""):

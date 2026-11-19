@@ -521,6 +521,7 @@ def review(store, text, language, hint=None, context=None, on_attempt=None):
     translate = bool(s.get("translate"))
     system, user = build_prompt(text, language, revise, translate, target, hint, context if s.get("context") else None)
     errors = []
+    fallback = None
     for acc in data["accounts"]:
         pub = public_account(acc)
         if on_attempt:
@@ -549,10 +550,13 @@ def review(store, text, language, hint=None, context=None, on_attempt=None):
         else:
             translation = None
         msg_lang = (parsed.get("language") or language or "").lower()[:5] or None
-        if translation and msg_lang and msg_lang.split("-")[0] == target.split("-")[0]:
+        foreign = bool(msg_lang) and msg_lang.split("-")[0] != target.split("-")[0]
+        if translation and not foreign:
+            translation = None
+        if translation and translation.strip() == corrected.strip():
             translation = None
         mark(store, acc["id"], ok=True)
-        return {
+        result = {
             "text": corrected,
             "segments": segs,
             "revised": revise and not rejected,
@@ -566,6 +570,16 @@ def review(store, text, language, hint=None, context=None, on_attempt=None):
             "ms": int((time.time() - t0) * 1000),
             "errors": errors,
         }
+        # Un messaggio in un'altra lingua tornato senza traduzione passa all'account
+        # successivo; se nessuno la dà, vale la prima revisione riuscita.
+        if translate and foreign and not translation:
+            errors.append({"account": pub["id"], "name": pub["name"], "code": "format", "detail": "traduzione mancante"})
+            if fallback is None:
+                fallback = result
+            continue
+        return result
+    if fallback is not None:
+        return fallback
     err = AIError("all_failed")
     err.errors = errors
     raise err
