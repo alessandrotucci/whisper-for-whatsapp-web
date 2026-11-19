@@ -20,9 +20,12 @@ import java.util.concurrent.Executors;
  * WhatsApp. La lingua si riconosce sul telefono con il TextClassifier di Android: all'IA va solo
  * il testo dei messaggi da tradurre, mai quello già nella lingua dell'utente.
  *
- * <p>I messaggi della stessa chat arrivati entro GROUP_MS dall'ultimo formano un gruppo, una riga
- * dell'archivio con un messaggio per riga di testo; ogni messaggio nuovo rimette in attesa la
- * traduzione dell'intero gruppo, e la notifica del gruppo si aggiorna. Le traduzioni girano su un
+ * <p>I messaggi della stessa chat e della stessa lingua arrivati entro GROUP_MS dall'ultimo formano
+ * un gruppo, una riga dell'archivio con un messaggio per riga di testo; ogni messaggio nuovo rimette
+ * in attesa la traduzione dell'intero gruppo, e la notifica del gruppo si aggiorna. Un messaggio in
+ * un'altra lingua apre un gruppo suo, mentre quello della prima lingua resta aperto. Un messaggio
+ * dalla lingua incerta (riconoscimento poco sicuro o testo breve) va nel gruppo aperto più recente
+ * della chat, per non moltiplicare i gruppi per errore. Le traduzioni girano su un
  * thread proprio, senza servizio in primo piano: sono richieste di pochi secondi e non devono
  * aspettare la coda delle trascrizioni.
  */
@@ -33,6 +36,8 @@ final class MessageTranslator {
     private static final long MAX_AGE_MS = 10 * 60 * 1000;
     private static final int MIN_LETTERS = 4;
     private static final float MIN_CONFIDENCE = 0.5f;
+    private static final float SURE_CONFIDENCE = 0.8f;
+    private static final int SURE_LETTERS = 12;
     private static final int SEEN_MAX = 500;
 
     private static MessageTranslator instance;
@@ -88,19 +93,59 @@ final class MessageTranslator {
         AiStore.Data data = AiStore.load(app);
         if (!data.messagesActive()) return;
         String target = AiProviders.baseLang(data.targetOrDefault());
-        String lang = detect(text);
-        if (lang == null || AiProviders.baseLang(lang).equals(target)) return;
+        Detection d = detectFull(text);
+        if (d.letters < MIN_LETTERS) return;
         Db db = Db.get(app);
-        Db.Note group = db.lastMessages(pkg, chat, time - GROUP_MS);
+        long since = time - GROUP_MS;
+        boolean sure = d.lang != null && d.confidence >= SURE_CONFIDENCE && d.letters >= SURE_LETTERS;
+        Db.Note group;
+        String lang = d.lang;
+        if (sure) {
+            if (AiProviders.baseLang(lang).equals(target)) return;
+            group = db.lastMessages(pkg, chat, AiProviders.baseLang(lang), since);
+        } else {
+            group = db.lastMessages(pkg, chat, null, since);
+            if (group == null && (lang == null || d.confidence < MIN_CONFIDENCE
+                    || AiProviders.baseLang(lang).equals(target))) {
+                return;
+            }
+        }
         if (group != null) {
-            db.appendMessage(group.id, text, time, lang);
+            db.appendMessage(group.id, text, time, lang != null ? AiProviders.baseLang(lang) : null);
         } else {
             String source = "msg:" + pkg + ":" + chat + ":" + time + ":" + Integer.toHexString(text.hashCode());
-            db.insertMessages(pkg, chat, sender, source, text, lang, time);
+            db.insertMessages(pkg, chat, sender, source, text, AiProviders.baseLang(lang), time);
         }
-        Log.i(TAG, "messaggio da tradurre: lingua " + lang + ", " + text.length() + " caratteri");
+        Log.i(TAG, "messaggio da tradurre: lingua " + lang + (sure ? "" : " (incerta)") + ", " + text.length()
+                + " caratteri, " + (group != null ? "gruppo " + group.id : "gruppo nuovo"));
         TranscriptionQueue.get(app).changed();
         drain();
+    }
+
+    /** Esito del riconoscimento: lingua (o null), affidabilità e numero di lettere del testo. */
+    private static final class Detection {
+        String lang;
+        float confidence;
+        int letters;
+    }
+
+    private Detection detectFull(String text) {
+        Detection d = new Detection();
+        for (int i = 0; i < text.length(); i++) if (Character.isLetter(text.charAt(i))) d.letters++;
+        if (d.letters < MIN_LETTERS) return d;
+        try {
+            TextClassifier tc = app.getSystemService(TextClassificationManager.class).getTextClassifier();
+            TextLanguage tl = tc.detectLanguage(new TextLanguage.Request.Builder(text).build());
+            if (tl.getLocaleHypothesisCount() == 0) return d;
+            ULocale best = tl.getLocale(0);
+            String lang = best.getLanguage();
+            if (lang == null || lang.isEmpty()) return d;
+            d.lang = lang;
+            d.confidence = tl.getConfidenceScore(best);
+        } catch (RuntimeException e) {
+            Log.w(TAG, "riconoscimento della lingua non disponibile", e);
+        }
+        return d;
     }
 
     /** La lingua del testo riconosciuta sul telefono, oppure null se troppo corto o incerto. */

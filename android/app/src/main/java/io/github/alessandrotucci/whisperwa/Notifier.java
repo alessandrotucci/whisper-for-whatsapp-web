@@ -90,7 +90,8 @@ public final class Notifier {
      */
     public static void showMessages(Context context, Db.Note note) {
         NotificationManager nm = context.getSystemService(NotificationManager.class);
-        String title = context.getString(R.string.msg_notif_title, note.chat != null ? note.chat : note.title());
+        String title = context.getString(R.string.msg_notif_title, note.chat != null ? note.chat : note.title(),
+                note.language != null ? note.language : "");
         String text = note.translation != null ? GLOBE + " " + note.translation
                 : context.getString(R.string.msg_failed_short);
         String big = text + "\n\n" + note.text;

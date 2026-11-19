@@ -172,19 +172,29 @@ public final class Db extends SQLiteOpenHelper {
         return getWritableDatabase().insertWithOnConflict("notes", null, v, SQLiteDatabase.CONFLICT_IGNORE);
     }
 
-    /** Il gruppo di messaggi più recente della chat, se l'ultimo messaggio è arrivato da since in poi. */
-    public Note lastMessages(String pkg, String chat, long since) {
-        List<Note> l = query("kind = " + KIND_MESSAGE + " AND pkg = ? AND chat = ? AND received >= ?",
-                new String[]{pkg, chat, Long.toString(since)}, "received DESC, id DESC", "1");
+    /**
+     * Il gruppo di messaggi più recente della chat, se l'ultimo messaggio è arrivato da since in
+     * poi. Con language non nullo, solo un gruppo la cui prima lingua è quella.
+     */
+    public Note lastMessages(String pkg, String chat, String language, long since) {
+        String where = "kind = " + KIND_MESSAGE + " AND pkg = ? AND chat = ? AND received >= ?";
+        String[] args = {pkg, chat, Long.toString(since)};
+        if (language != null) {
+            where += " AND (language = ? OR language LIKE ?)";
+            args = new String[]{pkg, chat, Long.toString(since), language, language + ",%"};
+        }
+        List<Note> l = query(where, args, "received DESC, id DESC", "1");
         return l.isEmpty() ? null : l.get(0);
     }
 
     /** Aggiunge un messaggio al gruppo e ne rimette in attesa la traduzione. */
     public void appendMessage(long id, String text, long received, String language) {
         getWritableDatabase().execSQL("UPDATE notes SET text = text || char(10) || ?, received = ?, review_state = "
-                + REVIEW_PENDING + ", review_error = NULL, language = CASE WHEN language IS NULL THEN ? "
-                + "WHEN instr(',' || language || ',', ',' || ? || ',') > 0 THEN language ELSE language || ', ' || ? END "
-                + "WHERE id = ?", new Object[]{text, received, language, language, language, id});
+                + REVIEW_PENDING + ", review_error = NULL, language = CASE WHEN ? IS NULL THEN language "
+                + "WHEN language IS NULL THEN ? "
+                + "WHEN instr(',' || replace(language, ' ', '') || ',', ',' || ? || ',') > 0 THEN language "
+                + "ELSE language || ', ' || ? END WHERE id = ?",
+                new Object[]{text, received, language, language, language, language, id});
     }
 
     /** Il gruppo di messaggi con la traduzione in attesa da più tempo, oppure null. */

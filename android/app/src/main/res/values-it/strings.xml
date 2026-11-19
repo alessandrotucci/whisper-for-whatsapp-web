@@ -236,7 +236,7 @@
     <string name="ai_messages">Anche i messaggi scritti</string>
     <string name="ai_messages_note">Traduce i messaggi scritti che arrivano in un\'altra lingua. La lingua si riconosce sul telefono: escono solo i messaggi da tradurre, mai quelli già nella tua lingua.</string>
     <string name="channel_messages">Traduzioni dei messaggi</string>
-    <string name="msg_notif_title">%1$s · traduzione</string>
+    <string name="msg_notif_title">%1$s · traduzione · %2$s</string>
     <string name="msg_kind_one">messaggio scritto</string>
     <string name="msg_kind_many">%1$d messaggi scritti</string>
     <string name="msg_translating">traduzione con %1$s…</string>

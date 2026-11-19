@@ -240,7 +240,7 @@
     <string name="ai_messages">Written messages too</string>
     <string name="ai_messages_note">Translates written messages that arrive in another language. The language is recognized on the phone: only messages to translate leave it, never those already in your language.</string>
     <string name="channel_messages">Message translations</string>
-    <string name="msg_notif_title">%1$s · translation</string>
+    <string name="msg_notif_title">%1$s · translation · %2$s</string>
     <string name="msg_kind_one">written message</string>
     <string name="msg_kind_many">%1$d written messages</string>
     <string name="msg_translating">translating with %1$s…</string>
