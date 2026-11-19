@@ -3,6 +3,9 @@
 // page.js marca gli elementi dei vocali con data-wwt-voice="1" e data-wwt-key;
 // qui, per ognuno, si aggiunge sotto la bolla un riquadro .wwt-box che mostra
 // lo stato della trascrizione (pulsante, in coda, in corso, testo, errore).
+// Sotto i messaggi scritti in arrivo in un'altra lingua (data-wwt-text="1") un riquadro
+// .wwt-trbox offre o mostra la traduzione. La lingua la riconosce il browser: i messaggi
+// nella lingua dell'utente non vanno mai all'IA.
 (() => {
   'use strict';
   if (window.__wwtContentLoaded) return;
@@ -108,9 +111,25 @@
       }
       return false;
     }
+    if (msg.cmd === 'trUpdate') {
+      for (const u of msg.updates) {
+        const prev = trStates.get(u.key) || {};
+        trStates.set(u.key, u.state === 'done' && !u.translation ? { state: 'same' } : { ...u, text: prev.text, language: u.language || prev.language });
+        renderTrKey(u.key);
+      }
+      return false;
+    }
+    if (msg.cmd === 'translateChat') {
+      translateChat()
+        .then((n) => sendResponse({ ok: true, result: n }))
+        .catch((e) => sendResponse({ ok: false, error: e.message }));
+      return true;
+    }
     if (msg.cmd === 'reset') {
       states.clear();
       asked.clear();
+      trStates.clear();
+      trSeen.clear();
       document.querySelectorAll('.wwt-box').forEach((b) => b.remove());
       return false;
     }
@@ -138,6 +157,57 @@
     return b;
   }
 
+  // Menu delle lingue: un'intestazione non selezionabile, le voci di firstOptions
+  // ([valore, etichetta]), le lingue più comuni e le altre in ordine di nome.
+  const COMMON_LANGS = ['it', 'pt', 'es', 'en', 'fr', 'de'];
+  const OTHER_LANGS = ['nl', 'ro', 'pl', 'ru', 'uk', 'el', 'tr', 'ar', 'he', 'hi', 'zh', 'ja', 'ko', 'sq', 'sr', 'hr', 'cs', 'hu', 'sv', 'da', 'no', 'fi', 'ca', 'gl', 'id', 'vi', 'th', 'fa', 'bn', 'ur', 'tl'];
+  function langSelect(cls, header, firstOptions, current, onPick, title) {
+    const sel = el('select', cls);
+    if (title) sel.title = title;
+    const add = (value, label, parent, extra) => {
+      const o = el('option', null, label);
+      o.value = value;
+      Object.assign(o, extra || {});
+      (parent || sel).append(o);
+    };
+    add('__header', header, null, { disabled: true });
+    const seen = new Set(['__header']);
+    for (const [value, label, extra] of firstOptions) {
+      add(value, label, null, extra);
+      seen.add(value);
+    }
+    for (const c of COMMON_LANGS) if (!seen.has(c)) { add(c, langName(c)); seen.add(c); }
+    const others = el('optgroup');
+    others.label = t('lang_others');
+    OTHER_LANGS.filter((c) => !seen.has(c)).map((c) => [c, langName(c)]).sort((a, b) => a[1].localeCompare(b[1])).forEach(([c, l]) => add(c, l, others));
+    sel.append(others);
+    sel.value = current;
+    for (const ev of ['click', 'mousedown', 'pointerdown', 'keydown']) sel.addEventListener(ev, (e) => e.stopPropagation());
+    sel.addEventListener('change', (e) => {
+      e.stopPropagation();
+      if (sel.value !== current) onPick(sel.value);
+    });
+    return sel;
+  }
+
+  // Interruttore a segmenti: options è [[valore, etichetta, titolo], ...].
+  function segmented(options, current, onPick) {
+    const wrap = el('span', 'wwt-seg');
+    for (const [value, label, title] of options) {
+      const b = el('button', value === current ? 'on' : null, label);
+      b.type = 'button';
+      if (title) b.title = title;
+      b.setAttribute('aria-pressed', String(value === current));
+      b.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (value !== current) onPick(value);
+      });
+      wrap.append(b);
+    }
+    return wrap;
+  }
+
   function fmtDuration(s) {
     if (!s && s !== 0) return '';
     s = Math.round(s);
@@ -153,11 +223,11 @@
     transcribing: 'state_transcribing',
   };
 
-  function requestTranscription(key, force) {
+  function requestTranscription(key, force, language) {
     const chatEl = document.querySelector('#main header span[dir="auto"]');
     states.set(key, { state: 'queued' });
     renderKey(key);
-    send({ cmd: 'enqueue', key, manual: true, force: !!force, chat: chatEl ? chatEl.textContent : '' }).then((r) => {
+    send({ cmd: 'enqueue', key, manual: true, force: !!force, language: language || null, chat: chatEl ? chatEl.textContent : '' }).then((r) => {
       if (r && r.state) {
         states.set(key, r);
         renderKey(key);
@@ -168,7 +238,8 @@
   // Una revisione rimasta "in corso" oltre questo tempo si considera persa, per esempio
   // perché il service worker è stato terminato: il riquadro offre di ripeterla.
   const REVIEW_STALE_MS = 150000;
-  const showOriginal = new Set(); // chiavi per cui il riquadro mostra il testo di Whisper
+  // Testo scelto con l'interruttore, "whisper" o "revised", finché il record salvato non lo riporta.
+  const viewChoice = new Map();
 
   const AI_ERR = {
     key: 'ai_err_key',
@@ -177,6 +248,7 @@
     network: 'ai_err_network',
     model: 'ai_err_model',
     format: 'ai_err_format',
+    notr: 'ai_err_notr',
   };
   const aiErrText = (code) => t(AI_ERR[code] || 'ai_err_http');
 
@@ -222,22 +294,52 @@
     const rstate = reviewState(st);
     const done = rstate === 'done';
     const fixes = done && rv.revised && (rv.segments || []).some(([, orig]) => orig != null);
-    const original = fixes && showOriginal.has(key);
+    const original = fixes && (viewChoice.get(key) || rv.view) === 'whisper';
     const head = el('div', 'wwt-head');
     head.append(el('span', 'wwt-icon', '🎙'));
     const lang = (done && rv.language) || st.language;
     const meta = [lang, fmtDuration(st.duration)].filter(Boolean).join(' · ');
-    let label = t(original ? 'box_transcription_whisper' : 'box_transcription') + (meta ? ' · ' + meta : '');
-    if (rstate === 'running') {
-      head.append(el('span', 'wwt-spinner'));
-      label += ' · ' + (rv.provider ? t('box_reviewing', rv.provider) : t('box_reviewing_ai'));
-    } else if (done && rv.revised && !original) {
-      label += ' · ' + t('box_reviewed_by', rv.provider || '');
+    let label;
+    // La lingua di Whisper è un menu: un'altra scelta trascrive di nuovo con quella lingua.
+    const whisperLang = st.language;
+    if (whisperLang) {
+      head.append(langSelect('wwt-lang', t('lang_menu_voice'), [[whisperLang, langName(whisperLang)]], whisperLang,
+        (v) => requestTranscription(key, true, v), t('lang_voice_title')));
+    }
+    const rest = [fmtDuration(st.duration)];
+    if (done) {
+      // Con la revisione fatta l'etichetta dice chi ha scritto il testo mostrato.
+      label = [...rest, original || !rv.revised ? 'Whisper' : rv.provider].filter(Boolean).join(' · ');
+      if (!original && !rv.revised && rv.translation && rv.provider) label += ' · ' + rv.provider;
+      if (whisperLang) label = '· ' + label;
+    } else if (whisperLang) {
+      label = '· ' + rest.filter(Boolean).join(' · ');
+      if (rstate === 'running') {
+        head.append(el('span', 'wwt-spinner'));
+        label += ' · ' + (rv.provider ? t('box_reviewing', rv.provider) : t('box_reviewing_ai'));
+      }
+    } else {
+      label = t('box_transcription') + (meta ? ' · ' + meta : '');
+      if (rstate === 'running') {
+        head.append(el('span', 'wwt-spinner'));
+        label += ' · ' + (rv.provider ? t('box_reviewing', rv.provider) : t('box_reviewing_ai'));
+      }
     }
     head.append(el('span', 'wwt-label', label));
     const translation = done ? rv.translation : null;
     const shown = done && rv.revised && !original ? rv.text : st.text;
     const actions = el('span', 'wwt-actions');
+    if (fixes) {
+      actions.append(segmented(
+        [['whisper', t('box_seg_transcription'), t('box_seg_transcription_title')], ['revised', t('box_seg_revision'), t('box_seg_revision_title')]],
+        original ? 'whisper' : 'revised',
+        (view) => {
+          viewChoice.set(key, view);
+          send({ cmd: 'setView', key, view });
+          renderKey(key);
+        },
+      ));
+    }
     actions.append(
       button(t('box_copy'), t('box_copy_title'), (ev) => {
         const text = (shown || '') + (translation ? '\n\n' + translation : '');
@@ -247,15 +349,6 @@
         });
       }),
     );
-    if (fixes) {
-      actions.append(
-        button(original ? t('box_show_revised') : t('box_show_original'), original ? t('box_show_revised_title') : t('box_show_original_title'), () => {
-          if (original) showOriginal.delete(key);
-          else showOriginal.add(key);
-          renderKey(key);
-        }),
-      );
-    }
     actions.append(button('↻', t('box_retranscribe_title'), () => requestTranscription(key, true)));
     head.append(actions);
     box.append(head);
@@ -271,13 +364,22 @@
       const tr = el('div', 'wwt-tr');
       tr.append(el('div', 'wwt-tr-label', t('box_translation') + ' · ' + (rv.targetLang || '')), el('div', 'wwt-final-tr', translation));
       box.append(tr);
+    } else if (done && rv.translationFailed) {
+      const why = (rv.failed || []).map((e) => (e.name ? e.name + ': ' : '') + aiErrText(e.code)).join('; ');
+      const tr = el('div', 'wwt-tr');
+      const note = el('div', 'wwt-note');
+      note.append(el('span', null, '⚠ ' + t('tr_failed', why || aiErrText('notr'))));
+      note.append(button(t('box_review_retry'), null, () => send({ cmd: 'reviewAgain', key })));
+      tr.append(note);
+      box.append(tr);
     }
     if (rstate === 'error' || rstate === 'stale') {
       const note = el('div', 'wwt-note');
       const why = rstate === 'stale'
         ? t('ai_err_interrupted')
         : (rv.errors || []).map((e) => (e.name ? e.name + ': ' : '') + aiErrText(e.code)).join('; ');
-      note.append(el('span', null, '⚠ ' + t('box_review_failed', why || t('ai_err_http'))));
+      // Con la correzione spenta la richiesta all'IA era solo una traduzione.
+      note.append(el('span', null, '⚠ ' + t(rv.revise === false ? 'tr_failed' : 'box_review_failed', why || t('ai_err_http'))));
       note.append(button(t('box_review_retry'), null, () => send({ cmd: 'reviewAgain', key })));
       box.append(note);
     }
@@ -285,7 +387,7 @@
 
   function renderBox(box, key) {
     const st = states.get(key) || { state: 'none' };
-    const sig = JSON.stringify(st) + '|' + showOriginal.has(key) + '|' + reviewState(st);
+    const sig = JSON.stringify(st) + '|' + viewChoice.get(key) + '|' + reviewState(st);
     if (box.__wwtSig === sig) return;
     box.__wwtSig = sig;
     box.replaceChildren();
@@ -328,7 +430,7 @@
   }
 
   function renderKey(key) {
-    document.querySelectorAll('.wwt-box').forEach((box) => {
+    document.querySelectorAll('.wwt-box:not(.wwt-trbox)').forEach((box) => {
       if (box.dataset.key === key) renderBox(box, key);
     });
   }
@@ -394,6 +496,266 @@
     }
   }
 
+  // ---------- traduzione dei messaggi scritti ----------
+
+  // Stati: offer (lingua diversa, si traduce a richiesta), running, done, error, same
+  // (nella lingua dell'utente o senza parole da tradurre: nessun riquadro).
+  const trStates = new Map();
+  const trSeen = new Set(); // chiavi già esaminate
+  let trCfg = null;
+  let trCfgAt = 0;
+  let trBusy = false;
+  const TR_CFG_TTL_MS = 60000;
+  // Sotto questa percentuale una lingua riconosciuta con poca sicurezza non conta.
+  const TR_MIN_PERCENT = 60;
+
+  async function trConfig() {
+    if (trCfg && Date.now() - trCfgAt < TR_CFG_TTL_MS) return trCfg;
+    const c = await send({ cmd: 'trConfig' });
+    if (c) {
+      trCfg = c;
+      trCfgAt = Date.now();
+    }
+    return trCfg;
+  }
+
+  async function detect(text) {
+    try {
+      if (chrome.i18n.detectLanguage) return await chrome.i18n.detectLanguage(text);
+    } catch (_) { /* si chiede al service worker */ }
+    return send({ cmd: 'detectLanguage', text });
+  }
+
+  function foreignLanguage(res, target) {
+    const top = res && res.languages && res.languages[0];
+    if (!top || !top.language || top.language === 'und') return null;
+    const lang = top.language.split('-')[0];
+    if (lang === String(target || '').split('-')[0]) return null;
+    if (!res.isReliable && top.percentage < TR_MIN_PERCENT) return null;
+    return lang;
+  }
+
+  function langName(code) {
+    try {
+      const ui = chrome.i18n.getUILanguage();
+      const n = new Intl.DisplayNames([ui], { type: 'language' }).of(code);
+      return n || code;
+    } catch (_) {
+      return code;
+    }
+  }
+
+  const textEls = () => document.querySelectorAll('#main [data-wwt-text="1"][data-wwt-key]');
+
+  // Messaggi scritti nuovi nel DOM: traduzioni salvate, poi lingua dei rimanenti; quelli
+  // in un'altra lingua partono da soli se sono arrivati con WhatsApp Web aperto e il modo
+  // è "auto", altrimenti ricevono il pulsante Traduci.
+  async function textScan() {
+    if (trBusy) return;
+    trBusy = true;
+    try {
+      const els = [...textEls()];
+      const cfg = els.length ? await trConfig() : trCfg;
+      if (!cfg || !cfg.active) {
+        document.querySelectorAll('.wwt-trbox').forEach((b) => b.remove());
+        return;
+      }
+      const fresh = els.filter((el) => !trSeen.has(el.getAttribute('data-wwt-key')));
+      if (fresh.length) {
+        const keys = fresh.map((el) => el.getAttribute('data-wwt-key'));
+        keys.forEach((k) => trSeen.add(k));
+        const saved = (await send({ cmd: 'trGet', keys })) || {};
+        const need = [];
+        for (const k of keys) {
+          const r = saved[k];
+          if (!r) need.push(k);
+          else trStates.set(k, r.state === 'done' && !r.translation ? { state: 'same' } : r);
+        }
+        if (need.length) {
+          const texts = await pageRequest('texts', { keys: need });
+          const isNew = new Map(fresh.map((el) => [el.getAttribute('data-wwt-key'), el.getAttribute('data-wwt-new') === '1']));
+          const toSend = [];
+          for (const { key, text } of texts) {
+            const lang = foreignLanguage(await detect(text), cfg.target);
+            if (!lang) {
+              trStates.set(key, { state: 'same' });
+            } else if (cfg.mode === 'auto' && isNew.get(key)) {
+              trStates.set(key, { state: 'running', language: lang, text });
+              toSend.push({ key, text, language: lang });
+            } else {
+              trStates.set(key, { state: 'offer', language: lang, text });
+            }
+          }
+          if (toSend.length) send({ cmd: 'trEnqueue', items: toSend });
+        }
+      }
+      for (const el of textEls()) placeTrBox(el);
+    } catch (_) {
+      /* il prossimo giro riprova */
+    } finally {
+      trBusy = false;
+    }
+  }
+
+  function placeTrBox(msgEl) {
+    const key = msgEl.getAttribute('data-wwt-key');
+    const st = trStates.get(key);
+    let box = msgEl.querySelector(':scope .wwt-trbox');
+    if (box && box.dataset.key !== key) {
+      box.remove();
+      box = null;
+    }
+    const chip = msgEl.querySelector(':scope .wwt-chipwrap');
+    if (st && st.state === 'same') {
+      if (box) box.remove();
+      placeTrChip(msgEl, key);
+      return;
+    }
+    if (chip) chip.remove();
+    if (!st) {
+      if (box) box.remove();
+      return;
+    }
+    if (!box) {
+      box = el('div', 'wwt-box wwt-trbox');
+      box.dataset.key = key;
+    }
+    if (!placeBox(msgEl, box)) return;
+    renderTr(box, key);
+  }
+
+  function renderTrKey(key) {
+    for (const msgEl of textEls()) if (msgEl.getAttribute('data-wwt-key') === key) placeTrBox(msgEl);
+  }
+
+  function requestTranslation(key) {
+    const st = trStates.get(key);
+    if (!st || !st.text) return;
+    trStates.set(key, { ...st, state: 'running', errors: null });
+    renderTrKey(key);
+    send({ cmd: 'trEnqueue', items: [{ key, text: st.text, language: st.language }] });
+  }
+
+  // Lingua scelta a mano: quella dell'utente vuol dire "non tradurre"; un'altra traduce di
+  // nuovo indicandola all'IA; null lascia che la riconosca l'IA.
+  async function chooseLanguage(key, lang) {
+    const target = (trCfg && trCfg.target) || 'it';
+    const prev = trStates.get(key) || {};
+    if (lang === target) {
+      trStates.set(key, { state: 'same', manual: true });
+      renderTrKey(key);
+      send({ cmd: 'trSetSame', key, language: target });
+      return;
+    }
+    let text = prev.text;
+    if (!text) {
+      const got = await pageRequest('texts', { keys: [key] }).catch(() => []);
+      text = got && got[0] && got[0].text;
+    }
+    if (!text) return;
+    trStates.set(key, { state: 'running', language: lang, userLang: !!lang, text });
+    renderTrKey(key);
+    send({ cmd: 'trEnqueue', items: [lang ? { key, text, language: lang } : { key, text }] });
+  }
+
+  function textLangSelect(key, st) {
+    const target = (trCfg && trCfg.target) || 'it';
+    const lang = st.language || '';
+    const first = [];
+    if (lang && lang !== target) first.push([lang, langName(lang)]);
+    first.push([target, t('lang_no_translate', langName(target))]);
+    return langSelect('wwt-lang', t('lang_menu_text'), first, lang || target, (v) => chooseLanguage(key, v), t('lang_text_title'));
+  }
+
+  // Messaggi senza riquadro (giudicati nella lingua dell'utente): un "🌐" al passaggio del
+  // mouse permette di tradurli lo stesso.
+  function placeTrChip(msgEl, key) {
+    let wrap = msgEl.querySelector(':scope .wwt-chipwrap');
+    if (wrap && wrap.dataset.key !== key) {
+      wrap.remove();
+      wrap = null;
+    }
+    if (!wrap) {
+      wrap = el('div', 'wwt-chipwrap');
+      wrap.dataset.key = key;
+      wrap.append(langSelect('wwt-chip', t('lang_menu_chip'), [['', '🌐', { hidden: true }], ['__ai', t('lang_detect_ai')]], '',
+        (v) => chooseLanguage(key, v === '__ai' ? null : v), t('lang_chip_title')));
+    }
+    placeBox(msgEl, wrap);
+  }
+
+  function renderTr(box, key) {
+    const st = trStates.get(key);
+    const sig = JSON.stringify(st) + '|' + (trCfg && trCfg.provider);
+    if (box.__wwtSig === sig) return;
+    box.__wwtSig = sig;
+    box.replaceChildren();
+    box.dataset.state = st.state;
+    box.classList.toggle('wwt-slim', st.state === 'offer');
+    const head = el('div', 'wwt-head');
+    head.append(el('span', 'wwt-icon', '🌐'));
+    const actions = el('span', 'wwt-actions');
+    if (st.state === 'offer') {
+      head.append(textLangSelect(key, st));
+      actions.append(button(t('tr_translate'), t('tr_translate_title'), () => requestTranslation(key)));
+      head.append(actions);
+      box.append(head);
+      return;
+    }
+    if (st.state === 'running') {
+      head.append(el('span', 'wwt-spinner'), el('span', 'wwt-label', trCfg && trCfg.provider ? t('tr_running', trCfg.provider) : t('tr_running_ai')));
+      box.append(head);
+      return;
+    }
+    if (st.state === 'error') {
+      head.append(textLangSelect(key, st));
+      actions.append(button(t('box_retry'), null, () => requestTranslation(key)));
+      head.append(actions);
+      const why = (st.errors || []).map((e) => (e.name ? e.name + ': ' : '') + aiErrText(e.code)).join('; ');
+      box.append(head, el('div', 'wwt-note', '⚠ ' + t('tr_failed', why || t('ai_err_http'))));
+      return;
+    }
+    head.append(el('span', 'wwt-label wwt-grow0', t('box_translation') + ' ·'), textLangSelect(key, st),
+      el('span', 'wwt-label', (st.target ? '→ ' + st.target : '') + (st.provider ? ' · ' + st.provider : '')));
+    actions.append(
+      button(t('box_copy'), t('tr_copy_title'), (ev) => {
+        navigator.clipboard.writeText(st.translation || '').then(() => {
+          ev.target.textContent = t('box_copied');
+          setTimeout(() => (ev.target.textContent = t('box_copy')), 1200);
+        });
+      }),
+    );
+    head.append(actions);
+    // wwt-final-tr segna la traduzione, che page.js aggiunge al testo copiato.
+    box.append(head, el('div', 'wwt-text wwt-final-tr', st.translation || ''));
+  }
+
+  // Dal popup: traduce i messaggi scritti in un'altra lingua già caricati nella chat aperta.
+  async function translateChat() {
+    const cfg = await trConfig();
+    if (!cfg || !cfg.active) throw new Error(t('tr_off'));
+    const { items } = await pageRequest('chatTexts');
+    const saved = (await send({ cmd: 'trGet', keys: items.map((i) => i.key) })) || {};
+    const toSend = [];
+    for (const { key, text } of items) {
+      trSeen.add(key);
+      if (saved[key] && saved[key].state === 'done') {
+        trStates.set(key, saved[key].translation ? saved[key] : { state: 'same' });
+        continue;
+      }
+      const lang = foreignLanguage(await detect(text), cfg.target);
+      if (!lang) {
+        trStates.set(key, { state: 'same' });
+        continue;
+      }
+      trStates.set(key, { state: 'running', language: lang, text });
+      toSend.push({ key, text, language: lang });
+    }
+    if (toSend.length) send({ cmd: 'trEnqueue', items: toSend });
+    for (const msgEl of textEls()) placeTrBox(msgEl);
+    return toSend.length;
+  }
+
   let scheduled = false;
   function schedule() {
     if (scheduled) return;
@@ -402,6 +764,7 @@
       scheduled = false;
       if (!alive()) return;
       try { scan(); } catch (_) { /* il prossimo giro riprova */ }
+      textScan();
     }, 150);
   }
   const observer = new MutationObserver(schedule);
@@ -409,7 +772,7 @@
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ['data-wwt-voice', 'data-wwt-key'],
+    attributeFilter: ['data-wwt-voice', 'data-wwt-text', 'data-wwt-key'],
   });
   const timer = setInterval(schedule, 2000);
 

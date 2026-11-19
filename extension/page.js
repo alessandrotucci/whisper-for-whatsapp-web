@@ -3,11 +3,14 @@
 // Compiti:
 //  - marcare nel DOM i messaggi vocali: sull'elemento [data-id] del messaggio
 //    imposta data-wwt-key (id completo del messaggio), data-wwt-voice ("1"/"0")
-//    e data-wwt-from-me, che content.js usa per costruire l'interfaccia;
+//    e data-wwt-from-me, che content.js usa per costruire l'interfaccia; i messaggi
+//    scritti in arrivo hanno data-wwt-text="1", data-wwt-key e data-wwt-new ("1" se
+//    arrivati mentre WhatsApp Web era aperto);
 //  - scaricare e decifrare in memoria l'audio di un vocale, su richiesta, con i
 //    messaggi scritti che lo precedono se la revisione con l'IA usa il contesto;
 //  - segnalare i vocali nuovi appena arrivati;
-//  - aggiungere le trascrizioni dei vocali selezionati al testo copiato.
+//  - restituire il testo dei messaggi scritti, su richiesta;
+//  - aggiungere al testo copiato le trascrizioni dei vocali e le traduzioni dei messaggi.
 //
 // Lo scambio con content.js passa da window.postMessage con il campo __wwt:
 // "req" e "res" per richiesta e risposta, "evt" per gli eventi spontanei.
@@ -46,6 +49,10 @@
 
   function isVoice(m) {
     return !!m && VOICE_TYPES.has(m.type) && !m.isViewOnce;
+  }
+
+  function isIncomingText(m) {
+    return !!m && m.type === 'chat' && !!m.id && !m.id.fromMe && typeof m.body === 'string' && m.body.trim() !== '';
   }
 
   function activeChat() {
@@ -97,8 +104,16 @@
         el.setAttribute('data-wwt-from-me', m.id.fromMe ? '1' : '0');
         el.setAttribute('data-wwt-duration', String(m.duration || ''));
         el.setAttribute('data-wwt-voice', '1');
+        el.setAttribute('data-wwt-text', '0');
+      } else if (isIncomingText(m)) {
+        el.setAttribute('data-wwt-key', msgKey(m));
+        el.setAttribute('data-wwt-from-me', '0');
+        el.setAttribute('data-wwt-new', m.isNewMsg === true ? '1' : '0');
+        el.setAttribute('data-wwt-voice', '0');
+        el.setAttribute('data-wwt-text', '1');
       } else {
         el.setAttribute('data-wwt-voice', '0');
+        el.setAttribute('data-wwt-text', '0');
       }
     }
   }
@@ -206,6 +221,20 @@
         const keys = chat.msgs.getModelsArray().filter(isVoice).map(msgKey);
         return { keys, title: chat.formattedTitle || '' };
       }
+      case 'texts': {
+        const out = [];
+        for (const key of req.keys || []) {
+          const m = WA.Msg.get(key);
+          if (isIncomingText(m)) out.push({ key, text: m.body });
+        }
+        return out;
+      }
+      case 'chatTexts': {
+        const chat = activeChat();
+        if (!chat) return { items: [], title: '' };
+        const items = chat.msgs.getModelsArray().filter(isIncomingText).map((m) => ({ key: msgKey(m), text: m.body }));
+        return { items, title: chat.formattedTitle || '' };
+      }
       case 'ready':
         return { ready: true };
       default:
@@ -285,16 +314,23 @@
         continue;
       }
       const copyable = row.querySelector('[data-pre-plain-text]');
-      if (copyable) items.push({ voice: false, pre: copyable.getAttribute('data-pre-plain-text') });
+      if (copyable) {
+        const trEl = row.querySelector('.wwt-trbox[data-state="done"] .wwt-final-tr');
+        const tr = trEl && trEl.textContent.trim();
+        items.push({ voice: false, pre: copyable.getAttribute('data-pre-plain-text'), tr });
+      }
     }
     return items;
   }
 
   const TRANSLATION_MARK = '    🌐 ';
-  const voiceLine = (it) => it.pre + VOICE_MARK + it.text + (it.tr ? '\n' + TRANSLATION_MARK + it.tr : '');
+  // La traduzione va sotto il messaggio, rientrata anche sulle righe successive.
+  const trLine = (tr) => '\n' + TRANSLATION_MARK + tr.replace(/\n/g, '\n    ');
+  const voiceLine = (it) => it.pre + VOICE_MARK + it.text + (it.tr ? trLine(it.tr) : '');
 
-  // Inserisce le righe dei vocali nel testo di WhatsApp, prima del messaggio scritto che le
-  // segue nella selezione; quelle dopo l'ultimo messaggio scritto vanno in coda.
+  // Ricompone il testo copiato da WhatsApp nell'ordine della chat: ogni messaggio scritto
+  // con la sua traduzione sotto, i vocali al loro posto tra un messaggio e l'altro. Le
+  // righe dei vocali dopo l'ultimo messaggio scritto vanno in coda.
   function mergeCopied(s, items) {
     const texts = items.filter((it) => !it.voice);
     if (texts.length === 1 && !s.startsWith(texts[0].pre)) s = texts[0].pre + s;
@@ -306,24 +342,23 @@
       pos.set(it, p);
       from = p + it.pre.length;
     }
-    const parts = [];
-    let last = 0;
-    let pending = [];
-    for (const it of items) {
-      if (it.voice) {
-        pending.push(voiceLine(it));
-        continue;
-      }
-      const p = pos.get(it);
-      if (p == null || !pending.length) continue;
-      parts.push(s.slice(last, p), pending.join('\n') + '\n');
-      last = p;
-      pending = [];
+    const found = texts.filter((it) => pos.has(it));
+    const voiceLines = (list) => list.filter((it) => it.voice).map(voiceLine);
+    if (!found.length) {
+      const lines = voiceLines(items);
+      return lines.length ? (s ? s.replace(/\n+$/, '') + '\n' : '') + lines.join('\n') : s;
     }
-    parts.push(s.slice(last));
-    let out = parts.join('');
-    if (pending.length) out = (out ? out.replace(/\n+$/, '') + '\n' : '') + pending.join('\n');
-    return out;
+    const seg = new Map();
+    found.forEach((it, i) => {
+      const end = i + 1 < found.length ? pos.get(found[i + 1]) : s.length;
+      seg.set(it, s.slice(pos.get(it), end).replace(/\n+$/, ''));
+    });
+    const lines = [];
+    for (const it of items) {
+      if (it.voice) lines.push(voiceLine(it));
+      else if (seg.has(it)) lines.push(seg.get(it) + (it.tr ? trLine(it.tr) : ''));
+    }
+    return s.slice(0, pos.get(found[0])) + lines.join('\n') + (/\n$/.test(s) ? '\n' : '');
   }
 
   function copyItems() {
@@ -335,7 +370,7 @@
     // Una selezione dentro un solo riquadro di trascrizione resta una copia normale.
     if (anchorEl && anchorEl.closest('.wwt-box')) return null;
     const items = selectedItems(range);
-    return items.some((it) => it.voice) ? items : null;
+    return items.some((it) => it.voice || it.tr) ? items : null;
   }
 
   const wrapped = new WeakSet();
