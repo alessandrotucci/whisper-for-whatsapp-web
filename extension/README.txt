@@ -66,6 +66,8 @@ BUONO A SAPERSI
   Gemini e altri). La trascrizione viene corretta e, se il messaggio
   è in un'altra lingua, tradotta. Va al fornitore solo il testo, non
   l'audio. Serve una chiave API: la finestra spiega come ottenerla.
+  Anche i messaggi scritti in un'altra lingua ricevono la traduzione
+  sotto la bolla; la lingua si può correggere dal menu nel riquadro.
 - Disinstallare: rimuovi l'estensione dal browser e "Whisper for
   WhatsApp Web" da Impostazioni > App. Il modello scaricato resta in
   %USERPROFILE%\.cache\huggingface\hub e si può cancellare a mano.
@@ -140,6 +142,8 @@ GOOD TO KNOW
   others). The transcription gets fixed and, if the message is in
   another language, translated. Only the text goes to the provider,
   never the audio. You need an API key: the dialog explains how.
+  Text messages in another language get a translation under the
+  bubble too; the language can be corrected from the box's menu.
 - Uninstalling: remove the extension from the browser and "Whisper for
   WhatsApp Web" from Settings > Apps. The downloaded model stays in
   %USERPROFILE%\.cache\huggingface\hub and can be deleted by hand.

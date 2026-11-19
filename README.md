@@ -18,7 +18,14 @@ Solo la revisione con l'IA, facoltativa, manda il testo trascritto al fornitore 
   Gemini, Grok, Mistral, DeepSeek, OpenRouter, Ollama in locale e altri, 21 in tutto) il testo di
   Whisper si corregge, con le parole cambiate sottolineate, e i messaggi in un'altra lingua
   ricevono la traduzione. Gli account si provano in ordine, con passaggio al successivo se uno non
-  risponde. [Come ottenere una chiave](docs/ai-keys/README.it.md).
+  risponde. [Come ottenere una chiave](docs/ai-keys/README.it.md). Nel riquadro l'interruttore
+  «Trascrizione | Revisione» alterna il testo di Whisper e quello corretto.
+- Traduzione dei messaggi scritti in arrivo in un'altra lingua, sotto la bolla: da sola per quelli
+  arrivati a chat aperta, con «Traduci» per gli altri. La lingua la riconosce il browser, quindi i
+  messaggi nella tua lingua non vanno all'IA; più messaggi partono in una sola richiesta.
+- Lingua correggibile: nel riquadro di un messaggio o di un vocale la lingua è un menu (per un
+  vocale, «Trascrivi di nuovo in»), e sui messaggi brevi scambiati per italiano un «🌐» al
+  passaggio del mouse permette di tradurli lo stesso.
 - Modelli Whisper a scelta (large-v3 predefinito), scaricati dalla pagina dell'estensione o già
   presenti nella cache di faster-whisper.
 
