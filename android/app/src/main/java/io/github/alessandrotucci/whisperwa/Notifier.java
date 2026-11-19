@@ -7,6 +7,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -32,18 +33,48 @@ public final class Notifier {
     private static final String GROUP = "transcripts";
     private static final String GLOBE = new String(Character.toChars(0x1F310));
     /*
-     * Android tronca il testo espanso di una notifica intorno ai 1000 caratteri. In un gruppo di
-     * più messaggi la traduzione più recente occupa al più NEWEST_MAX caratteri, le altre e gli
-     * originali al più OTHER_MAX, così sotto la più recente resta visibile anche il resto.
+     * Android tronca il testo espanso di una notifica intorno ai 1000 caratteri e ne mostra una
+     * decina di righe. In un gruppo di più messaggi ogni traduzione sta su una riga logica, senza
+     * a capo interni, e le traduzioni insieme occupano al più TRANSLATIONS_BUDGET caratteri: si
+     * accorciano per prime le più lunghe, così di ognuna resta visibile almeno l'inizio. Gli
+     * originali seguono, ciascuno al più ORIGINAL_MAX caratteri, finché il totale resta sotto
+     * TEXT_BUDGET.
      */
-    private static final int NEWEST_MAX = 500;
-    private static final int OTHER_MAX = 200;
+    private static final int TRANSLATIONS_BUDGET = 600;
+    private static final int TRANSLATION_MIN = 60;
+    private static final int ORIGINAL_MAX = 200;
+    private static final int TEXT_BUDGET = 950;
 
     private Notifier() {
     }
 
     private static String cut(String s, int max) {
         return s.length() > max ? s.substring(0, max).trim() + "…" : s;
+    }
+
+    private static String oneLine(String s) {
+        return s.replaceAll("\\s+", " ").trim();
+    }
+
+    /** La lunghezza massima comune che fa stare i testi in budget caratteri, mai sotto TRANSLATION_MIN. */
+    private static int fitCap(List<String> texts, int budget) {
+        int total = 0;
+        int longest = 0;
+        for (String t : texts) {
+            total += t.length();
+            longest = Math.max(longest, t.length());
+        }
+        if (total <= budget) return longest;
+        int lo = TRANSLATION_MIN;
+        int hi = longest;
+        while (lo < hi) {
+            int mid = (lo + hi + 1) / 2;
+            int sum = 0;
+            for (String t : texts) sum += Math.min(t.length(), mid) + 1;
+            if (sum <= budget) lo = mid;
+            else hi = mid - 1;
+        }
+        return lo;
     }
 
     public static void createChannels(Context context) {
@@ -107,26 +138,29 @@ public final class Notifier {
         List<String> msgs = note.messages();
         List<String> trs = note.translations();
         boolean several = msgs.size() > 1;
-        StringBuilder tr = new StringBuilder();
+        List<String> shown = new ArrayList<>();
         for (int i = trs.size() - 1; i >= 0; i--) {
-            if (trs.get(i).isEmpty()) continue;
-            boolean newest = tr.length() == 0;
-            if (!newest) tr.append('\n');
-            tr.append(several ? cut(trs.get(i), newest ? NEWEST_MAX : OTHER_MAX) : trs.get(i));
+            if (!trs.get(i).isEmpty()) shown.add(several ? oneLine(trs.get(i)) : trs.get(i));
+        }
+        int cap = several ? fitCap(shown, TRANSLATIONS_BUDGET) : Integer.MAX_VALUE;
+        StringBuilder tr = new StringBuilder();
+        for (String t : shown) {
+            if (tr.length() > 0) tr.append('\n');
+            tr.append(cut(t, cap));
         }
         String text = tr.length() > 0 ? GLOBE + " " + tr : context.getString(R.string.msg_failed_short);
-        StringBuilder orig = new StringBuilder();
+        StringBuilder big = new StringBuilder(text).append("\n");
         for (int i = msgs.size() - 1; i >= 0; i--) {
-            String m = msgs.get(i);
-            if (orig.length() > 0) orig.append('\n');
-            orig.append(cut(m, OTHER_MAX));
+            String m = several ? oneLine(msgs.get(i)) : msgs.get(i);
+            int room = Math.min(ORIGINAL_MAX, TEXT_BUDGET - big.length() - 2);
+            if (room < TRANSLATION_MIN && i < msgs.size() - 1) break;
+            big.append('\n').append(cut(m, Math.max(room, TRANSLATION_MIN)));
         }
-        String big = text + "\n\n" + orig;
         Notification.Builder b = new Notification.Builder(context, CH_MESSAGES)
                 .setSmallIcon(R.drawable.ic_stat)
                 .setContentTitle(title)
                 .setContentText(text)
-                .setStyle(new Notification.BigTextStyle().bigText(big))
+                .setStyle(new Notification.BigTextStyle().bigText(big.toString()))
                 .setWhen(note.received)
                 .setShowWhen(true)
                 .setGroup(GROUP)
