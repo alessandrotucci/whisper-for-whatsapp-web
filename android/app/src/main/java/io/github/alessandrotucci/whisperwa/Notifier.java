@@ -31,9 +31,19 @@ public final class Notifier {
     private static final int KEEP = 8;
     private static final String GROUP = "transcripts";
     private static final String GLOBE = new String(Character.toChars(0x1F310));
-    private static final int ORIGINAL_MAX = 200;
+    /*
+     * Android tronca il testo espanso di una notifica intorno ai 1000 caratteri. In un gruppo di
+     * più messaggi la traduzione più recente occupa al più NEWEST_MAX caratteri, le altre e gli
+     * originali al più OTHER_MAX, così sotto la più recente resta visibile anche il resto.
+     */
+    private static final int NEWEST_MAX = 500;
+    private static final int OTHER_MAX = 200;
 
     private Notifier() {
+    }
+
+    private static String cut(String s, int max) {
+        return s.length() > max ? s.substring(0, max).trim() + "…" : s;
     }
 
     public static void createChannels(Context context) {
@@ -96,18 +106,20 @@ public final class Notifier {
         // Il messaggio più recente per primo: nelle notifiche lunghe la fine del testo si perde.
         List<String> msgs = note.messages();
         List<String> trs = note.translations();
+        boolean several = msgs.size() > 1;
         StringBuilder tr = new StringBuilder();
         for (int i = trs.size() - 1; i >= 0; i--) {
             if (trs.get(i).isEmpty()) continue;
-            if (tr.length() > 0) tr.append('\n');
-            tr.append(trs.get(i));
+            boolean newest = tr.length() == 0;
+            if (!newest) tr.append('\n');
+            tr.append(several ? cut(trs.get(i), newest ? NEWEST_MAX : OTHER_MAX) : trs.get(i));
         }
         String text = tr.length() > 0 ? GLOBE + " " + tr : context.getString(R.string.msg_failed_short);
         StringBuilder orig = new StringBuilder();
         for (int i = msgs.size() - 1; i >= 0; i--) {
             String m = msgs.get(i);
             if (orig.length() > 0) orig.append('\n');
-            orig.append(m.length() > ORIGINAL_MAX ? m.substring(0, ORIGINAL_MAX) + "\u2026" : m);
+            orig.append(cut(m, OTHER_MAX));
         }
         String big = text + "\n\n" + orig;
         Notification.Builder b = new Notification.Builder(context, CH_MESSAGES)
