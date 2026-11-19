@@ -25,6 +25,13 @@ guida per ottenere la chiave). Dopo ogni trascrizione il testo, non l'audio, va 
 corregge le parole capite male, sottolineate nella lista, e traduce i messaggi in un'altra lingua.
 Le chiavi restano sul telefono, nel Keystore di Android.
 
+**Messaggi scritti.** Con un account di IA collegato vengono tradotti anche i messaggi scritti in
+un'altra lingua: una notifica per chat e per lingua, con la traduzione più recente in cima e il
+pulsante *Copia*. Si traducono solo i messaggi nuovi; *Traduci di nuovo* rifà tutto il gruppo.
+
+**Nella lista.** Sotto ogni vocale ▶ riascolta l'audio originale; se l'IA ha cambiato parole,
+*Trascrizione | Revisione* sceglie quale testo mostrare.
+
 **Lavoro in background.** Se il sistema ferma le trascrizioni, la notifica porta alla sezione
 *Lavoro in background* delle Impostazioni, con lo stato dei permessi e i pulsanti per sistemarli.
 Sui telefoni OPPO, OnePlus e realme tieni bassi i thread in background (2).
@@ -43,4 +50,6 @@ messages on the phone, with no cloud, and shows the text as notifications. Insta
 follow the checklist at the top of the app: notifications, notification access (on Android 13+
 first allow restricted settings from App info, menu ⋮), a model, the voice notes folder and the
 battery exemption. Optionally, connect one or more AI accounts in Settings to fix misheard words
-and translate messages in another language; keys stay on the phone.
+and translate messages in another language, both voice and written; keys stay on the phone. In
+the list, ▶ plays a voice message again and «Trascrizione | Revisione» switches between Whisper's
+text and the reviewed one.
