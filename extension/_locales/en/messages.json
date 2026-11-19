@@ -594,7 +594,7 @@
     "message": "Review failed: $1."
   },
   "box_review_retry": {
-    "message": "Retry with AI"
+    "message": "Retry"
   },
   "ai_err_key": {
     "message": "key rejected"
@@ -613,6 +613,9 @@
   },
   "ai_err_format": {
     "message": "invalid reply"
+  },
+  "ai_err_notr": {
+    "message": "reply without translation"
   },
   "ai_err_http": {
     "message": "service error"

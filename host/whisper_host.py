@@ -1003,7 +1003,8 @@ class Host:
             errors = getattr(e, "errors", None) or [{"code": e.code, "detail": e.detail}]
             self.log("revisione %s non riuscita: %s" % (jid, "; ".join(
                 "%s %s" % (x.get("name", ""), x.get("code")) for x in errors)))
-            self.reply(msg, {"type": "review", "id": jid, "state": "error", "errors": errors})
+            revise = bool(self.ai.load()["settings"].get("revise"))
+            self.reply(msg, {"type": "review", "id": jid, "state": "error", "errors": errors, "revise": revise})
             return
         if res is None:
             self.reply(msg, {"type": "review", "id": jid, "state": "skipped"})

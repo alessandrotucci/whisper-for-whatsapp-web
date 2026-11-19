@@ -562,6 +562,7 @@ def review(store, text, language, hint=None, context=None, on_attempt=None):
             "revised": revise and not rejected,
             "rejected": rejected,
             "translation": translation,
+            "translation_failed": bool(translate and foreign and not translation),
             "target_lang": target,
             "language": msg_lang,
             "provider": pub["name"],
@@ -573,7 +574,7 @@ def review(store, text, language, hint=None, context=None, on_attempt=None):
         # Un messaggio in un'altra lingua tornato senza traduzione passa all'account
         # successivo; se nessuno la dà, vale la prima revisione riuscita.
         if translate and foreign and not translation:
-            errors.append({"account": pub["id"], "name": pub["name"], "code": "format", "detail": "traduzione mancante"})
+            errors.append({"account": pub["id"], "name": pub["name"], "code": "notr", "detail": "traduzione mancante"})
             if fallback is None:
                 fallback = result
             continue
@@ -686,6 +687,13 @@ def translate_texts(store, items, hint=None, context=None, on_attempt=None):
             continue
         if again["translation"] and again["translation"].strip() != src["text"].strip():
             out.update(again)
+    # Lingua straniera per il browser e per il modello, ma nessuna traduzione: non riuscita.
+    for out in res["items"]:
+        src = text_of[out["id"]]
+        lang = (src.get("language") or "").split("-")[0]
+        model_lang = (out.get("language") or "").split("-")[0]
+        if lang and lang != target and model_lang != target and not out["translation"]:
+            out["failed"] = True
     return res
 
 

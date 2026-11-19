@@ -594,7 +594,7 @@
     "message": "Revisione non riuscita: $1."
   },
   "box_review_retry": {
-    "message": "Riprova con l'IA"
+    "message": "Riprova"
   },
   "ai_err_key": {
     "message": "chiave rifiutata"
@@ -613,6 +613,9 @@
   },
   "ai_err_format": {
     "message": "risposta non valida"
+  },
+  "ai_err_notr": {
+    "message": "risposta senza traduzione"
   },
   "ai_err_http": {
     "message": "errore del servizio"

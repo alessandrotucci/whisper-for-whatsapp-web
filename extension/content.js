@@ -215,6 +215,7 @@
     network: 'ai_err_network',
     model: 'ai_err_model',
     format: 'ai_err_format',
+    notr: 'ai_err_notr',
   };
   const aiErrText = (code) => t(AI_ERR[code] || 'ai_err_http');
 
@@ -316,13 +317,22 @@
       const tr = el('div', 'wwt-tr');
       tr.append(el('div', 'wwt-tr-label', t('box_translation') + ' · ' + (rv.targetLang || '')), el('div', 'wwt-final-tr', translation));
       box.append(tr);
+    } else if (done && rv.translationFailed) {
+      const why = (rv.failed || []).map((e) => (e.name ? e.name + ': ' : '') + aiErrText(e.code)).join('; ');
+      const tr = el('div', 'wwt-tr');
+      const note = el('div', 'wwt-note');
+      note.append(el('span', null, '⚠ ' + t('tr_failed', why || aiErrText('notr'))));
+      note.append(button(t('box_review_retry'), null, () => send({ cmd: 'reviewAgain', key })));
+      tr.append(note);
+      box.append(tr);
     }
     if (rstate === 'error' || rstate === 'stale') {
       const note = el('div', 'wwt-note');
       const why = rstate === 'stale'
         ? t('ai_err_interrupted')
         : (rv.errors || []).map((e) => (e.name ? e.name + ': ' : '') + aiErrText(e.code)).join('; ');
-      note.append(el('span', null, '⚠ ' + t('box_review_failed', why || t('ai_err_http'))));
+      // Con la correzione spenta la richiesta all'IA era solo una traduzione.
+      note.append(el('span', null, '⚠ ' + t(rv.revise === false ? 'tr_failed' : 'box_review_failed', why || t('ai_err_http'))));
       note.append(button(t('box_review_retry'), null, () => send({ cmd: 'reviewAgain', key })));
       box.append(note);
     }

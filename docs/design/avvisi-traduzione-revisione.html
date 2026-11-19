@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Avvisi: disegno</title>
+<style>
+.wwt-box {
+  box-sizing: border-box;
+  margin-top: 3px;
+  margin-bottom: 6px;
+  padding: 5px 9px 6px;
+  border-radius: 7.5px;
+  border-left: 3px solid #25d366;
+  background: rgba(128, 128, 128, 0.14);
+  color: inherit;
+  font-size: 13.6px;
+  line-height: 19px;
+  align-self: flex-start;
+  min-width: 0;
+  user-select: text;
+}
+
+.wwt-box.wwt-out {
+  align-self: flex-end;
+}
+
+.wwt-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.wwt-icon {
+  font-size: 13px;
+}
+
+.wwt-label {
+  flex: 1 1 auto;
+}
+
+.wwt-error {
+  color: #e5534b;
+}
+
+.wwt-actions {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.wwt-btn {
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  padding: 1px 8px;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.wwt-seg {
+  display: inline-flex;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.wwt-seg button {
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  padding: 1px 8px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.wwt-seg button + button {
+  border-left: 1px solid rgba(128, 128, 128, 0.45);
+}
+
+.wwt-seg button.on {
+  background: rgba(37, 211, 102, 0.22);
+  font-weight: 600;
+  cursor: default;
+}
+
+.wwt-seg button:not(.on):hover {
+  background: rgba(37, 211, 102, 0.12);
+}
+
+.wwt-btn:hover {
+  background: rgba(37, 211, 102, 0.18);
+  border-color: #25d366;
+}
+
+.wwt-text {
+  margin-top: 3px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  opacity: 1;
+}
+
+.wwt-partial {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.wwt-spinner {
+  width: 11px;
+  height: 11px;
+  border: 2px solid rgba(128, 128, 128, 0.35);
+  border-top-color: #25d366;
+  border-radius: 50%;
+  animation: wwt-spin 0.9s linear infinite;
+}
+
+@keyframes wwt-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.wwt-fix {
+  text-decoration: underline dotted #25d366 2px;
+  text-underline-offset: 3px;
+  cursor: help;
+}
+
+.wwt-orig {
+  background: rgba(229, 83, 75, 0.16);
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+.wwt-tr {
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(128, 128, 128, 0.3);
+}
+
+.wwt-tr-label {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-bottom: 1px;
+}
+
+.wwt-final-tr {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.wwt-note {
+  margin-top: 5px;
+  font-size: 12px;
+  color: #c2410c;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.wwt-trbox {
+  border-left-color: #53bdeb;
+}
+
+.wwt-trbox.wwt-slim {
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+body { background: #e9edef; margin: 0; color: #1f2328; font: 14px/1.5 "Segoe UI", system-ui, sans-serif; }
+.sheet { max-width: 1100px; margin: 0 auto; padding: 24px 16px 60px; }
+h1 { font-size: 20px; margin: 0 0 6px; }
+.muted { color: #59636e; }
+.mk-small { font-size: 12.5px; }
+.mk-scene { font-size: 17px; margin: 30px 0 10px; padding-top: 14px; border-top: 2px solid #b8c2cc; }
+.wa { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; background: #efeae2; border-radius: 10px; padding: 16px 22px; color: #111b21; }
+@media (max-width: 900px) { .wa { grid-template-columns: 1fr; } }
+.wa-col { display: flex; flex-direction: column; }
+.mk-cap { align-self: stretch; margin: 14px 0 6px; font-size: 12px; font-weight: 600; color: #54656f; border-bottom: 1px dashed #b9b2a8; padding-bottom: 2px; }
+.mk-cap:first-child { margin-top: 0; }
+.bubble-in, .bubble-out { width: 300px; padding: 8px 9px 6px; border-radius: 7.5px; box-shadow: 0 1px .5px rgba(11,20,26,.13); display: flex; align-items: flex-end; gap: 8px; }
+.bubble-in { background: #fff; align-self: flex-start; }
+.bubble-out { background: #d9fdd3; align-self: flex-end; }
+.voice { flex: 1; color: #54656f; font-size: 13px; letter-spacing: -1px; }
+.time { font-size: 11px; color: #667781; white-space: nowrap; }
+.wa .wwt-box { max-width: 440px; }
+.wwt-fix { text-decoration: underline dotted #25d366 2px; text-underline-offset: 3px; }
+.wwt-orig { background: rgba(229, 83, 75, .16); border-radius: 3px; padding: 0 2px; }
+.wwt-tr { margin-top: 6px; padding-top: 5px; border-top: 1px solid rgba(128,128,128,.3); }
+.wwt-tr-label { font-size: 12px; opacity: .75; margin-bottom: 1px; }
+.wwt-seg { display: inline-flex; border: 1px solid rgba(128, 128, 128, 0.45); border-radius: 10px; overflow: hidden; }
+.wwt-seg button { font: inherit; font-size: 12px; line-height: 18px; padding: 1px 8px; border: none; background: transparent; color: inherit; cursor: pointer; }
+.wwt-seg button + button { border-left: 1px solid rgba(128, 128, 128, 0.45); }
+.wwt-seg button.on { background: rgba(37, 211, 102, 0.22); color: #0b6e4f; font-weight: 600; }
+.mk-new { outline: 2px dashed #e5534b; outline-offset: 2px; }
+.bubble-in2{max-width:380px;padding:6px 9px;border-radius:7.5px;box-shadow:0 1px .5px rgba(11,20,26,.13);background:#fff;align-self:flex-start;margin-bottom:4px}.bubble-in2 .time{float:right;margin:6px 0 -4px 10px}
+.wwt-tr .wwt-note{margin-top:0}
+</style></head><body>
+<div class="sheet">
+<h1>Traduzione e revisione non riuscite: disegno</h1>
+<p class="muted">Costruito con il foglio di stile vero del riquadro (content.css) e i testi in uso; bolle di WhatsApp ricalcate a mano, misure stimate; testi d'esempio inventati. Il contorno tratteggiato rosso segna ciò che cambia. I testi nuovi sono localizzati: in inglese «Translation failed» e «Review failed».</p>
+
+<div class="wa">
+  <div class="wa-col">
+    <div class="mk-cap">F1 · Vocale: revisione riuscita, traduzione no (oggi la traduzione semplicemente manca)</div>
+    <div class="bubble-in"><div class="voice">▶ ━━━━━━━━━━━ 0:39</div><div class="time">15:33</div></div>
+    <div class="wwt-box">
+      <div class="wwt-head"><span class="wwt-icon">🎙</span><span class="wwt-label">pt · 39 s · Groq</span><span class="wwt-actions"><span class="wwt-seg"><button>Trascrizione</button><button class="on">Revisione</button></span><button class="wwt-btn">Copia</button><button class="wwt-btn">↻</button></span></div>
+      <div class="wwt-text">Oi, Lúcio, bom dia, tudo bem? Só para nos <span class="wwt-fix">alinharmos</span>, o nosso time de suporte é da Itália.</div>
+      <div class="wwt-tr mk-new"><div class="wwt-note">⚠ Traduzione non riuscita: Gemini: errore del servizio; Groq: risposta senza traduzione. <button class="wwt-btn">Riprova con l'IA</button></div></div>
+    </div>
+
+    <div class="mk-cap">F2 · Vocale: nessun account è riuscito a rivedere (esiste già; cambia solo il titolo dell'avviso)</div>
+    <div class="bubble-in"><div class="voice">▶ ━━━━━━━━━━━ 0:21</div><div class="time">10:47</div></div>
+    <div class="wwt-box">
+      <div class="wwt-head"><span class="wwt-icon">🎙</span><span class="wwt-label">Trascrizione · pt · 21 s</span><span class="wwt-actions"><button class="wwt-btn">Copia</button><button class="wwt-btn">↻</button></span></div>
+      <div class="wwt-text">Beleza, então amanhã eu passo aí pra pegar as armações.</div>
+      <div class="wwt-note mk-new">⚠ Revisione non riuscita: Gemini: limite di richieste raggiunto; Groq: nessuna risposta entro il tempo massimo. <button class="wwt-btn">Riprova con l'IA</button></div>
+    </div>
+    <p class="muted mk-small">Se è attiva solo la traduzione (correzione spenta), lo stesso avviso dice «Traduzione non riuscita».</p>
+  </div>
+
+  <div class="wa-col">
+    <div class="mk-cap">F3 · Messaggio scritto: l'IA lo riconosce in un'altra lingua ma non lo traduce (oggi il riquadro sparisce)</div>
+    <div class="bubble-in2"><span class="txt">Me avisa quando sair o pedido, por favor.</span><span class="time">15:37</span></div>
+    <div class="wwt-box wwt-trbox mk-new">
+      <div class="wwt-head"><span class="wwt-icon">🌐</span><span class="wwt-label">portoghese</span><span class="wwt-actions"><button class="wwt-btn">Riprova</button></span></div>
+      <div class="wwt-note">⚠ Traduzione non riuscita: risposta senza traduzione.</div>
+    </div>
+
+    <div class="mk-cap">F4 · Messaggio scritto: nessun account ha risposto (esiste già, invariato)</div>
+    <div class="bubble-in2"><span class="txt">Vocês trabalham com policarbonato?</span><span class="time">15:40</span></div>
+    <div class="wwt-box wwt-trbox">
+      <div class="wwt-head"><span class="wwt-icon">🌐</span><span class="wwt-label">portoghese</span><span class="wwt-actions"><button class="wwt-btn">Riprova</button></span></div>
+      <div class="wwt-note">⚠ Traduzione non riuscita: Gemini: errore del servizio; Groq: nessuna risposta entro il tempo massimo.</div>
+    </div>
+    <p class="muted mk-small">Un messaggio che l'IA giudica già in italiano (il browser si era sbagliato) continua a non avere riquadro.</p>
+  </div>
+</div>
+</div>
+</body></html>

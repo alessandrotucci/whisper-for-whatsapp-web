@@ -478,6 +478,7 @@ async function onReview(msg) {
       segments: r.segments,
       revised: r.revised,
       translation: r.translation,
+      translationFailed: !!r.translation_failed,
       targetLang: r.target_lang,
       language: r.language,
       provider: r.provider,
@@ -485,7 +486,7 @@ async function onReview(msg) {
       failed: (r.errors || []).map((e) => ({ name: e.name, code: e.code })),
     };
   } else if (msg.state === 'error') {
-    record.review = { state: 'error', errors: (msg.errors || []).map((e) => ({ name: e.name, code: e.code, detail: e.detail })) };
+    record.review = { state: 'error', revise: msg.revise !== false, errors: (msg.errors || []).map((e) => ({ name: e.name, code: e.code, detail: e.detail })) };
   } else {
     delete record.review;
   }
@@ -607,6 +608,8 @@ async function trSend(batch) {
       updates = batch.map((it) => {
         const t = got.get(it.id);
         if (!t) return { key: it.id, state: 'error', errors: [{ name: r.provider, code: 'format' }] };
+        // Lingua straniera ma nessuna traduzione: si mostra l'errore e non si salva, così si può riprovare.
+        if (t.failed) return { key: it.id, state: 'error', language: t.language, errors: [{ name: r.provider, code: 'notr' }] };
         const record = { translation: t.translation, language: t.language, target: r.target_lang, provider: r.provider, at: Date.now() };
         toSave['x:' + it.id] = record;
         return { key: it.id, state: 'done', ...record };
