@@ -6,7 +6,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.graphics.Typeface;
 import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.style.StyleSpan;
+
+import java.lang.ref.WeakReference;
 
 /**
  * Informative con consenso esplicito, richieste dalla policy sui dati utente di Google Play.
@@ -27,6 +32,9 @@ final class Consent {
     private static final String FILE = "consent";
     private static final String LISTENER = "listener";
     private static final String AI = "ai";
+
+    /** La finestra di consenso aperta: una sola alla volta, anche se l'attività riprende due volte. */
+    private static WeakReference<AlertDialog> showing;
 
     private Consent() {
     }
@@ -58,6 +66,8 @@ final class Consent {
      * notifiche attivo, o un account di IA collegato. Si chiama all'apertura della lista.
      */
     static void promptPending(Activity a, Runnable after) {
+        AlertDialog open = showing != null ? showing.get() : null;
+        if (open != null && open.isShowing()) return;
         SharedPreferences sp = sp(a);
         Runnable again = () -> {
             after.run();
@@ -85,8 +95,10 @@ final class Consent {
             next.run();
             return;
         }
+        AlertDialog open = showing != null ? showing.get() : null;
+        if (open != null && open.isShowing()) return;
         boolean[] accepted = {false};
-        new AlertDialog.Builder(a)
+        showing = new WeakReference<>(new AlertDialog.Builder(a)
                 .setTitle(title)
                 .setMessage(a.getText(text))
                 .setNegativeButton(decline, null)
@@ -98,17 +110,24 @@ final class Consent {
                 .setOnDismissListener(d -> {
                     if (!accepted[0] && closed != null) closed.run();
                 })
-                .show();
+                .show());
+    }
+
+    private static void section(SpannableStringBuilder s, CharSequence title) {
+        int start = s.length();
+        s.append(title);
+        s.setSpan(new StyleSpan(Typeface.BOLD), start, s.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        s.append("\n\n");
     }
 
     /** Le due informative, lo stato dei consensi e il collegamento all'informativa completa. */
     static void showPrivacy(Activity a) {
         SpannableStringBuilder s = new SpannableStringBuilder();
-        s.append(a.getText(R.string.consent_listener_title)).append('\n');
-        s.append(a.getText(R.string.consent_listener_text)).append("\n");
-        s.append(a.getText(listener(a) ? R.string.consent_given : R.string.consent_missing)).append("\n\n");
-        s.append(a.getText(R.string.consent_ai_title)).append('\n');
-        s.append(a.getText(R.string.consent_ai_text)).append("\n");
+        section(s, a.getText(R.string.consent_listener_title));
+        s.append(a.getText(R.string.consent_listener_text)).append("\n\n");
+        s.append(a.getText(listener(a) ? R.string.consent_given : R.string.consent_missing)).append("\n\n\n");
+        section(s, a.getText(R.string.consent_ai_title));
+        s.append(a.getText(R.string.consent_ai_text)).append("\n\n");
         s.append(a.getText(ai(a) ? R.string.consent_given : R.string.consent_missing));
         new AlertDialog.Builder(a)
                 .setTitle(a.getString(R.string.privacy_title, a.getString(R.string.app_name)))
