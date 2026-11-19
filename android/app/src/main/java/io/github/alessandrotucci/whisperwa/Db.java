@@ -38,6 +38,13 @@ public final class Db extends SQLiteOpenHelper {
     public static final int KIND_VOICE = 0;
     public static final int KIND_MESSAGE = 1;
 
+    /**
+     * Separatore dei messaggi di un gruppo, nel testo e nella traduzione: un singolo messaggio può
+     * contenere a capo. Nella traduzione la voce di un messaggio rimasto senza traduzione è vuota,
+     * così le due liste restano allineate.
+     */
+    public static final String MSG_SEP = "\u001F";
+
     /** Una riga della tabella notes. */
     public static final class Note {
         public long id;
@@ -77,7 +84,33 @@ public final class Db extends SQLiteOpenHelper {
 
         /** Il testo da mostrare e copiare: quello rivisto, salvo scelta contraria. */
         public String shownText() {
-            return hasRevision() && !showWhisper ? reviewText : text;
+            String s = hasRevision() && !showWhisper ? reviewText : text;
+            return isMessage() && s != null ? String.join("\n", messages()) : s;
+        }
+
+        /** I messaggi di un gruppo, nell'ordine di arrivo. */
+        public List<String> messages() {
+            return split(text);
+        }
+
+        /** Le traduzioni allineate ai messaggi; voce vuota per un messaggio senza traduzione. */
+        public List<String> translations() {
+            return split(translation);
+        }
+
+        /** La traduzione da mostrare e copiare: una riga per messaggio tradotto. */
+        public String translationText() {
+            if (translation == null || !isMessage()) return translation;
+            List<String> out = new ArrayList<>();
+            for (String t : translations()) if (!t.isEmpty()) out.add(t);
+            return out.isEmpty() ? null : String.join("\n", out);
+        }
+
+        private static List<String> split(String s) {
+            List<String> out = new ArrayList<>();
+            if (s == null) return out;
+            for (String part : s.split(java.util.regex.Pattern.quote(MSG_SEP), -1)) out.add(part);
+            return out;
         }
 
         /** Mittente e chat in una riga, oppure il nome del file se non si conoscono. */
@@ -189,7 +222,7 @@ public final class Db extends SQLiteOpenHelper {
 
     /** Aggiunge un messaggio al gruppo e ne rimette in attesa la traduzione. */
     public void appendMessage(long id, String text, long received, String language) {
-        getWritableDatabase().execSQL("UPDATE notes SET text = text || char(10) || ?, received = ?, review_state = "
+        getWritableDatabase().execSQL("UPDATE notes SET text = text || char(31) || ?, received = ?, review_state = "
                 + REVIEW_PENDING + ", review_error = NULL, language = CASE WHEN ? IS NULL THEN language "
                 + "WHEN language IS NULL THEN ? "
                 + "WHEN instr(',' || replace(language, ' ', '') || ',', ',' || ? || ',') > 0 THEN language "
@@ -202,6 +235,12 @@ public final class Db extends SQLiteOpenHelper {
         List<Note> l = query("kind = " + KIND_MESSAGE + " AND review_state = " + REVIEW_PENDING, null,
                 "received ASC, id ASC", "1");
         return l.isEmpty() ? null : l.get(0);
+    }
+
+    public void clearTranslation(long id) {
+        ContentValues v = new ContentValues();
+        v.putNull("translation");
+        update(id, v);
     }
 
     public void markTranslated(long id, String translation, String targetLang, String provider, String model) {

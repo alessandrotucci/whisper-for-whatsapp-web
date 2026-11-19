@@ -8,7 +8,6 @@ import android.view.textclassifier.TextClassifier;
 import android.view.textclassifier.TextLanguage;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -21,8 +20,9 @@ import java.util.concurrent.Executors;
  * il testo dei messaggi da tradurre, mai quello già nella lingua dell'utente.
  *
  * <p>I messaggi della stessa chat e della stessa lingua arrivati entro GROUP_MS dall'ultimo formano
- * un gruppo, una riga dell'archivio con un messaggio per riga di testo; ogni messaggio nuovo rimette
- * in attesa la traduzione dell'intero gruppo, e la notifica del gruppo si aggiorna. Un messaggio in
+ * un gruppo, una riga dell'archivio con i messaggi separati da Db.MSG_SEP; ogni messaggio nuovo
+ * rimette in attesa il gruppo, si traducono solo i messaggi non ancora tradotti e la notifica del
+ * gruppo si aggiorna. Un messaggio in
  * un'altra lingua apre un gruppo suo, mentre quello della prima lingua resta aperto. Un messaggio
  * dalla lingua incerta (riconoscimento poco sicuro o testo breve) va nel gruppo aperto più recente
  * della chat, per non moltiplicare i gruppi per errore. Le traduzioni girano su un
@@ -79,6 +79,7 @@ final class MessageTranslator {
 
     /** Rimette in attesa la traduzione di un gruppo e la rifà. */
     void retry(long noteId) {
+        Db.get(app).clearTranslation(noteId);
         Db.get(app).setReviewState(noteId, Db.REVIEW_PENDING);
         TranscriptionQueue.get(app).changed();
         worker.execute(this::drain);
@@ -183,7 +184,19 @@ final class MessageTranslator {
         translatingId = note.id;
         translatingWith = null;
         TranscriptionQueue.get(app).changed();
-        List<String> lines = new ArrayList<>(Arrays.asList(note.text.split("\n")));
+        List<String> all = note.messages();
+        // Si traducono solo i messaggi arrivati dopo l'ultima traduzione: le traduzioni già fatte
+        // restano. "Traduci di nuovo" cancella la traduzione e rifà tutto il gruppo.
+        List<String> done = note.translations();
+        if (done.size() > all.size()) done = new ArrayList<>();
+        int from = done.size();
+        List<String> lines = new ArrayList<>(all.subList(from, all.size()));
+        if (lines.isEmpty()) {
+            db.setReviewState(note.id, note.translation != null ? Db.REVIEW_DONE : Db.REVIEW_FAILED);
+            translatingId = -1;
+            TranscriptionQueue.get(app).changed();
+            return;
+        }
         String target = AiProviders.baseLang(AiStore.load(app).targetOrDefault());
         List<String> langs = new ArrayList<>();
         for (String line : lines) langs.add(detect(line));
@@ -215,17 +228,20 @@ final class MessageTranslator {
                     if (t != null && !same(t, again.get(k))) r.translations.set(missing.get(k), t);
                 }
             }
-            List<String> out = new ArrayList<>();
+            List<String> merged = new ArrayList<>(done);
             for (int i = 0; i < lines.size(); i++) {
                 String t = r.translations.get(i);
-                if (t != null && !same(t, lines.get(i))) out.add(t);
+                merged.add(t != null && !same(t, lines.get(i)) ? t.replace(Db.MSG_SEP, " ") : "");
             }
-            Log.i(TAG, "tradotti " + lines.size() + " messaggi con " + r.provider + " (" + r.model + ") in " + r.ms + " ms");
-            if (out.isEmpty()) {
+            Log.i(TAG, "tradotti " + lines.size() + " messaggi di " + all.size() + " con " + r.provider + " ("
+                    + r.model + ") in " + r.ms + " ms");
+            boolean any = false;
+            for (String t : merged) if (!t.isEmpty()) any = true;
+            if (!any) {
                 // Per l'IA nessun messaggio era da tradurre: il gruppo non resta nella lista.
                 db.delete(note.id);
             } else {
-                db.markTranslated(note.id, String.join("\n", out), r.targetLang, r.provider, r.model);
+                db.markTranslated(note.id, String.join(Db.MSG_SEP, merged), r.targetLang, r.provider, r.model);
             }
         } catch (AiReview.AllFailed e) {
             Log.w(TAG, "traduzione dei messaggi non riuscita");
@@ -237,9 +253,9 @@ final class MessageTranslator {
             translatingId = -1;
             translatingWith = null;
         }
-        Db.Note done = db.byId(note.id);
-        if (done != null && (done.translation != null || done.reviewState == Db.REVIEW_FAILED)) {
-            Notifier.showMessages(app, done);
+        Db.Note after = db.byId(note.id);
+        if (after != null && (after.translation != null || after.reviewState == Db.REVIEW_FAILED)) {
+            Notifier.showMessages(app, after);
         }
         TranscriptionQueue.get(app).changed();
     }

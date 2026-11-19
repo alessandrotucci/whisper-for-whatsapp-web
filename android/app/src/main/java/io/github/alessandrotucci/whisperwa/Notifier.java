@@ -31,6 +31,7 @@ public final class Notifier {
     private static final int KEEP = 8;
     private static final String GROUP = "transcripts";
     private static final String GLOBE = new String(Character.toChars(0x1F310));
+    private static final int ORIGINAL_MAX = 200;
 
     private Notifier() {
     }
@@ -92,9 +93,23 @@ public final class Notifier {
         NotificationManager nm = context.getSystemService(NotificationManager.class);
         String title = context.getString(R.string.msg_notif_title, note.chat != null ? note.chat : note.title(),
                 note.language != null ? note.language : "");
-        String text = note.translation != null ? GLOBE + " " + note.translation
-                : context.getString(R.string.msg_failed_short);
-        String big = text + "\n\n" + note.text;
+        // Il messaggio più recente per primo: nelle notifiche lunghe la fine del testo si perde.
+        List<String> msgs = note.messages();
+        List<String> trs = note.translations();
+        StringBuilder tr = new StringBuilder();
+        for (int i = trs.size() - 1; i >= 0; i--) {
+            if (trs.get(i).isEmpty()) continue;
+            if (tr.length() > 0) tr.append('\n');
+            tr.append(trs.get(i));
+        }
+        String text = tr.length() > 0 ? GLOBE + " " + tr : context.getString(R.string.msg_failed_short);
+        StringBuilder orig = new StringBuilder();
+        for (int i = msgs.size() - 1; i >= 0; i--) {
+            String m = msgs.get(i);
+            if (orig.length() > 0) orig.append('\n');
+            orig.append(m.length() > ORIGINAL_MAX ? m.substring(0, ORIGINAL_MAX) + "\u2026" : m);
+        }
+        String big = text + "\n\n" + orig;
         Notification.Builder b = new Notification.Builder(context, CH_MESSAGES)
                 .setSmallIcon(R.drawable.ic_stat)
                 .setContentTitle(title)
@@ -106,7 +121,7 @@ public final class Notifier {
                 .setOnlyAlertOnce(true)
                 .setAutoCancel(true)
                 .setContentIntent(openList(context, note.id));
-        if (note.translation != null) {
+        if (note.translationText() != null) {
             Intent copy = new Intent(context, CopyReceiver.class)
                     .putExtra(CopyReceiver.EXTRA_NOTE, note.id)
                     .putExtra(CopyReceiver.EXTRA_TRANSLATION_ONLY, true);

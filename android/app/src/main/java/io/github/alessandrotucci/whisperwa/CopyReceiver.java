@@ -18,9 +18,9 @@ public final class CopyReceiver extends BroadcastReceiver {
         long id = intent.getLongExtra(EXTRA_NOTE, -1);
         Db.Note note = id < 0 ? null : Db.get(context).byId(id);
         if (note == null || note.shownText() == null) return;
-        if (intent.getBooleanExtra(EXTRA_TRANSLATION_ONLY, false) && note.translation != null) {
+        if (intent.getBooleanExtra(EXTRA_TRANSLATION_ONLY, false) && note.translationText() != null) {
             ClipboardManager cm = context.getSystemService(ClipboardManager.class);
-            cm.setPrimaryClip(ClipData.newPlainText(note.title(), note.translation));
+            cm.setPrimaryClip(ClipData.newPlainText(note.title(), note.translationText()));
             Toast.makeText(context, R.string.copied, Toast.LENGTH_SHORT).show();
             return;
         }
@@ -31,7 +31,7 @@ public final class CopyReceiver extends BroadcastReceiver {
     static void copy(Context context, Db.Note note) {
         ClipboardManager cm = context.getSystemService(ClipboardManager.class);
         String text = note.shownText();
-        if (note.translation != null) text = text + "\n\n" + note.translation;
+        if (note.translationText() != null) text = text + "\n\n" + note.translationText();
         cm.setPrimaryClip(ClipData.newPlainText(note.title(), text));
         Toast.makeText(context, R.string.copied, Toast.LENGTH_SHORT).show();
     }

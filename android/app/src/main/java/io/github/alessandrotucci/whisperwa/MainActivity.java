@@ -460,7 +460,7 @@ public final class MainActivity extends Activity {
 
         /** Una voce di messaggi scritti: originali, traduzione sotto, stato nella riga dei dettagli. */
         private View messageView(View v, Db.Note n, Context c) {
-            int count = n.text == null ? 0 : n.text.split("\n").length;
+            int count = n.messages().size();
             StringBuilder meta = new StringBuilder();
             meta.append(DateUtils.formatDateTime(c, n.received,
                     DateUtils.FORMAT_SHOW_DATE | DateUtils.FORMAT_SHOW_TIME | DateUtils.FORMAT_ABBREV_MONTH));
@@ -478,26 +478,35 @@ public final class MainActivity extends Activity {
             ((TextView) v.findViewById(R.id.note_meta)).setText(meta);
             TextView body = v.findViewById(R.id.note_text);
             body.setOnTouchListener(null);
-            body.setText(n.text);
+            body.setText(n.shownText());
             View trBox = v.findViewById(R.id.note_translation);
             TextView warn = v.findViewById(R.id.note_warn);
-            trBox.setVisibility(n.translation != null ? View.VISIBLE : View.GONE);
-            if (n.translation != null) {
+            String translated = n.translationText();
+            trBox.setVisibility(translated != null ? View.VISIBLE : View.GONE);
+            if (translated != null) {
                 ((TextView) v.findViewById(R.id.note_translation_label))
                         .setText(c.getString(R.string.review_translation, n.targetLang != null ? n.targetLang : ""));
-                ((TextView) v.findViewById(R.id.note_translation_text)).setText(n.translation);
+                ((TextView) v.findViewById(R.id.note_translation_text)).setText(translated);
             }
             warn.setVisibility(View.GONE);
             if (n.reviewState == Db.REVIEW_FAILED) {
                 warn.setVisibility(View.VISIBLE);
                 warn.setTextColor(c.getColor(R.color.warn));
                 warn.setText(c.getString(R.string.msg_failed, n.reviewError == null ? "" : n.reviewError));
-            } else if (n.text != null && n.text.length() >= 150 && (n.text.endsWith("\u2026") || n.text.endsWith("..."))) {
+            } else if (n.text != null && endsTruncated(n.messages())) {
                 warn.setVisibility(View.VISIBLE);
                 warn.setTextColor(body.getCurrentHintTextColor());
                 warn.setText(R.string.msg_truncated);
             }
             return v;
+        }
+
+        /** Vero se un messaggio lungo del gruppo finisce con i puntini di una notifica tagliata. */
+        private static boolean endsTruncated(List<String> messages) {
+            for (String m : messages) {
+                if (m.length() >= 150 && (m.endsWith("\u2026") || m.endsWith("..."))) return true;
+            }
+            return false;
         }
 
         /** Il testo rivisto, con le parole cambiate sottolineate e toccabili. */
