@@ -57,6 +57,38 @@
   cursor: pointer;
 }
 
+.wwt-seg {
+  display: inline-flex;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.wwt-seg button {
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  padding: 1px 8px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.wwt-seg button + button {
+  border-left: 1px solid rgba(128, 128, 128, 0.45);
+}
+
+.wwt-seg button.on {
+  background: rgba(37, 211, 102, 0.22);
+  font-weight: 600;
+  cursor: default;
+}
+
+.wwt-seg button:not(.on):hover {
+  background: rgba(37, 211, 102, 0.12);
+}
+
 .wwt-btn:hover {
   background: rgba(37, 211, 102, 0.18);
   border-color: #25d366;

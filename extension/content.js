@@ -157,6 +157,24 @@
     return b;
   }
 
+  // Interruttore a segmenti: options è [[valore, etichetta, titolo], ...].
+  function segmented(options, current, onPick) {
+    const wrap = el('span', 'wwt-seg');
+    for (const [value, label, title] of options) {
+      const b = el('button', value === current ? 'on' : null, label);
+      b.type = 'button';
+      if (title) b.title = title;
+      b.setAttribute('aria-pressed', String(value === current));
+      b.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (value !== current) onPick(value);
+      });
+      wrap.append(b);
+    }
+    return wrap;
+  }
+
   function fmtDuration(s) {
     if (!s && s !== 0) return '';
     s = Math.round(s);
@@ -187,7 +205,8 @@
   // Una revisione rimasta "in corso" oltre questo tempo si considera persa, per esempio
   // perché il service worker è stato terminato: il riquadro offre di ripeterla.
   const REVIEW_STALE_MS = 150000;
-  const showOriginal = new Set(); // chiavi per cui il riquadro mostra il testo di Whisper
+  // Testo scelto con l'interruttore, "whisper" o "revised", finché il record salvato non lo riporta.
+  const viewChoice = new Map();
 
   const AI_ERR = {
     key: 'ai_err_key',
@@ -241,22 +260,38 @@
     const rstate = reviewState(st);
     const done = rstate === 'done';
     const fixes = done && rv.revised && (rv.segments || []).some(([, orig]) => orig != null);
-    const original = fixes && showOriginal.has(key);
+    const original = fixes && (viewChoice.get(key) || rv.view) === 'whisper';
     const head = el('div', 'wwt-head');
     head.append(el('span', 'wwt-icon', '🎙'));
     const lang = (done && rv.language) || st.language;
     const meta = [lang, fmtDuration(st.duration)].filter(Boolean).join(' · ');
-    let label = t(original ? 'box_transcription_whisper' : 'box_transcription') + (meta ? ' · ' + meta : '');
-    if (rstate === 'running') {
-      head.append(el('span', 'wwt-spinner'));
-      label += ' · ' + (rv.provider ? t('box_reviewing', rv.provider) : t('box_reviewing_ai'));
-    } else if (done && rv.revised && !original) {
-      label += ' · ' + t('box_reviewed_by', rv.provider || '');
+    let label;
+    if (done) {
+      // Con la revisione fatta l'etichetta dice chi ha scritto il testo mostrato.
+      label = [meta, original || !rv.revised ? 'Whisper' : rv.provider].filter(Boolean).join(' · ');
+      if (!original && !rv.revised && rv.translation && rv.provider) label += ' · ' + rv.provider;
+    } else {
+      label = t('box_transcription') + (meta ? ' · ' + meta : '');
+      if (rstate === 'running') {
+        head.append(el('span', 'wwt-spinner'));
+        label += ' · ' + (rv.provider ? t('box_reviewing', rv.provider) : t('box_reviewing_ai'));
+      }
     }
     head.append(el('span', 'wwt-label', label));
     const translation = done ? rv.translation : null;
     const shown = done && rv.revised && !original ? rv.text : st.text;
     const actions = el('span', 'wwt-actions');
+    if (fixes) {
+      actions.append(segmented(
+        [['whisper', t('box_seg_transcription'), t('box_seg_transcription_title')], ['revised', t('box_seg_revision'), t('box_seg_revision_title')]],
+        original ? 'whisper' : 'revised',
+        (view) => {
+          viewChoice.set(key, view);
+          send({ cmd: 'setView', key, view });
+          renderKey(key);
+        },
+      ));
+    }
     actions.append(
       button(t('box_copy'), t('box_copy_title'), (ev) => {
         const text = (shown || '') + (translation ? '\n\n' + translation : '');
@@ -266,15 +301,6 @@
         });
       }),
     );
-    if (fixes) {
-      actions.append(
-        button(original ? t('box_show_revised') : t('box_show_original'), original ? t('box_show_revised_title') : t('box_show_original_title'), () => {
-          if (original) showOriginal.delete(key);
-          else showOriginal.add(key);
-          renderKey(key);
-        }),
-      );
-    }
     actions.append(button('↻', t('box_retranscribe_title'), () => requestTranscription(key, true)));
     head.append(actions);
     box.append(head);
@@ -304,7 +330,7 @@
 
   function renderBox(box, key) {
     const st = states.get(key) || { state: 'none' };
-    const sig = JSON.stringify(st) + '|' + showOriginal.has(key) + '|' + reviewState(st);
+    const sig = JSON.stringify(st) + '|' + viewChoice.get(key) + '|' + reviewState(st);
     if (box.__wwtSig === sig) return;
     box.__wwtSig = sig;
     box.replaceChildren();

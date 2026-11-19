@@ -563,17 +563,11 @@
   "upd_versions": {
     "message": "Estensione $1 · componente locale $2"
   },
-  "box_transcription_whisper": {
-    "message": "Trascrizione di Whisper"
-  },
   "box_reviewing": {
     "message": "revisione con $1…"
   },
   "box_reviewing_ai": {
     "message": "revisione con l'IA…"
-  },
-  "box_reviewed_by": {
-    "message": "rivista da $1"
   },
   "box_fix_title": {
     "message": "Whisper: «$1»"
@@ -581,17 +575,17 @@
   "box_fix_added": {
     "message": "parola aggiunta dalla revisione"
   },
-  "box_show_original": {
-    "message": "Originale"
+  "box_seg_transcription": {
+    "message": "Trascrizione"
   },
-  "box_show_original_title": {
-    "message": "Mostra il testo di Whisper"
+  "box_seg_transcription_title": {
+    "message": "Mostra il testo di Whisper, con evidenziate le parole poi corrette"
   },
-  "box_show_revised": {
-    "message": "Rivista"
+  "box_seg_revision": {
+    "message": "Revisione"
   },
-  "box_show_revised_title": {
-    "message": "Mostra il testo rivisto dall'IA"
+  "box_seg_revision_title": {
+    "message": "Mostra il testo corretto dall'IA, con sottolineate le parole cambiate"
   },
   "box_translation": {
     "message": "Traduzione"

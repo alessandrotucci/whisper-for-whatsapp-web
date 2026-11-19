@@ -131,6 +131,9 @@ function check(name, cond, detail) {
   await tick();
   const rv2 = await send({ cmd: 'get', keys: ['k4'] }, tab);
   check('revisione conclusa in archivio', rv2.k4 && rv2.k4.review.state === 'done' && rv2.k4.review.translation === 'lenti fotocromatiche' && rv2.k4.text === 'lentes olfato sensível', rv2);
+  const setv = await send({ cmd: 'setView', key: 'k4', view: 'whisper' }, tab);
+  const rvView = await send({ cmd: 'get', keys: ['k4'] }, tab);
+  check('la scelta Trascrizione / Revisione resta salvata', setv === true && rvView.k4.review.view === 'whisper', rvView);
   const again = await send({ cmd: 'reviewAgain', key: 'k4' }, tab);
   const rvMsg = posted.filter((m) => m.type === 'review').pop();
   check("Riprova con l'IA manda il testo di Whisper", again && again.ok && rvMsg && rvMsg.text === 'lentes olfato sensível' && rvMsg.language === 'pt', rvMsg);

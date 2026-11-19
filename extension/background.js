@@ -771,6 +771,14 @@ const handlers = {
   reviewAgain({ key }) {
     return reviewAgain(key);
   },
+  // Testo scelto con l'interruttore del riquadro, salvato con la revisione del vocale.
+  async setView({ key, view }) {
+    const record = (await getCached([key]))[key];
+    if (!record || !record.review || (view !== 'whisper' && view !== 'revised')) return false;
+    record.review.view = view;
+    await chrome.storage.local.set({ ['t:' + key]: record });
+    return true;
+  },
   trConfig({ force }) {
     return getAiConfig(!!force);
   },

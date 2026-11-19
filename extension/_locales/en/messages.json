@@ -563,17 +563,11 @@
   "upd_versions": {
     "message": "Extension $1 · local component $2"
   },
-  "box_transcription_whisper": {
-    "message": "Whisper transcription"
-  },
   "box_reviewing": {
     "message": "reviewing with $1…"
   },
   "box_reviewing_ai": {
     "message": "AI review…"
-  },
-  "box_reviewed_by": {
-    "message": "reviewed by $1"
   },
   "box_fix_title": {
     "message": "Whisper: “$1”"
@@ -581,17 +575,17 @@
   "box_fix_added": {
     "message": "word added by the review"
   },
-  "box_show_original": {
-    "message": "Original"
+  "box_seg_transcription": {
+    "message": "Transcription"
   },
-  "box_show_original_title": {
-    "message": "Show the Whisper text"
+  "box_seg_transcription_title": {
+    "message": "Show the Whisper text, with the later corrected words highlighted"
   },
-  "box_show_revised": {
-    "message": "Reviewed"
+  "box_seg_revision": {
+    "message": "Review"
   },
-  "box_show_revised_title": {
-    "message": "Show the AI-reviewed text"
+  "box_seg_revision_title": {
+    "message": "Show the AI-corrected text, with changed words underlined"
   },
   "box_translation": {
     "message": "Translation"
