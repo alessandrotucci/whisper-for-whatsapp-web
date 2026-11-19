@@ -326,7 +326,7 @@ final class AiReview {
         StringBuilder user = new StringBuilder();
         if (chat != null && !chat.isEmpty()) user.append("Chat: ").append(chat).append('\n');
         user.append("Messages, as a JSON array, in the order they were received (\"language\", when present, is the "
-                + "language detected on the phone):\n<<<\n").append(arr).append("\n>>>");
+                + "language detected on the device):\n<<<\n").append(arr).append("\n>>>");
         return new String[]{system, user.toString()};
     }
 
