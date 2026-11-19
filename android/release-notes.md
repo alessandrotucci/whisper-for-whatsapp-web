@@ -36,6 +36,11 @@ pulsante *Copia*. Si traducono solo i messaggi nuovi; *Traduci di nuovo* rifà t
 **Nella lista.** Sotto ogni vocale ▶ riascolta l'audio originale; se l'IA ha cambiato parole,
 *Trascrizione | Revisione* sceglie quale testo mostrare.
 
+**Lingua sbagliata.** In alto a destra di ogni voce c'è la lingua rilevata. Per un vocale,
+toccandola si sceglie la lingua giusta e il vocale si trascrive di nuovo in quella lingua. Per i
+messaggi scritti si indica la lingua vera, e la traduzione si rifà; scegliendo la propria lingua
+(*non tradurre*) i messaggi escono dalla lista.
+
 **Lavoro in background.** Se il sistema ferma le trascrizioni, la notifica porta alla sezione
 *Lavoro in background* delle Impostazioni, con lo stato dei permessi e i pulsanti per sistemarli.
 Sui telefoni OPPO, OnePlus e realme tieni bassi i thread in background (2).
