@@ -27,7 +27,7 @@ SRC = os.path.join(ROOT, "extension")
 
 GECKO_ID = "wa-web-transcriber@alessandrotucci.github.io"
 STORE_NAME = "WA Web Transcriber, Translator and Reviewer"
-GECKO_MIN_VERSION = "128.0"
+GECKO_MIN_VERSION = "142.0"
 
 
 # In Firefox le API con promesse stanno su browser.*; lo script le mette su chrome.*, che

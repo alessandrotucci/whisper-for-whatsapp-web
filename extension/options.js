@@ -318,7 +318,7 @@ function renderCuda() {
     drv.textContent = t('opt_cuda_driver_old', st.driver.version_str || '?');
   } else {
     drv.className = 'err';
-    drv.innerHTML = t('opt_cuda_no_driver');
+    setHtml(drv, t('opt_cuda_no_driver'));
   }
   if (st.libs.installed) {
     libs.className = 'ok';
