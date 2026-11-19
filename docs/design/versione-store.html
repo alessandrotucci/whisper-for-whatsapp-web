@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Store: disegno</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1f2328;
+  --muted: #59636e;
+  --line: #d8dee4;
+  --panel: #f6f8fa;
+  --accent: #128c7e;
+  --accent-fg: #ffffff;
+  --ok: #1a7f37;
+  --err: #cf222e;
+  --code: #eef1f4;
+}
+
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 14px/1.5 "Segoe UI", system-ui, sans-serif;
+}
+
+h1 { font-size: 20px; margin: 0 0 4px; }
+h2 { font-size: 16px; margin: 28px 0 8px; }
+h3 { font-size: 14px; margin: 16px 0 6px; }
+p { margin: 6px 0; }
+a { color: var(--accent); }
+.muted { color: var(--muted); }
+.ok { color: var(--ok); }
+.err { color: var(--err); }
+
+button {
+  font: inherit;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--fg);
+  cursor: pointer;
+}
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+button:disabled { opacity: 0.5; cursor: default; }
+
+input[type="text"], input[type="number"], input[type="password"], select, textarea {
+  font: inherit;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--fg);
+  width: 100%;
+}
+textarea { min-height: 60px; resize: vertical; }
+
+code, pre {
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 12.5px;
+  background: var(--code);
+  border-radius: 4px;
+}
+code { padding: 1px 4px; }
+pre { padding: 10px 12px; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0; }
+code { overflow-wrap: anywhere; }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.field { margin: 10px 0; }
+.field label { display: block; font-weight: 600; margin-bottom: 3px; }
+.check { display: flex; gap: 8px; align-items: flex-start; margin: 8px 0; }
+.check input { margin-top: 4px; }
+table.kv { border-collapse: collapse; width: 100%; }
+table.kv td { padding: 3px 8px 3px 0; vertical-align: top; border-bottom: 1px solid var(--line); word-break: break-all; }
+table.kv td:first-child { color: var(--muted); white-space: nowrap; width: 1%; }
+.cmd { position: relative; }
+.cmd button { position: absolute; top: 6px; right: 6px; padding: 2px 8px; font-size: 12px; }
+.cmd pre { padding-right: 70px; }
+.tabs { display: flex; gap: 6px; margin: 8px 0; }
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+
+a.button {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--fg);
+  text-decoration: none;
+  font-weight: 600;
+}
+a.button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+
+.upd { border: 1px solid var(--accent); border-radius: 8px; padding: 10px 12px; margin: 10px 0; background: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
+.upd-title { font-weight: 600; color: var(--accent); }
+.upd-text { margin: 4px 0 6px; font-size: 13px; color: var(--muted); }
+.upd-row { font-size: 13px; margin: 2px 0; }
+.upd-status { margin: 8px 0 0; font-size: 13px; }
+.upd-actions { display: flex; gap: 12px; align-items: center; margin-top: 10px; font-size: 13px; }
+.upd-actions a { color: var(--muted); }
+.upd-actions button.link { margin-left: auto; border: none; background: none; padding: 0; color: var(--muted); font-size: 13px; }
+.cuda { border: 1px solid var(--line); border-radius: 8px; padding: 4px 12px; margin: 6px 0 10px; }
+.cuda p { margin: 6px 0; font-size: 13px; }
+.cuda progress { flex: 1; min-width: 160px; }
+body{background:#e9edef}.sheet{max-width:1100px;margin:0 auto;padding:24px 16px 60px}.mk-h{font-size:20px}.mk-scene{font-size:17px;margin:30px 0 10px;padding-top:14px;border-top:2px solid #b8c2cc}.mk-small{font-size:12.5px}.mk-cap{font-size:12px;font-weight:600;color:#54656f;margin-bottom:8px}.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:900px){.cols{grid-template-columns:1fr}}.frame{background:var(--bg);border:1px solid var(--line);border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.08)}.pad{padding:18px 20px}.upd-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:13px}.upd-bar button{padding:3px 10px;font-size:13px}.upd-last{font-size:12px;margin:4px 0 0}summary{font-weight:600;font-size:16px}.mk-new{outline:2px dashed #e5534b;outline-offset:3px;border-radius:4px}.popup-frame{width:330px}.popup{padding:12px 14px}.popup h1{font-size:17px}.popup .line{margin:6px 0}.popup .btns{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+</style></head><body>
+<div class="sheet">
+<h1 class="mk-h">Versione per gli store: disegno</h1>
+<p class="muted">Costruito con il foglio di stile vero delle pagine dell'estensione (ui.css) e le classi vere della barra e del riquadro degli aggiornamenti; i testi nuovi sono proposte. Il contorno tratteggiato rosso segna ciò che cambia. A sinistra la versione da store, a destra, dove serve, quella di GitHub di oggi.</p>
+
+<h2 class="mk-scene">S1 · Intestazione della configurazione</h2>
+<div class="cols">
+  <div class="frame"><div class="pad">
+    <div class="mk-cap">Store (Chrome Web Store; negli altri store cambia il nome dello store)</div>
+    <h1 class="mk-new">WA Web Transcriber, Translator and Reviewer</h1>
+    <p class="muted">Trascrive i vocali sul tuo computer con Whisper: l'audio non lascia la macchina.</p>
+    <div class="upd-bar"><span class="mk-new">Estensione 1.7.0 · aggiornata da Chrome Web Store · componente locale 1.7.0</span><button>Controlla ora</button></div>
+    <p class="muted upd-last">Ultimo controllo: oggi alle 18:02. Si controlla da solo una volta al giorno.</p>
+  </div></div>
+  <div class="frame"><div class="pad">
+    <div class="mk-cap">GitHub, oggi</div>
+    <h1>Whisper per WhatsApp Web</h1>
+    <p class="muted">Trascrive i vocali sul tuo computer con Whisper: l'audio non lascia la macchina.</p>
+    <div class="upd-bar"><span>Estensione 1.7.0 · componente locale 1.7.0</span><button>Controlla ora</button></div>
+    <p class="muted upd-last">Ultimo controllo: oggi alle 18:02. Si controlla da solo una volta al giorno.</p>
+  </div></div>
+</div>
+
+<h2 class="mk-scene">S2 · Avviso di aggiornamento</h2>
+<div class="cols">
+  <div class="frame"><div class="pad">
+    <div class="mk-cap">Store: si aggiorna da qui solo il componente locale</div>
+    <div class="upd">
+      <div class="upd-title">Nuova versione del componente locale</div>
+      <div class="upd-text">Si installa senza finestre. Se c'è una trascrizione in corso, si aspetta che finisca.</div>
+      <div class="upd-row">Componente locale: 1.7.0 → 1.7.1</div>
+      <div class="upd-row mk-new">Estensione 1.7.0 · la aggiorna Chrome Web Store</div>
+      <div class="upd-actions"><button class="primary">Aggiorna</button><a href="#">Novità</a><button class="link">Più tardi</button></div>
+    </div>
+  </div></div>
+  <div class="frame"><div class="pad">
+    <div class="mk-cap">GitHub, oggi: componente ed estensione insieme</div>
+    <div class="upd">
+      <div class="upd-title">È disponibile la versione 1.7.1</div>
+      <div class="upd-text">Prima il componente locale, poi l'estensione, che alla fine si ricarica insieme alle schede di WhatsApp Web.</div>
+      <div class="upd-row">Componente locale: 1.7.0 → 1.7.1</div>
+      <div class="upd-row">Estensione: 1.7.0 → 1.7.1</div>
+      <div class="upd-actions"><button class="primary">Aggiorna</button><a href="#">Novità</a><button class="link">Più tardi</button></div>
+    </div>
+  </div></div>
+</div>
+
+<h2 class="mk-scene">S3 · Fondo della configurazione: informativa sulla privacy (in tutte e due le versioni)</h2>
+<div class="frame"><div class="pad">
+  <details><summary>Impostazioni</summary></details>
+  <p class="muted mk-small mk-new" style="margin-top:22px">Informativa sulla privacy · Codice sorgente su GitHub · Versione 1.7.0</p>
+</div></div>
+
+<h2 class="mk-scene">S4 · Popup dell'icona (store)</h2>
+<div class="frame popup-frame"><div class="popup">
+  <h1 class="mk-new">WA Web Transcriber, Translator and Reviewer</h1>
+  <div class="line ok">Pronto · large-v3 · cpu</div>
+  <div class="line">IA: Gemini, poi Groq, poi OpenRouter · correzione e traduzione attive</div>
+  <div class="line">Nessuna trascrizione in corso.</div>
+  <label class="check"><input type="checkbox" checked> <span>Trascrivi in automatico i vocali in arrivo</span></label>
+  <div class="btns"><button class="primary">Trascrivi i vocali della chat aperta</button><button>Traduci i messaggi della chat aperta</button><button>Svuota la coda</button><button>Configurazione e guida</button></div>
+</div></div>
+<p class="muted mk-small">Il nome va a capo su due righe: nel popup largo 330 px non ci sta su una. È un'alternativa possibile tenere nel popup un nome breve, per esempio «WA Web Transcriber».</p>
+</div>
+</body></html>

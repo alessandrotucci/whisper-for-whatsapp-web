@@ -57,7 +57,10 @@
     if (info.current.host || info.needHost) {
       card.append(versionRow(t('upd_row_host'), info.current.host, info.host, info.needHost, 'upd_up_to_date_m'));
     }
-    card.append(versionRow(t('upd_row_ext'), info.current.extension, info.extension, info.needExt, 'upd_up_to_date_f'));
+    // Un'estensione installata da uno store si aggiorna da sé: qui c'è solo il componente.
+    if (info.channel !== 'store') {
+      card.append(versionRow(t('upd_row_ext'), info.current.extension, info.extension, info.needExt, 'upd_up_to_date_f'));
+    }
 
     if (status) {
       const s = el('p', status.error ? 'upd-status err' : 'upd-status', status.text);

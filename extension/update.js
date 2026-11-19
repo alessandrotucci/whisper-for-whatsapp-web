@@ -1,5 +1,5 @@
 // Aggiornamenti di estensione e componente locale dalle release su GitHub.
-// Caricato da background.js con importScripts: usa hostRequest, port, hostBusy,
+// Caricato dopo background.js e channel.js: usa UPDATE_CHANNEL, hostRequest, port, hostBusy,
 // fetching, pumpFetch, updating, updateAvailable, refreshBadge, handlers e notifyPages.
 //
 // Controllo: una volta al giorno (allarme "update-check") si leggono l'ultima release
@@ -42,11 +42,13 @@ async function githubJson(path) {
 async function computeInfo(latest) {
   const { hostVersion, updateDismissed } = await chrome.storage.local.get(['hostVersion', 'updateDismissed']);
   const ext = chrome.runtime.getManifest().version;
-  if (!latest) return { current: { extension: ext, host: hostVersion || null } };
-  const needExt = cmpVersion(ext, latest.extension) < 0;
+  if (!latest) return { channel: UPDATE_CHANNEL, current: { extension: ext, host: hostVersion || null } };
+  // Un'estensione installata da uno store la aggiorna lo store: qui conta solo il componente.
+  const needExt = UPDATE_CHANNEL === 'github' && cmpVersion(ext, latest.extension) < 0;
   const needHost = !!hostVersion && cmpVersion(hostVersion, latest.host) < 0;
   return {
     ...latest,
+    channel: UPDATE_CHANNEL,
     current: { extension: ext, host: hostVersion || null },
     needExt,
     needHost,

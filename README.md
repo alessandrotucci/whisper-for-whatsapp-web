@@ -1,6 +1,6 @@
 # Whisper for WhatsApp Web
 
-Estensione per Chrome ed Edge che trascrive i vocali di WhatsApp Web con
+Estensione per Chrome, Edge e Firefox che trascrive i vocali di WhatsApp Web con
 [faster-whisper](https://github.com/SYSTRAN/faster-whisper) **sul tuo computer** e mostra il testo
 sotto ogni vocale. L'audio non lascia la macchina: nessun servizio cloud, nessun account.
 Solo la revisione con l'IA, facoltativa, manda il testo trascritto al fornitore che scegli.
@@ -87,7 +87,14 @@ versione dichiarata dal componente. «Aggiorna» fa prima il componente (il comp
 l'installer della release e lo avvia in modalità silenziosa) e poi l'estensione (il componente
 estrae lo zip nelle cartelle da cui Chrome ed Edge la caricano, solo se contengono il `release.json`
 degli zip di release, e l'estensione si ricarica). Il componente scarica solo dagli asset delle
-release di questo repository. `tools/release_check.py`, in CI, blocca una release se tag, manifest,
+release di questo repository. Firefox e gli store: `tools/build_extension.py` costruisce da `extension/` il pacchetto per
+Firefox (sfondo come pagina di eventi, id in `browser_specific_settings.gecko`) e quello per Chrome Web
+Store, Edge Add-ons e Opera Add-ons, con il nome "WA Web Transcriber, Translator and Reviewer". Nei
+pacchetti per gli store l'estensione la aggiorna lo store e il componente aggiorna solo se stesso.
+L'installer registra il componente anche per Firefox, sotto `HKCU\Software\Mozilla\NativeMessagingHosts`.
+Informativa sulla privacy: [docs/privacy.md](docs/privacy.md).
+
+`tools/release_check.py`, in CI, blocca una release se tag, manifest,
 `version.json` e `HOST_VERSION` non coincidono, o se `host/` o `installer/` sono cambiati senza
 alzare la versione del componente.
 

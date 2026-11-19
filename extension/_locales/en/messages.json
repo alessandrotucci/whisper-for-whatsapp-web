@@ -851,6 +851,15 @@
   "tr_translate": {
     "message": "Translate"
   },
+  "opt_privacy": {
+    "message": "Privacy policy"
+  },
+  "opt_source": {
+    "message": "Source code on GitHub"
+  },
+  "opt_version": {
+    "message": "Version $1"
+  },
   "lang_others": {
     "message": "Other languages"
   },
