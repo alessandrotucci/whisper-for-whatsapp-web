@@ -1011,7 +1011,7 @@ class Host:
             return
         self.log("revisione %s con %s %s in %d ms%s%s%s" % (
             jid, res["provider"], res["model"], res["ms"], ", correzione scartata" if res["rejected"] else "",
-            "" if res["translation"] or not res["language"] else ", senza traduzione", failed_accounts(res["errors"])))
+            ", traduzione non riuscita" if res.get("translation_failed") else "", failed_accounts(res["errors"])))
         self.reply(msg, {"type": "review", "id": jid, "state": "done", "review": res})
 
     def ai_status(self):
