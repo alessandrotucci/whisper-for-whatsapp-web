@@ -73,6 +73,8 @@ function explain(error) {
 async function checkHost() {
   const r = await send({ cmd: 'ping' });
   if (r && r.ok) {
+    // Il componente ricompare dopo essere mancato: le altre parti della pagina lo rileggono.
+    if (!hostOk && hostMissingSeen) document.dispatchEvent(new Event('wwt-host-change'));
     hostOk = true;
     stopPolling();
     const p = r.pong;
@@ -87,6 +89,7 @@ async function checkHost() {
   } else {
     // Al primo esito negativo si rilegge l'intestazione: il background ha già cancellato la versione salvata.
     if (hostOk || !hostMissingSeen) send({ cmd: 'updateInfo' }).then(showLastCheck);
+    if (hostOk) document.dispatchEvent(new Event('wwt-host-change'));
     hostMissingSeen = true;
     hostOk = false;
     await platformReady;

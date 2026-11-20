@@ -449,4 +449,8 @@
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && !dlg.open) load();
   });
+  // Il componente è sparito o ricomparso con la pagina aperta (options.js).
+  document.addEventListener('wwt-host-change', () => {
+    if (!dlg.open) load();
+  });
 })();
