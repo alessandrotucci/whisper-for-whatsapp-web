@@ -112,7 +112,7 @@ import cuda_libs
 if os.name != "nt":
     import posix_support
 
-HOST_VERSION = "1.7.1"
+HOST_VERSION = "1.8.0"
 FROZEN = getattr(sys, "frozen", False)
 
 
