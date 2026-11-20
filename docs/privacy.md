@@ -3,7 +3,7 @@
 [English below](#english)
 
 Vale per l'estensione per browser *WA Web Transcriber, Translator and Reviewer* (pubblicata
-anche come *Whisper per WhatsApp Web*) e per il suo componente locale per Windows.
+anche come *Whisper per WhatsApp Web*) e per il suo componente locale per Windows e Linux.
 
 ## Italiano
 
@@ -20,7 +20,8 @@ fornitore che hai scelto.
 - *Trascrizioni, traduzioni, impostazioni.* Restano nella memoria dell'estensione nel tuo browser e
   si cancellano con "Cancella le trascrizioni salvate" o disinstallando l'estensione.
 - *Account di IA (facoltativi).* Se colleghi un account (per esempio Claude, ChatGPT, Gemini), la
-  chiave resta sul tuo computer, cifrata con il tuo account di Windows. Per la revisione e la
+  chiave resta sul tuo computer: su Windows cifrata con il tuo account, su Linux nel portachiavi del
+  sistema o, se manca, in un file leggibile solo dal tuo utente. Per la revisione e la
   traduzione il componente manda al fornitore scelto: il testo trascritto o il messaggio scritto da
   tradurre, la lingua, i nomi e termini che hai scritto nelle impostazioni e, solo se attivi
   l'opzione "contesto", gli ultimi messaggi scritti della chat. Quei dati li tratta il fornitore,
@@ -60,7 +61,8 @@ an artificial intelligence account yourself does message text go to the provider
 - *Transcriptions, translations, settings.* They stay in the extension storage in your browser and
   are deleted with "Clear saved transcriptions" or by uninstalling the extension.
 - *AI accounts (optional).* If you connect an account (for example Claude, ChatGPT, Gemini), its key
-  stays on your computer, encrypted with your Windows account. For review and translation the
+  stays on your computer: on Windows encrypted with your account, on Linux in the system keyring or,
+  if there is none, in a file only your user can read. For review and translation the
   component sends the chosen provider: the transcribed text or the text message to translate, the
   language, the names and terms you entered in the settings and, only if you turn on the "context"
   option, the last text messages of the chat. The provider processes that data under your account
