@@ -97,12 +97,27 @@
       <h2 data-i18n="opt_step1"></h2>
       <p id="hostStatus" class="muted" data-i18n="opt_checking"></p>
       <div id="hostMissing" hidden>
-        <p data-i18n-html="opt_host_explain"></p>
-        <div class="row">
-          <a class="button primary" id="installerLink" href="#" target="_blank" rel="noopener" data-i18n="opt_download_installer"></a>
-          <span class="muted" data-i18n="opt_autodetect"></span>
+        <div id="installWin" hidden>
+          <p data-i18n-html="opt_host_explain"></p>
+          <div class="row">
+            <a class="button primary" id="installerLink" href="#" target="_blank" rel="noopener" data-i18n="opt_download_installer"></a>
+            <span class="muted" data-i18n="opt_autodetect"></span>
+          </div>
+          <p class="muted" data-i18n-html="opt_smartscreen"></p>
         </div>
-        <p class="muted" data-i18n-html="opt_smartscreen"></p>
+        <div id="installLinux" hidden>
+          <p data-i18n="opt_host_explain_linux"></p>
+          <div class="cmd"><pre id="linuxCommand"></pre><button id="copyLinuxCommand" data-i18n="box_copy"></button></div>
+          <div class="row">
+            <a class="button" id="tarballLink" href="#" target="_blank" rel="noopener" data-i18n="opt_download_tarball"></a>
+            <span class="muted" data-i18n="opt_autodetect"></span>
+          </div>
+          <p class="muted" data-i18n-html="opt_linux_browsers"></p>
+        </div>
+        <div id="installNone" hidden>
+          <p id="installNoneText"></p>
+          <p class="muted" data-i18n="opt_host_unavailable_note"></p>
+        </div>
         <p class="muted" id="hostError"></p>
       </div>
     </div>
@@ -145,7 +160,7 @@
       </div>
       <div class="row" style="margin-top: 10px"><button class="primary" id="aiAdd" data-i18n="ai_add"></button> <span id="aiMsg" class="muted"></span></div>
       <label class="check" id="aiContextRow" hidden><input type="checkbox" id="aiContext"><span><strong data-i18n="ai_context"></strong><br><span class="muted small" data-i18n="ai_context_note"></span></span></label>
-      <p class="muted small" data-i18n="ai_keys_note"></p>
+      <p class="muted small" id="aiKeysNote" data-i18n="ai_keys_note"></p>
     </div>
   </section>
 

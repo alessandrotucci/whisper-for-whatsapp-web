@@ -9,7 +9,9 @@ Vincoli verificati:
   - il tag vale "v" + version.json.extension, ed è uguale alla versione di manifest.json;
   - version.json.host è uguale a HOST_VERSION in host/whisper_host.py;
   - se host/ o installer/ sono cambiati dal tag precedente, la versione del componente
-    è cambiata anch'essa: altrimenti chi ha il componente vecchio non lo aggiornerebbe.
+    è cambiata anch'essa: altrimenti chi ha il componente vecchio non lo aggiornerebbe;
+  - gli id ammessi nei manifest di native messaging sono gli stessi nell'installer per
+    Windows (installer/setup.iss) e in quello per Linux (installer/linux/install.sh).
 
 Con --release-json PERCORSO scrive il marcatore incluso nello zip dell'estensione:
 versione ed elenco dei file. Il componente aggiorna solo cartelle che lo contengono.
@@ -40,6 +42,23 @@ def fail(msg):
     sys.exit(1)
 
 
+def manifest_ids(text):
+    """Id delle estensioni Chromium (chrome-extension://...) e Firefox (...@...) citati in text."""
+    chromium = set(re.findall(r"chrome-extension://([a-p]{32})/", text))
+    firefox = set(re.findall(r"[\w.-]+@[\w.-]+\.[a-z]+", text))
+    return chromium, firefox
+
+
+def check_manifest_ids():
+    iss = open(os.path.join(ROOT, "installer", "setup.iss"), encoding="utf-8").read()
+    sh = open(os.path.join(ROOT, "installer", "linux", "install.sh"), encoding="utf-8").read()
+    win, linux = manifest_ids(iss), manifest_ids(sh)
+    if win != linux:
+        fail("id dei manifest diversi tra setup.iss %s e install.sh %s" % (win, linux))
+    if not win[0] or not win[1]:
+        fail("nessun id di estensione trovato in setup.iss")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tag", required=True)
@@ -58,6 +77,7 @@ def main():
         fail("manifest.json %s diverso da version.json.extension %s" % (manifest["version"], versions["extension"]))
     if host_v != versions["host"]:
         fail("HOST_VERSION %s diverso da version.json.host %s" % (host_v, versions["host"]))
+    check_manifest_ids()
 
     prev = git("describe", "--tags", "--abbrev=0", "--match", "v*", a.tag + "^").stdout.strip()
     if prev:

@@ -1,6 +1,9 @@
-# Costruisce whisper_host.exe (PyInstaller) e l'installer (Inno Setup) su Windows.
-# Un tag v* pubblica una release con l'installer e lo zip dell'estensione;
-# l'avvio manuale costruisce soltanto e lascia i file come artifact.
+# Costruisce il componente locale per Windows (whisper_host.exe con PyInstaller e
+# l'installer con Inno Setup) e per Linux (PyInstaller su Ubuntu 22.04 e tarball con
+# install.sh), più i pacchetti dell'estensione.
+# Un tag v* pubblica una release con tutti i file e il loro SHA256SUMS, che il
+# componente per Linux verifica prima di aggiornarsi; l'avvio manuale costruisce
+# soltanto e lascia i file come artifact.
 name: release
 
 on:
@@ -12,7 +15,7 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
@@ -61,12 +64,71 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: installer
+          name: windows
           path: build/installer/*
 
+  linux:
+    # glibc della build = glibc minima richiesta: 2.35 su Ubuntu 22.04 (install.sh la controlla).
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Controllo delle versioni
+        run: python tools/release_check.py --tag '${{ github.ref_name }}'
+
+      - name: Dipendenze di build
+        run: python -m pip install --disable-pip-version-check -r host/requirements-build.txt
+
+      - name: whisper_host
+        working-directory: host
+        run: python -m PyInstaller --noconfirm --distpath ../build/dist --workpath ../build/work whisper_host.spec
+
+      - name: Prova dell'eseguibile
+        run: build/dist/whisper_host/whisper_host --info
+
+      - name: Tarball
+        run: python tools/package_linux.py
+
+      - name: Prova dell'installazione
+        run: |
+          export HOME="$RUNNER_TEMP/home"
+          mkdir -p "$HOME/.config/google-chrome" "$RUNNER_TEMP/pkg"
+          tar xzf build/installer/whisper-for-whatsapp-web-linux-x86_64.tar.gz -C "$RUNNER_TEMP/pkg"
+          "$RUNNER_TEMP/pkg/whisper-for-whatsapp-web/install.sh"
+          manifest="$HOME/.config/google-chrome/NativeMessagingHosts/local.wa_whisper.host.json"
+          exe=$(python -c "import json,sys;print(json.load(open(sys.argv[1]))['path'])" "$manifest")
+          "$exe" --info
+          "$HOME/.local/lib/whisper-for-whatsapp-web/current/uninstall.sh"
+          test ! -e "$manifest"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: linux
+          path: build/installer/*
+
+  release:
+    needs: [windows, linux]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v7
+        with:
+          path: assets
+          merge-multiple: true
+
+      - name: SHA256SUMS
+        working-directory: assets
+        run: sha256sum -- * > SHA256SUMS && cat SHA256SUMS
+
       - name: Release
-        if: startsWith(github.ref, 'refs/tags/')
-        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create '${{ github.ref_name }}' (Get-ChildItem build\installer\*).FullName --title '${{ github.ref_name }}' --notes-file .github/release-notes.md --generate-notes
+        run: gh release create '${{ github.ref_name }}' assets/* --title '${{ github.ref_name }}' --notes-file .github/release-notes.md --generate-notes

@@ -14,7 +14,7 @@ const extDir = path.resolve(process.argv[2] || path.join(__dirname, '..', 'exten
 function makeChrome(preset) {
   const local = JSON.parse(JSON.stringify(preset));
   const session = {};
-  const listeners = { message: [], installed: [], alarm: [], changed: [], native: [] };
+  const listeners = { message: [], installed: [], alarm: [], changed: [], native: [], disconnect: [] };
   const posted = [];
   const ev = (name) => ({ addListener: (fn) => listeners[name].push(fn) });
   const store = (obj) => ({
@@ -39,7 +39,7 @@ function makeChrome(preset) {
       getPlatformInfo: async () => ({ os: 'win' }),
       sendMessage: async () => {},
       lastError: null,
-      connectNative: () => ({ onMessage: ev('native'), onDisconnect: { addListener() {} }, postMessage: (m) => posted.push(m), disconnect() {} }),
+      connectNative: () => ({ onMessage: ev('native'), onDisconnect: ev('disconnect'), postMessage: (m) => posted.push(m), disconnect() {} }),
       openOptionsPage() {},
       reload() {},
     },
@@ -73,7 +73,15 @@ function load(preset) {
       if (ret !== true && !replied) resolve(undefined);
     });
   const fromHost = (m) => listeners.native.forEach((fn) => fn(m));
-  return { send, fromHost, posted };
+  // Chiusura della porta da parte del browser, con il motivo in runtime.lastError come in Chrome.
+  const dropHost = (message) => {
+    chrome.runtime.lastError = { message };
+    const fns = listeners.disconnect.splice(0);
+    listeners.native.length = 0;
+    fns.forEach((fn) => fn({}));
+    chrome.runtime.lastError = null;
+  };
+  return { send, fromHost, dropHost, posted };
 }
 
 const tick = (ms = 20) => new Promise((r) => setTimeout(r, ms));
@@ -188,6 +196,18 @@ function check(name, cond, detail) {
   check('clearQueue annulla nel componente i vocali in attesa', clear === true && posted.some((m) => m.type === 'cancel' && m.id === k3.id), posted.filter((m) => m.type === 'cancel'));
   const unknown = await send({ cmd: 'inesistente' });
   check('un comando sconosciuto non riceve risposta', unknown === undefined, unknown);
+
+  for (const [reason, kept] of [['Specified native messaging host not found.', false], ['Native host has exited.', true]]) {
+    const h = load({ hostVersion: '1.7.1' });
+    await tick();
+    const pinging = h.send({ cmd: 'ping' });
+    await tick();
+    h.dropHost(reason);
+    const pr = await pinging;
+    const after = await h.send({ cmd: 'updateInfo' });
+    check(kept ? 'componente uscito: la versione salvata resta' : 'componente disinstallato: la versione salvata si cancella',
+      pr && pr.ok === false && after.current.host === (kept ? '1.7.1' : null), { pr, current: after.current });
+  }
 
   console.log(failures ? failures + ' controlli falliti' : 'service worker: tutti i controlli passati');
   process.exit(failures ? 1 : 0);

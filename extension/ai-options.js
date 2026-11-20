@@ -14,7 +14,7 @@
   const UI_LANG = (chrome.i18n.getUILanguage() || 'en').split('-')[0];
   const GUIDE_LANG = UI_LANG === 'it' ? 'it' : 'en';
 
-  let state = null; // ultimo ai_status: {providers, accounts, settings}
+  let state = null; // ultimo ai_status: {providers, accounts, settings, key_store}
   let guides = null;
   let current = null; // fornitore aperto nella finestra
   let checked = null; // {key, url, models} verificati per il fornitore aperto
@@ -73,8 +73,11 @@
     sel.value = selected;
   }
 
+  const KEY_NOTES = { dpapi: 'ai_keys_note', keyring: 'ai_keys_note_keyring', file: 'ai_keys_note_file' };
+
   function render() {
     if (!state) return;
+    if (KEY_NOTES[state.key_store]) $('aiKeysNote').textContent = t(KEY_NOTES[state.key_store]);
     const s = state.settings;
     const has = state.accounts.length > 0;
     $('aiRevise').checked = has && !!s.revise;

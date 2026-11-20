@@ -538,6 +538,16 @@ function isHostSetupError(message) {
   return /native messaging host not found|forbidden|has exited|Error when communicating/i.test(message || '');
 }
 
+// Il browser non trova il manifest del componente: non è installato (Chromium e Firefox).
+function isHostNotInstalled(message) {
+  return /native messaging host not found|No such native application/i.test(message || '');
+}
+
+// La versione del componente salvata vale finché il componente esiste: senza manifest si cancella.
+async function forgetHostVersionIfMissing(message) {
+  if (isHostNotInstalled(message)) await chrome.storage.local.remove('hostVersion');
+}
+
 // ---------- traduzione dei messaggi scritti ----------
 
 // Impostazioni dell'IA che servono alle schede: se la traduzione dei messaggi scritti è
@@ -688,6 +698,7 @@ const handlers = {
       await chrome.storage.local.set({ hostVersion: pong.host_version });
       return { ok: true, pong, downloading };
     } catch (e) {
+      await forgetHostVersionIfMissing(e.message);
       return { ok: false, error: e.message, extensionId: chrome.runtime.id };
     }
   },
@@ -744,7 +755,7 @@ const handlers = {
   async pickFolder() {
     try {
       const r = await hostRequest({ type: 'pick_folder' }, ['folder_picked'], { timeoutMs: 0 });
-      return { ok: true, path: r.path, valid: r.valid };
+      return { ok: true, path: r.path, valid: r.valid, unavailable: !!r.unavailable };
     } catch (e) {
       return { ok: false, error: e.message };
     }

@@ -221,6 +221,24 @@
   "opt_autodetect": {
     "message": "Questa pagina si accorge da sola dell'installazione."
   },
+  "opt_host_explain_linux": {
+    "message": "Il browser non può far girare Whisper da solo: serve un piccolo programma sul computer. Su Linux si installa da un terminale, per il solo utente: non servono privilegi di root. Incolla questo comando:"
+  },
+  "opt_download_tarball": {
+    "message": "Scarica il .tar.gz"
+  },
+  "opt_linux_browsers": {
+    "message": "Funziona con Chrome, Chromium, Edge, Brave, Vivaldi, Opera e Firefox installati dai pacchetti della distribuzione, e con Firefox snap di Ubuntu, che al primo uso chiede il permesso. Serve Ubuntu 22.04, Debian 12, Fedora 36 o una versione successiva. Browser Flatpak o Chromium snap: <a href=\"https://github.com/alessandrotucci/whisper-for-whatsapp-web#linux-browser-flatpak\">istruzioni manuali</a>."
+  },
+  "opt_host_unavailable_status": {
+    "message": "Componente locale non disponibile su $1"
+  },
+  "opt_host_unavailable_explain": {
+    "message": "Il browser non può far girare Whisper da solo: serve un piccolo programma sul computer. Per ora esiste per Windows e Linux, non per $1."
+  },
+  "opt_host_unavailable_note": {
+    "message": "Su questo computer l'estensione non può ancora trascrivere i vocali."
+  },
   "opt_smartscreen": {
     "message": "Se Windows mostra «Windows ha protetto il PC», premi <em>Ulteriori informazioni</em> e poi <em>Esegui comunque</em>: l'installer non è ancora firmato."
   },
@@ -292,6 +310,12 @@
   },
   "opt_pick_hint": {
     "message": "Scegli la cartella nella finestra di Windows (potrebbe aprirsi dietro al browser)…"
+  },
+  "opt_pick_hint_other": {
+    "message": "Scegli la cartella nella finestra che si è aperta (potrebbe aprirsi dietro al browser)…"
+  },
+  "opt_pick_unavailable": {
+    "message": "Sul sistema manca una finestra per scegliere la cartella: installa zenity o kdialog, oppure scarica un modello dall'elenco."
   },
   "opt_pick_invalid": {
     "message": "In $1 non c'è un modello faster-whisper (servono model.bin e config.json)."
@@ -400,6 +424,12 @@
   },
   "opt_cuda_libs_missing": {
     "message": "Per usare la GPU servono le librerie CUDA (cuBLAS e cuDNN, $1 da scaricare una volta sola, da NVIDIA tramite PyPI)."
+  },
+  "opt_cuda_libs_ok_cublas": {
+    "message": "Librerie CUDA installate: cuBLAS $1."
+  },
+  "opt_cuda_libs_missing_cublas": {
+    "message": "Per usare la GPU serve la libreria CUDA cuBLAS ($1 da scaricare una volta sola, da NVIDIA tramite PyPI)."
   },
   "opt_cuda_download": {
     "message": "Scarica le librerie CUDA"
@@ -532,6 +562,9 @@
   },
   "upd_err_host_timeout": {
     "message": "il componente aggiornato non risponde"
+  },
+  "upd_err_platform": {
+    "message": "aggiornamento del componente non disponibile su questo sistema"
   },
   "upd_err_running": {
     "message": "aggiornamento già in corso"
@@ -670,6 +703,12 @@
   },
   "ai_keys_note": {
     "message": "Le chiavi restano su questo computer, cifrate con l'account di Windows, e valgono sia in Chrome sia in Edge."
+  },
+  "ai_keys_note_keyring": {
+    "message": "Le chiavi restano su questo computer, nel portachiavi del sistema, e valgono in tutti i browser."
+  },
+  "ai_keys_note_file": {
+    "message": "Le chiavi restano su questo computer, in un file leggibile solo dal tuo utente, e valgono in tutti i browser."
   },
   "ai_model": {
     "message": "Modello"

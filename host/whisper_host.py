@@ -9,14 +9,21 @@ porta del browser è aperta. Gestisce da sé configurazione, modelli, download e
 aggiornamenti; le trascrizioni le inoltra al motore.
 
 Il motore ("--engine") è un processo unico per utente e cartella dati, avviato
-dal primo relay che ne ha bisogno e raggiunto su una named pipe con chiave di
-autenticazione. Tiene il modello in memoria e la coda delle trascrizioni di
+dal primo relay che ne ha bisogno e raggiunto con chiave di autenticazione su una
+named pipe (Windows) o su un socket Unix (Linux, macOS). Tiene il modello in memoria e la coda delle trascrizioni di
 tutti i browser: una trascrizione per volta, le richieste manuali prima di
 quelle automatiche, in ordine di arrivo. A ogni cambio della coda manda a ogni
 relay lo stato della coda con le posizioni dei suoi lavori. Si chiude quando
 non ha relay collegati né lavori da ENGINE_IDLE_EXIT_S secondi. Se il motore si
 chiude con lavori in sospeso, il relay ne avvia un altro e li reinvia, al più
 ENGINE_RESUBMIT volte per lavoro.
+
+Su Linux e macOS il socket non sparisce da solo con il processo: il motore tiene un
+lock esclusivo sul file accanto al socket per tutta la vita, e solo chi lo ottiene
+cancella un socket rimasto e si mette in ascolto. Il nome del socket contiene la
+versione: dopo un aggiornamento i relay nuovi avviano un motore nuovo, quello vecchio
+si chiude quando resta senza relay, e il lock sulle trascrizioni impedisce che i due
+trascrivano insieme.
 
 Richieste del browser (il campo "rid", se presente, torna nella risposta):
   {"type": "ping"}                                   -> pong
@@ -69,13 +76,16 @@ Un lock su file impedisce anche a trascrizioni da riga di comando di sovrapporsi
 a quelle del motore.
 
 I dati (config.json, log, lock, chiave del motore, librerie CUDA) stanno in
-DATA_DIR: la variabile d'ambiente WWT_DATA_DIR, altrimenti
-%LOCALAPPDATA%\\WhisperForWhatsAppWeb per l'eseguibile impacchettato e la
-cartella dello script quando gira da sorgente.
+DATA_DIR: la variabile d'ambiente WWT_DATA_DIR, altrimenti, per l'eseguibile
+impacchettato, %LOCALAPPDATA%\\WhisperForWhatsAppWeb su Windows,
+~/.local/share/WhisperForWhatsAppWeb su Linux (XDG_DATA_HOME) e
+~/Library/Application Support/WhisperForWhatsAppWeb su macOS; da sorgente, la
+cartella dello script.
 
 Da riga di comando: "--info" stampa lo stato, "--selftest" carica il modello e
 trascrive un secondo di silenzio, "--file PERCORSO [--lang xx]" trascrive un file,
-"--cuda-install" scarica le librerie CUDA, "--download MODELLO" scarica un modello;
+"--cuda-install" scarica le librerie CUDA, "--download MODELLO" scarica un modello,
+"--forget-keys" cancella le chiavi delle IA dal portachiavi del sistema;
 "--device cpu|cuda|auto", "--compute TIPO" e "--model MODELLO" valgono per quella
 sola esecuzione, senza toccare config.json.
 """
@@ -99,6 +109,9 @@ from multiprocessing.connection import Client, Listener
 import ai_review
 import cuda_libs
 
+if os.name != "nt":
+    import posix_support
+
 HOST_VERSION = "1.7.1"
 FROZEN = getattr(sys, "frozen", False)
 
@@ -108,6 +121,8 @@ def _data_dir():
     if env:
         return env
     if FROZEN:
+        if os.name != "nt":
+            return posix_support.data_dir()
         base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
         return os.path.join(base, "WhisperForWhatsAppWeb")
     return os.path.dirname(os.path.abspath(__file__))
@@ -264,6 +279,7 @@ class Transcriber:
             "frozen": FROZEN,
             "executable": sys.executable,
             "python_version": sys.version.split()[0],
+            "platform": sys.platform,
             "data_dir": DATA_DIR,
             "config": self.cfg,
             "model_loaded": self.model is not None,
@@ -419,10 +435,16 @@ class Transcriber:
         return path
 
 
+FOLDER_TITLE = "Cartella del modello faster-whisper (contiene model.bin)"
+
+
 def pick_folder():
-    """Apre la finestra di Windows per scegliere una cartella; restituisce il percorso o None."""
+    """Apre la finestra di sistema per scegliere una cartella; restituisce il percorso o None.
+
+    Fuori da Windows, senza un programma per la finestra solleva FolderDialogMissing.
+    """
     if os.name != "nt":
-        return None
+        return posix_support.pick_folder(FOLDER_TITLE)
     script = (
         "Add-Type -AssemblyName System.Windows.Forms;"
         "$o = New-Object System.Windows.Forms.Form -Property @{TopMost=$true};"
@@ -511,7 +533,7 @@ def engine_address():
     if os.name == "nt":
         user = re.sub(r"[^A-Za-z0-9_.-]", "_", os.environ.get("USERNAME") or "user")
         return r"\\.\pipe\WhisperForWhatsAppWeb-%s-%s" % (user, tag), "AF_PIPE"
-    return os.path.join(DATA_DIR, "engine-%s.sock" % tag), "AF_UNIX"
+    return posix_support.socket_path(DATA_DIR, "wwt-engine-%s-%s.sock" % (tag, HOST_VERSION)), "AF_UNIX"
 
 
 def engine_key():
@@ -1131,6 +1153,10 @@ class Host:
             path = pick_folder()
             self.reply(msg, {"type": "folder_picked", "path": path, "valid": is_model_dir(path)})
         except Exception as e:  # noqa: BLE001
+            if os.name != "nt" and isinstance(e, posix_support.FolderDialogMissing):
+                self.log("selezione cartella: %s" % e)
+                self.reply(msg, {"type": "folder_picked", "path": None, "valid": False, "unavailable": True})
+                return
             self.reply(msg, {"type": "error", "message": "selezione cartella: %s" % e})
 
     def worker(self):
@@ -1164,8 +1190,8 @@ class Host:
         import updater
 
         self.log("aggiornamento del componente da %s" % msg.get("url"))
-        pid = updater.start_installer(msg.get("url"), self.update_progress(msg, "host"))
-        self.log("installer avviato, pid %s" % pid)
+        pid = updater.start_update(msg.get("url"), self.update_progress(msg, "host"), DATA_DIR)
+        self.log("installazione avviata, pid %s" % pid)
         self.reply(msg, {"type": "update_host_started", "pid": pid})
 
     def do_update_extension(self, msg):
@@ -1266,7 +1292,7 @@ def run_native():
 def parent_browser():
     """Nome del browser che ha avviato il relay (chrome, msedge...), dal processo padre."""
     if os.name != "nt":
-        return ""
+        return posix_support.parent_browser()
     try:
         import ctypes
         from ctypes import wintypes
@@ -1311,6 +1337,19 @@ def run_engine():
     sys.stdout = log_fh
     sys.stderr = log_fh
     address, family = engine_address()
+    if family == "AF_UNIX":
+        import fcntl
+
+        lock_fh = open(address + ".lock", "a+b")  # resta aperto, e quindi bloccato, finché il motore vive
+        try:
+            fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            log("motore già attivo (lock su %s.lock)" % address)
+            return
+        try:
+            os.unlink(address)
+        except FileNotFoundError:
+            pass
     try:
         listener = Listener(address, family=family, authkey=engine_key())
     except OSError as e:
@@ -1386,6 +1425,8 @@ def run_cli(argv):
 if __name__ == "__main__":
     if "--engine" in sys.argv:
         run_engine()
+    elif "--forget-keys" in sys.argv:
+        print("chiavi cancellate dal portachiavi: %d" % ai_review.forget_all(ai_review.Store(DATA_DIR)))
     elif any(a in sys.argv for a in ("--selftest", "--file", "--info", "--cuda-install", "--download")):
         run_cli(sys.argv[1:])
     else:

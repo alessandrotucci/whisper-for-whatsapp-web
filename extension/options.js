@@ -5,6 +5,22 @@ const send = (m) => chrome.runtime.sendMessage(m);
 
 const REPO = 'alessandrotucci/whisper-for-whatsapp-web';
 const INSTALLER_URL = 'https://github.com/' + REPO + '/releases/latest/download/WhisperForWhatsAppWeb-Setup.exe';
+const TARBALL_URL = 'https://github.com/' + REPO + '/releases/latest/download/whisper-for-whatsapp-web-linux-x86_64.tar.gz';
+// Estrae il tarball in una cartella temporanea privata e lancia install.sh, che installa per l'utente.
+const LINUX_COMMAND = 'd=$(mktemp -d) && curl -fsSL ' + TARBALL_URL + ' | tar xz -C "$d" && "$d"/whisper-for-whatsapp-web/install.sh';
+const OS_NAMES = { mac: 'macOS', cros: 'ChromeOS', android: 'Android', openbsd: 'OpenBSD', fuchsia: 'Fuchsia' };
+
+// Sistema operativo dal browser: decide quali istruzioni di installazione mostrare.
+let platformOs = null;
+const platformReady = chrome.runtime.getPlatformInfo()
+  .then((info) => { platformOs = info.os; })
+  .catch(() => { platformOs = 'win'; })
+  .then(() => showInstall());
+
+// Il componente locale esiste per Windows e Linux.
+function hostSupported() {
+  return platformOs === 'win' || platformOs === 'linux';
+}
 
 const DEFAULTS = {
   autoIncoming: true,
@@ -18,6 +34,7 @@ const DEFAULTS = {
 };
 
 let hostOk = false;
+let hostMissingSeen = false;
 let modelReady = false;
 let pollTimer = null;
 let downloading = null;
@@ -68,15 +85,33 @@ async function checkHost() {
     if (r.downloading) downloading = r.downloading;
     await loadModels();
   } else {
+    // Al primo esito negativo si rilegge l'intestazione: il background ha già cancellato la versione salvata.
+    if (hostOk || !hostMissingSeen) send({ cmd: 'updateInfo' }).then(showLastCheck);
+    hostMissingSeen = true;
     hostOk = false;
-    showSearching();
+    await platformReady;
     $('hostMissing').hidden = false;
-    $('hostError').textContent = explain(r ? r.error : '');
-    setStep('step1', 'searching');
     setStep('step2', 'locked');
     setStep('step3', 'locked');
+    if (!hostSupported()) {
+      stopPolling();
+      $('hostStatus').className = 'muted';
+      $('hostStatus').textContent = t('opt_host_unavailable_status', OS_NAMES[platformOs] || platformOs);
+      setStep('step1', 'active');
+      return;
+    }
+    showSearching();
+    $('hostError').textContent = explain(r ? r.error : '');
+    setStep('step1', 'searching');
     startPolling();
   }
+}
+
+function showInstall() {
+  $('installWin').hidden = platformOs !== 'win';
+  $('installLinux').hidden = platformOs !== 'linux';
+  $('installNone').hidden = hostSupported();
+  if (!hostSupported()) $('installNoneText').textContent = t('opt_host_unavailable_explain', OS_NAMES[platformOs] || platformOs);
 }
 
 // Riga di stato del passo 1 mentre il componente manca: indicatore animato e ora dell'ultimo controllo.
@@ -110,6 +145,27 @@ function stopPolling() {
 }
 
 $('installerLink').href = INSTALLER_URL;
+$('tarballLink').href = TARBALL_URL;
+$('linuxCommand').textContent = LINUX_COMMAND;
+
+let copiedTimer = null;
+$('copyLinuxCommand').addEventListener('click', async () => {
+  const btn = $('copyLinuxCommand');
+  try {
+    await navigator.clipboard.writeText(LINUX_COMMAND);
+  } catch (_) {
+    // Senza accesso agli appunti si seleziona il comando, da copiare con Ctrl+C.
+    getSelection().selectAllChildren($('linuxCommand'));
+    return;
+  }
+  btn.textContent = t('box_copied');
+  btn.classList.add('primary');
+  clearTimeout(copiedTimer);
+  copiedTimer = setTimeout(() => {
+    btn.textContent = t('box_copy');
+    btn.classList.remove('primary');
+  }, 2000);
+});
 
 // ---------- passo 2: modello ----------
 
@@ -232,11 +288,16 @@ chrome.runtime.onMessage.addListener((msg) => {
 
 $('pickFolder').addEventListener('click', async () => {
   $('modelMsg').className = 'muted';
-  $('modelMsg').textContent = t('opt_pick_hint');
+  $('modelMsg').textContent = t(platformOs === 'win' ? 'opt_pick_hint' : 'opt_pick_hint_other');
   const r = await send({ cmd: 'pickFolder' });
   if (!r || !r.ok) {
     $('modelMsg').className = 'err';
     $('modelMsg').textContent = t('opt_error', r ? r.error : '?');
+    return;
+  }
+  if (r.unavailable) {
+    $('modelMsg').className = 'err';
+    $('modelMsg').textContent = t('opt_pick_unavailable');
     return;
   }
   if (!r.path) {
@@ -323,10 +384,10 @@ function renderCuda() {
   if (st.libs.installed) {
     libs.className = 'ok';
     const v = st.libs.versions || {};
-    libs.textContent = t('opt_cuda_libs_ok', v.cublas || '?', v.cudnn || '?');
+    libs.textContent = v.cudnn ? t('opt_cuda_libs_ok', v.cublas || '?', v.cudnn) : t('opt_cuda_libs_ok_cublas', v.cublas || '?');
   } else {
     libs.className = 'muted';
-    libs.textContent = t('opt_cuda_libs_missing', fmtBytes(st.libs.download_size || 0));
+    libs.textContent = t(platformOs === 'linux' ? 'opt_cuda_libs_missing_cublas' : 'opt_cuda_libs_missing', fmtBytes(st.libs.download_size || 0));
   }
   btn.hidden = st.libs.installed && !cudaInstalling;
   btn.disabled = cudaInstalling || !st.driver.usable;

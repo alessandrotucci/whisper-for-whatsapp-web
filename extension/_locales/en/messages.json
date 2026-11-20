@@ -221,6 +221,24 @@
   "opt_autodetect": {
     "message": "This page detects the installation automatically."
   },
+  "opt_host_explain_linux": {
+    "message": "The browser can't run Whisper by itself: it needs a small program on your computer. On Linux you install it from a terminal, for your user only: no root privileges needed. Paste this command:"
+  },
+  "opt_download_tarball": {
+    "message": "Download the .tar.gz"
+  },
+  "opt_linux_browsers": {
+    "message": "Works with Chrome, Chromium, Edge, Brave, Vivaldi, Opera and Firefox installed from your distribution's packages, and with Ubuntu's Firefox snap, which asks for permission the first time. Requires Ubuntu 22.04, Debian 12, Fedora 36 or later. Flatpak browsers or Chromium snap: <a href=\"https://github.com/alessandrotucci/whisper-for-whatsapp-web#linux-browser-flatpak\">manual instructions</a>."
+  },
+  "opt_host_unavailable_status": {
+    "message": "Local component not available on $1"
+  },
+  "opt_host_unavailable_explain": {
+    "message": "The browser can't run Whisper by itself: it needs a small program on your computer. For now it exists for Windows and Linux, not for $1."
+  },
+  "opt_host_unavailable_note": {
+    "message": "On this computer the extension can't transcribe voice messages yet."
+  },
   "opt_smartscreen": {
     "message": "If Windows shows “Windows protected your PC”, click <em>More info</em> and then <em>Run anyway</em>: the installer is not signed yet."
   },
@@ -292,6 +310,12 @@
   },
   "opt_pick_hint": {
     "message": "Pick the folder in the Windows dialog (it may open behind the browser)…"
+  },
+  "opt_pick_hint_other": {
+    "message": "Pick the folder in the dialog that opened (it may open behind the browser)…"
+  },
+  "opt_pick_unavailable": {
+    "message": "The system has no dialog to pick a folder: install zenity or kdialog, or download a model from the list."
   },
   "opt_pick_invalid": {
     "message": "$1 doesn't contain a faster-whisper model (model.bin and config.json are needed)."
@@ -400,6 +424,12 @@
   },
   "opt_cuda_libs_missing": {
     "message": "Using the GPU needs the CUDA libraries (cuBLAS and cuDNN, $1 to download once, from NVIDIA via PyPI)."
+  },
+  "opt_cuda_libs_ok_cublas": {
+    "message": "CUDA libraries installed: cuBLAS $1."
+  },
+  "opt_cuda_libs_missing_cublas": {
+    "message": "Using the GPU needs the CUDA cuBLAS library ($1 to download once, from NVIDIA via PyPI)."
   },
   "opt_cuda_download": {
     "message": "Download the CUDA libraries"
@@ -532,6 +562,9 @@
   },
   "upd_err_host_timeout": {
     "message": "the updated component is not responding"
+  },
+  "upd_err_platform": {
+    "message": "component update not available on this system"
   },
   "upd_err_running": {
     "message": "update already running"
@@ -670,6 +703,12 @@
   },
   "ai_keys_note": {
     "message": "Keys stay on this computer, encrypted with your Windows account, and work in both Chrome and Edge."
+  },
+  "ai_keys_note_keyring": {
+    "message": "Keys stay on this computer, in the system keyring, and work in every browser."
+  },
+  "ai_keys_note_file": {
+    "message": "Keys stay on this computer, in a file only your user can read, and work in every browser."
   },
   "ai_model": {
     "message": "Model"

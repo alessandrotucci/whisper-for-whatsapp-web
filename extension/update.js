@@ -7,8 +7,9 @@
 // si confrontano con la versione del manifest e con quella dichiarata dal componente
 // nell'ultimo ping. Il risultato sta in chrome.storage.local, chiave "updateInfo".
 //
-// Aggiornamento: prima il componente (l'installer silenzioso lo sostituisce; il ping
-// successivo deve riportare la versione attesa), poi l'estensione (il componente
+// Aggiornamento: prima il componente (su Windows l'installer silenzioso lo sostituisce,
+// su Linux il tarball con il suo install.sh; il ping successivo deve riportare la
+// versione attesa), poi l'estensione (il componente
 // scrive lo zip nella cartella e l'estensione si ricarica). Un componente più vecchio
 // di HOST_SELF_UPDATE non conosce i comandi di aggiornamento: in quel caso l'installer
 // si scarica nel browser e l'utente lo apre come la prima volta.
@@ -16,7 +17,8 @@
 const REPO = 'alessandrotucci/whisper-for-whatsapp-web';
 const API = 'https://api.github.com/repos/' + REPO;
 const DOWNLOAD = 'https://github.com/' + REPO + '/releases/download/';
-const INSTALLER_ASSET = 'WhisperForWhatsAppWeb-Setup.exe';
+// Pacchetto del componente per sistema operativo (chrome.runtime.getPlatformInfo().os).
+const HOST_ASSETS = { win: 'WhisperForWhatsAppWeb-Setup.exe', linux: 'whisper-for-whatsapp-web-linux-x86_64.tar.gz' };
 const EXTENSION_ASSET = 'whisper-for-whatsapp-web-extension.zip';
 const HOST_SELF_UPDATE = '1.3.0';
 const CHECK_EVERY_MIN = 24 * 60;
@@ -84,8 +86,9 @@ async function checkForUpdates() {
       const pong = await hostRequest({ type: 'ping' }, ['pong']);
       await chrome.storage.local.set({ hostVersion: pong.host_version });
       scheduleIdleDisconnect();
-    } catch (_) {
-      // componente non raggiungibile: resta l'ultima versione nota
+    } catch (e) {
+      // Componente disinstallato: la versione si cancella. Non raggiungibile per altri motivi: resta l'ultima nota.
+      await forgetHostVersionIfMissing(e.message);
     }
   }
   await chrome.storage.local.set({ updateLatest: latest });
@@ -136,7 +139,9 @@ async function applyUpdate() {
     if (hostBusy() || fetching) progress('waiting_queue');
     await waitIdleQueue();
     if (info.needHost) {
-      const url = DOWNLOAD + info.tag + '/' + INSTALLER_ASSET;
+      const asset = HOST_ASSETS[(await chrome.runtime.getPlatformInfo()).os];
+      if (!asset) throw new Error(chrome.i18n.getMessage('upd_err_platform'));
+      const url = DOWNLOAD + info.tag + '/' + asset;
       if (!info.hostSelfUpdate) {
         await chrome.tabs.create({ url });
         progress('manual_host');

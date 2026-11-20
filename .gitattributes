@@ -1,0 +1,2 @@
+# Gli script per Linux restano con fine riga LF anche in un checkout Windows.
+*.sh text eol=lf

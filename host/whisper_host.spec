@@ -1,8 +1,10 @@
-# Spec di PyInstaller: whisper_host.exe in modalità cartella (onedir).
+# Spec di PyInstaller: whisper_host (whisper_host.exe su Windows) in modalità cartella (onedir).
 # La modalità cartella evita l'estrazione in una cartella temporanea a ogni avvio
 # dell'host, che con ctranslate2 e onnxruntime richiederebbe secondi.
 #
 # Uso: pyinstaller --noconfirm --distpath build/dist --workpath build/work host/whisper_host.spec
+
+import sys
 
 from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
 
@@ -14,7 +16,8 @@ a = Analysis(
     pathex=[],
     binaries=binaries,
     datas=datas,
-    hiddenimports=["ai_review", "huggingface_hub", "tokenizers", "updater", "cuda_libs", "multiprocessing.connection"],
+    hiddenimports=["ai_review", "huggingface_hub", "tokenizers", "updater", "cuda_libs", "multiprocessing.connection"]
+    + ([] if sys.platform == "win32" else ["posix_support", "secret_service", "jeepney", "jeepney.io.blocking"]),
     excludes=["tkinter", "matplotlib", "IPython", "pytest", "torch"],
     noarchive=False,
 )

@@ -2,13 +2,19 @@
 
 Si scarica solo da RELEASE_PREFIX, cioè dagli asset delle release del repository.
 
-Componente locale: l'installer viene scaricato in una cartella temporanea e avviato
-in modalità silenziosa, staccato da questo processo. L'installer termina tutti i
-whisper_host.exe prima di copiare i file, questo compreso; il browser avvia la
-versione nuova alla richiesta successiva.
+Componente locale su Windows: l'installer viene scaricato in una cartella
+temporanea e avviato in modalità silenziosa, staccato da questo processo.
+L'installer termina tutti i whisper_host.exe prima di copiare i file, questo
+compreso; il browser avvia la versione nuova alla richiesta successiva.
 
-Estensione: le cartelle da aggiornare sono quelle da cui Chrome ed Edge caricano
-l'estensione decompressa (campo "path" nelle preferenze di ogni profilo, con
+Componente locale su Linux: si scaricano il tarball e SHA256SUMS della stessa
+release, si verifica l'impronta, si estrae il tarball e si avvia staccato il suo
+install.sh con --update, che alla fine cancella la cartella estratta (WWT_CLEAN_AFTER). Lo script copia la versione nuova accanto a quella in uso e
+sposta il link "current" a cui puntano i manifest: i processi in corso continuano con
+i file vecchi, il browser avvia la versione nuova alla richiesta successiva.
+
+Estensione: le cartelle da aggiornare sono quelle da cui i browser Chromium
+caricano l'estensione decompressa (campo "path" nelle preferenze di ogni profilo, con
 location 4) e che contengono release.json, il marcatore presente solo negli zip
 delle release. Una cartella senza marcatore, come quella del repository, non si
 tocca mai. Lo zip sostituisce i file della cartella e rimuove quelli elencati nel
@@ -16,10 +22,13 @@ release.json precedente che la versione nuova non ha più.
 """
 
 import glob
+import hashlib
 import json
 import os
 import shutil
 import subprocess
+import sys
+import tarfile
 import tempfile
 import time
 import urllib.request
@@ -30,10 +39,25 @@ USER_AGENT = "whisper-for-whatsapp-web-updater"
 MARKER = "release.json"
 UNPACKED_LOCATION = 4
 
-BROWSER_DATA_DIRS = [
-    ("chrome", os.path.join("Google", "Chrome", "User Data")),
-    ("edge", os.path.join("Microsoft", "Edge", "User Data")),
-]
+# Cartelle dati dei browser Chromium: sotto %LOCALAPPDATA% su Windows, sotto
+# XDG_CONFIG_HOME (~/.config) su Linux.
+if os.name == "nt":
+    BROWSER_DATA_DIRS = [
+        ("chrome", os.path.join("Google", "Chrome", "User Data")),
+        ("edge", os.path.join("Microsoft", "Edge", "User Data")),
+    ]
+else:
+    BROWSER_DATA_DIRS = [
+        ("chrome", "google-chrome"),
+        ("chromium", "chromium"),
+        ("edge", "microsoft-edge"),
+        ("brave", os.path.join("BraveSoftware", "Brave-Browser")),
+        ("vivaldi", "vivaldi"),
+        ("opera", "opera"),
+    ]
+
+LINUX_PACKAGE_DIR = "whisper-for-whatsapp-web"
+CHECKSUMS = "SHA256SUMS"
 
 
 def check_url(url):
@@ -66,9 +90,27 @@ def download(url, dest, on_progress=None):
 
 
 def work_dir():
-    path = os.path.join(tempfile.gettempdir(), "whisper-for-whatsapp-web-update")
-    os.makedirs(path, exist_ok=True)
+    """Cartella di lavoro: la temporanea di sistema su Windows, la cache dell'utente altrove.
+
+    Fuori da Windows la cartella temporanea è condivisa tra utenti e un nome fisso
+    lì si potrebbe occupare prima del componente.
+    """
+    if os.name == "nt":
+        path = os.path.join(tempfile.gettempdir(), "whisper-for-whatsapp-web-update")
+    else:
+        cache = os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache")
+        path = os.path.join(cache, "whisper-for-whatsapp-web-update")
+    os.makedirs(path, mode=0o700, exist_ok=True)
     return path
+
+
+def start_update(url, on_progress, data_dir):
+    """Avvia l'aggiornamento del componente adatto al sistema; restituisce il pid."""
+    if os.name == "nt":
+        return start_installer(url, on_progress)
+    if sys.platform.startswith("linux"):
+        return start_tarball(url, on_progress, data_dir)
+    raise RuntimeError("aggiornamento del componente non previsto su %s" % sys.platform)
 
 
 def start_installer(url, on_progress=None):
@@ -86,12 +128,60 @@ def start_installer(url, on_progress=None):
     return proc.pid
 
 
+def sha256_of(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def expected_sha256(sums_path, name):
+    """Impronta di name nel file SHA256SUMS (righe "impronta  nome", formato di sha256sum)."""
+    with open(sums_path, encoding="utf-8") as f:
+        for line in f:
+            parts = line.split()
+            if len(parts) == 2 and parts[1].lstrip("*") == name:
+                return parts[0].lower()
+    raise RuntimeError("%s non è elencato in %s" % (name, CHECKSUMS))
+
+
+def start_tarball(url, on_progress, data_dir):
+    """Scarica e verifica il tarball, avvia staccato il suo install.sh --update; restituisce il pid."""
+    import posix_support
+
+    work = work_dir()
+    name = url.rsplit("/", 1)[1]
+    tgz = download(url, os.path.join(work, name), on_progress)
+    sums = download(url.rsplit("/", 1)[0] + "/" + CHECKSUMS, os.path.join(work, CHECKSUMS))
+    actual = sha256_of(tgz)
+    if actual != expected_sha256(sums, name):
+        raise RuntimeError("impronta di %s diversa da quella della release (%s)" % (name, actual[:16]))
+    target = os.path.join(work, "unpacked")
+    shutil.rmtree(target, ignore_errors=True)
+    with tarfile.open(tgz) as t:
+        t.extractall(target, filter="data")
+    os.remove(tgz)
+    script = os.path.join(target, LINUX_PACKAGE_DIR, "install.sh")
+    if not os.path.isfile(script):
+        raise RuntimeError("install.sh mancante nel tarball")
+    os.makedirs(data_dir, exist_ok=True)
+    with open(os.path.join(data_dir, "install.log"), "ab") as log:
+        proc = subprocess.Popen(["/bin/sh", script, "--update"], stdin=subprocess.DEVNULL, stdout=log,
+                                stderr=subprocess.STDOUT, close_fds=True, start_new_session=True,
+                                cwd=target, env=dict(posix_support.clean_env(), WWT_CLEAN_AFTER=target))
+    return proc.pid
+
+
 def extension_dirs(ext_id):
-    """Cartelle da cui i profili di Chrome ed Edge caricano l'estensione decompressa.
+    """Cartelle da cui i profili dei browser Chromium caricano l'estensione decompressa.
 
     Restituisce [(browser, profilo, cartella, ha_marcatore)], senza duplicati di cartella.
     """
-    base = os.environ.get("LOCALAPPDATA") or ""
+    if os.name == "nt":
+        base = os.environ.get("LOCALAPPDATA") or ""
+    else:
+        base = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
     seen = {}
     for browser, rel in BROWSER_DATA_DIRS:
         root = os.path.join(base, rel)

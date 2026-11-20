@@ -1,24 +1,32 @@
 """Esecuzione su GPU NVIDIA: driver, librerie CUDA, attivazione.
 
-Per girare su GPU ctranslate2 ha bisogno di tre cose oltre a sé stesso:
+Per girare su GPU ctranslate2 ha bisogno, oltre a sé stesso, del driver NVIDIA con
+supporto per CUDA 12 e di cuBLAS 12, che carica per nome quando un modello gira su
+GPU.
 
-il driver NVIDIA, cioè nvcuda.dll di sistema, con supporto per CUDA 12;
-cuBLAS 12 (cublas64_12.dll e cublasLt64_12.dll), che ctranslate2 carica per nome
-quando un modello gira su GPU;
-le sotto-librerie di cuDNN 9 (cudnn_*64_9.dll), della stessa versione di
-cudnn64_9.dll distribuito con ctranslate2: cuDNN rifiuta sotto-librerie di
-versione diversa dal caricatore.
+Su Windows: il driver è nvcuda.dll di sistema; cuBLAS sono cublas64_12.dll e
+cublasLt64_12.dll; servono anche le sotto-librerie di cuDNN 9 (cudnn_*64_9.dll),
+della stessa versione di cudnn64_9.dll distribuito con ctranslate2, perché cuDNN
+rifiuta sotto-librerie di versione diversa dal caricatore.
 
-Le librerie non sono nell'installer: si scaricano su richiesta dai wheel NVIDIA
-pubblicati su PyPI, con indirizzo, dimensione e SHA-256 fissati in WHEELS, e se ne
-estraggono le DLL nella cartella "cuda" dei dati del componente. Un file
-installed.json, scritto per ultimo, segna l'installazione completa.
+Su Linux: il driver è libcuda.so.1 di sistema (in WSL2 lo fornisce il driver di
+Windows); cuBLAS sono libcublas.so.12 e libcublasLt.so.12. ctranslate2 per Linux
+non carica cuDNN.
+
+Le librerie non sono nel pacchetto: si scaricano su richiesta dai wheel NVIDIA
+pubblicati su PyPI, con indirizzo, dimensione e SHA-256 fissati in WHEELS per ogni
+sistema, e se ne estraggono le librerie nella cartella "cuda" dei dati del
+componente. Un file installed.json, scritto per ultimo, segna l'installazione
+completa.
 
 Il driver non si scarica: è un driver di sistema, dipende dalla scheda e richiede
 privilegi di amministratore. Senza driver la GPU non è utilizzabile.
 
-activate() rende le DLL raggiungibili da ctranslate2 (os.add_dll_directory e PATH) e
-va chiamata prima di creare un modello su GPU.
+activate() rende le librerie raggiungibili da ctranslate2 e va chiamata prima di
+creare un modello su GPU. Su Windows aggiunge la cartella con os.add_dll_directory
+e a PATH. Su Linux LD_LIBRARY_PATH si legge solo all'avvio del processo: le librerie
+si caricano qui con RTLD_GLOBAL, e il caricamento per nome di ctranslate2 trova
+quelle già in memoria con lo stesso soname.
 """
 
 import ctypes
@@ -26,13 +34,14 @@ import hashlib
 import json
 import os
 import shutil
+import sys
 import urllib.request
 import zipfile
 
 CUDNN_VERSION = "9.10.2.21"
 CUBLAS_VERSION = "12.8.4.1"
 
-WHEELS = [
+WINDOWS_WHEELS = [
     {
         "name": "cublas",
         "version": CUBLAS_VERSION,
@@ -53,6 +62,24 @@ WHEELS = [
     },
 ]
 
+LINUX_WHEELS = [
+    {
+        "name": "cublas",
+        "version": CUBLAS_VERSION,
+        "url": "https://files.pythonhosted.org/packages/dc/61/e24b560ab2e2eaeb3c839129175fb330dfcfc29e5203196e5541a4c44682/"
+               "nvidia_cublas_cu12-12.8.4.1-py3-none-manylinux_2_27_x86_64.whl",
+        "size": 594346921,
+        "sha256": "8ac4e771d5a348c551b2a426eda6193c19aa630236b418086020df5ba9667142",
+        # Ordine di caricamento in activate(): libcublas dipende da libcublasLt.
+        "files": ["libcublasLt.so.12", "libcublas.so.12"],
+    },
+]
+
+LINUX = sys.platform.startswith("linux")
+WHEELS = LINUX_WHEELS if LINUX else WINDOWS_WHEELS
+# Cartella delle librerie nel wheel ed estensione dei file da estrarre.
+LIB_DIR, LIB_EXT = ("lib", ".so.12") if LINUX else ("bin", ".dll")
+
 DOWNLOAD_SIZE = sum(w["size"] for w in WHEELS)
 
 # cuDriverGetVersion restituisce 1000 * major + 10 * minor: 12000 è CUDA 12.0.
@@ -63,6 +90,7 @@ USER_AGENT = "whisper-for-whatsapp-web-cuda"
 
 _driver_cache = None
 _dll_dir_handle = None
+_preloaded = []
 
 
 def cuda_dir(data_dir):
@@ -75,11 +103,11 @@ def driver_info():
     if _driver_cache is not None:
         return _driver_cache
     info = {"present": False, "usable": False}
-    if os.name != "nt":
+    if os.name != "nt" and not LINUX:
         _driver_cache = info
         return info
     try:
-        nv = ctypes.WinDLL("nvcuda.dll")
+        nv = ctypes.WinDLL("nvcuda.dll") if os.name == "nt" else ctypes.CDLL("libcuda.so.1")
     except OSError:
         _driver_cache = info
         return info
@@ -164,11 +192,17 @@ def status(data_dir):
 
 
 def activate(data_dir):
-    """Rende le DLL della cartella cuda raggiungibili dal caricamento per nome di ctranslate2."""
+    """Rende le librerie della cartella cuda raggiungibili dal caricamento per nome di ctranslate2."""
     global _dll_dir_handle
     d = cuda_dir(data_dir)
     if not os.path.isdir(d):
         return False
+    if LINUX:
+        if not _preloaded:
+            for wheel in WHEELS:
+                for name in wheel["files"]:
+                    _preloaded.append(ctypes.CDLL(os.path.join(d, name), mode=ctypes.RTLD_GLOBAL))
+        return True
     if _dll_dir_handle is None and hasattr(os, "add_dll_directory"):
         _dll_dir_handle = os.add_dll_directory(d)
     path = os.environ.get("PATH", "")
@@ -196,12 +230,12 @@ def _download(wheel, dest, on_progress, base):
 
 
 def _extract(wheel, whl_path, target):
-    """Estrae le DLL della cartella bin del wheel in target; restituisce i nomi estratti."""
+    """Estrae le librerie del wheel (bin/*.dll, lib/*.so.12) in target; restituisce i nomi estratti."""
     names = []
     with zipfile.ZipFile(whl_path) as z:
         for member in z.infolist():
             parts = member.filename.split("/")
-            if len(parts) < 2 or parts[-2] != "bin" or not parts[-1].lower().endswith(".dll"):
+            if len(parts) < 2 or parts[-2] != LIB_DIR or not parts[-1].lower().endswith(LIB_EXT):
                 continue
             name = parts[-1]
             if wheel["files"] is not None and name not in wheel["files"]:
@@ -212,7 +246,7 @@ def _extract(wheel, whl_path, target):
     if wheel["files"] is not None and sorted(names) != sorted(wheel["files"]):
         raise RuntimeError("file mancanti nel wheel %s" % wheel["name"])
     if not names:
-        raise RuntimeError("nessuna DLL nel wheel %s" % wheel["name"])
+        raise RuntimeError("nessuna libreria nel wheel %s" % wheel["name"])
     return names
 
 

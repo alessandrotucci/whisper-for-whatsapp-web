@@ -29,7 +29,7 @@ Solo la revisione con l'IA, facoltativa, manda il testo trascritto al fornitore 
 - Modelli Whisper a scelta (large-v3 predefinito), scaricati dalla pagina dell'estensione o già
   presenti nella cache di faster-whisper.
 
-Interfaccia in italiano e in inglese, secondo la lingua del browser. Solo Windows, per ora.
+Interfaccia in italiano e in inglese, secondo la lingua del browser. Windows e Linux (x86_64).
 Progetto personale, non affiliato a WhatsApp o Meta.
 
 ## Installazione
@@ -39,12 +39,63 @@ Progetto personale, non affiliato a WhatsApp o Meta.
 2. Apri `chrome://extensions` (o `edge://extensions`), attiva **Modalità sviluppatore**, premi
    **Carica estensione non pacchettizzata** e scegli la cartella.
 3. Si apre la pagina dell'estensione, che guida il resto:
-   - **Componente locale**: scarica `WhisperForWhatsAppWeb-Setup.exe` e installalo (per il solo utente,
-     senza privilegi di amministratore). L'installer non è firmato: se Windows mostra «Windows ha
-     protetto il PC», premi *Ulteriori informazioni* → *Esegui comunque*.
+   - **Componente locale**, su Windows: scarica `WhisperForWhatsAppWeb-Setup.exe` e installalo (per il
+     solo utente, senza privilegi di amministratore). L'installer non è firmato: se Windows mostra
+     «Windows ha protetto il PC», premi *Ulteriori informazioni* → *Esegui comunque*.
+   - **Componente locale**, su Linux: la pagina mostra un comando da incollare in un terminale, che
+     scarica `whisper-for-whatsapp-web-linux-x86_64.tar.gz` e lancia il suo `install.sh` (per il solo
+     utente, senza root). Serve glibc 2.35 o successiva: Ubuntu 22.04, Debian 12, Fedora 36 o più
+     recenti.
    - **Modello**: se hai già scaricato un modello con faster-whisper viene trovato da solo; altrimenti
      premi *Scarica* (large-v3 ≈ 3 GB).
 4. Ricarica WhatsApp Web.
+
+### Linux
+
+`install.sh` copia il programma in `~/.local/lib/whisper-for-whatsapp-web/versions/<versione>` e scrive
+i manifest di native messaging per i browser di cui trova la cartella dei dati: Chrome, Chromium, Edge,
+Brave, Vivaldi, Opera (in `~/.config/<browser>/NativeMessagingHosts`) e Firefox
+(`~/.mozilla/native-messaging-hosts`). Firefox snap di Ubuntu passa dal portale WebExtensions del
+sistema, che al primo uso chiede il permesso. I dati stanno in `~/.local/share/WhisperForWhatsAppWeb`,
+le chiavi delle IA nel portachiavi del sistema (GNOME Keyring, KWallet) o, senza portachiavi, in un file
+leggibile solo dall'utente. Il componente si aggiorna da solo dalla pagina dell'estensione.
+
+Per disinstallarlo: `~/.local/lib/whisper-for-whatsapp-web/current/uninstall.sh` (con `--keep-data` i
+dati restano). I modelli stanno nella cache di Hugging Face (`~/.cache/huggingface`) e restano comunque.
+
+### Linux: browser Flatpak
+
+Un browser installato come Flatpak (per esempio da Flathub) non legge i manifest del sistema e non può
+avviare programmi fuori dalla sua sandbox. Si può fare a mano, dandogli il permesso di uscire dalla
+sandbox: con quel permesso il browser, e qualunque cosa giri dentro di esso, può eseguire programmi sul
+sistema come se non fosse confinato. Chromium snap non ha una via equivalente.
+
+Dopo aver installato il componente con `install.sh`, per un browser Chromium (`APP` e `DIR` per
+Chrome; gli altri nella tabella):
+
+```bash
+APP=com.google.Chrome; DIR=google-chrome
+flatpak override --user --talk-name=org.freedesktop.Flatpak "$APP"
+mkdir -p ~/.var/app/$APP/data ~/.var/app/$APP/config/$DIR/NativeMessagingHosts
+printf '#!/bin/sh\nexec flatpak-spawn --host --env=DISPLAY="$DISPLAY" --env=WAYLAND_DISPLAY="$WAYLAND_DISPLAY" "$HOME/.local/lib/whisper-for-whatsapp-web/current/whisper_host/whisper_host" "$@"\n' > ~/.var/app/$APP/data/whisper-host.sh
+chmod 755 ~/.var/app/$APP/data/whisper-host.sh
+sed "s|\"path\": \"[^\"]*\"|\"path\": \"$HOME/.var/app/$APP/data/whisper-host.sh\"|" \
+  ~/.config/google-chrome/NativeMessagingHosts/local.wa_whisper.host.json \
+  > ~/.var/app/$APP/config/$DIR/NativeMessagingHosts/local.wa_whisper.host.json
+```
+
+| Browser | `APP` | `DIR` |
+|---|---|---|
+| Chrome | `com.google.Chrome` | `google-chrome` |
+| Chromium | `org.chromium.Chromium` | `chromium` |
+| Edge | `com.microsoft.Edge` | `microsoft-edge` |
+| Brave | `com.brave.Browser` | `BraveSoftware/Brave-Browser` |
+
+Se `~/.config/google-chrome/NativeMessagingHosts/local.wa_whisper.host.json` non esiste, lo si crea
+rilanciando `install.sh` dopo `mkdir -p ~/.config/google-chrome`. Per Firefox da Flathub
+(`org.mozilla.firefox`) il manifest va in `~/.var/app/org.mozilla.firefox/.mozilla/native-messaging-hosts/`
+e parte da `~/.mozilla/native-messaging-hosts/local.wa_whisper.host.json`. Riavviare il browser dopo
+le modifiche. Per togliere il permesso: `flatpak override --user --no-talk-name=org.freedesktop.Flatpak "$APP"`.
 
 ## Come funziona
 
@@ -56,7 +107,7 @@ WhatsApp Web ─ page.js (mondo MAIN): moduli interni di WhatsApp, trova i vocal
    background.js (service worker): audio dalla scheda, archivio delle trascrizioni
       │ native messaging (stdin/stdout)
    whisper_host.exe (relay, uno per browser): configurazione, modelli, aggiornamenti
-      │ named pipe con chiave di autenticazione
+      │ named pipe (Windows) o socket Unix (Linux) con chiave di autenticazione
    whisper_host.exe --engine (motore, uno per utente): coda unica, faster-whisper, modello in memoria
 ```
 
@@ -131,8 +182,8 @@ in `extension/page.js` e in `placeBox` di `extension/content.js`.
 ```
 extension/   estensione MV3 (caricabile così com'è)
 host/        whisper_host.py, spec di PyInstaller, requisiti di build, install.ps1 per lo sviluppo
-installer/   script di Inno Setup
-tools/       generatori: icone e cataloghi delle traduzioni
+installer/   script di Inno Setup; linux/ con install.sh e uninstall.sh
+tools/       generatori: icone, cataloghi delle traduzioni, pacchetti dell'estensione e tarball per Linux
 .github/     build e release su tag v*
 ```
 
@@ -150,6 +201,11 @@ cd host; ..\build\.venv\Scripts\python -m PyInstaller --noconfirm --distpath ..\
 & "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" /DAppVersion=1.1.0 installer\setup.iss
 ```
 
+Build per Linux (su Linux, Python 3.12 con libpython condivisa, come `actions/setup-python`): stessi
+comandi di PyInstaller, poi `python tools/package_linux.py`, che scrive
+`build/installer/whisper-for-whatsapp-web-linux-x86_64.tar.gz`. La glibc della macchina di build è la
+minima richiesta: la release si costruisce su Ubuntu 22.04.
+
 Prove dell'host senza browser: `whisper_host.exe --info`, `--selftest`, `--file vocale.ogg --lang pt`.
 
 Per far girare l'host da sorgente con un proprio Python, `host\install.ps1 -Python <python.exe> -Model large-v3`
@@ -158,7 +214,8 @@ dal terminale di un'app MSIX: Windows gli darebbe una copia privata di AppData e
 
 L'ID dell'estensione (`mmfdonlfmjnahpaebjhjlgkpplkfplop`) è fissato dalla chiave pubblica in
 `manifest.json`; l'installer lo elenca in `allowed_origins`. Una pubblicazione su uno store, con un
-ID diverso, va aggiunta in `ExtOrigins` di `installer/setup.iss`.
+ID diverso, va aggiunta in `ExtOrigins` di `installer/setup.iss` e in `CHROMIUM_ORIGINS` di
+`installer/linux/install.sh` (`tools/release_check.py` controlla che coincidano).
 
 ## Licenza
 

@@ -1,9 +1,12 @@
 """Revisione e traduzione delle trascrizioni con fornitori di IA esterni.
 
 Gli account collegati stanno in ai.json nella cartella dati, in ordine di
-preferenza. La chiave di ogni account è cifrata con DPAPI per l'utente di
-Windows corrente e non esce mai dal componente: verso il browser vanno solo
-fornitore, modello ed esito dell'ultimo uso.
+preferenza. La chiave di ogni account non esce mai dal componente: verso il
+browser vanno solo fornitore, modello ed esito dell'ultimo uso. Su Windows è
+cifrata con DPAPI per l'utente corrente ("dpapi:"); su Linux sta nel portachiavi
+del sistema ("secret:" con l'id dell'elemento, modulo secret_service) e, se il
+portachiavi non c'è, in ai.json ("file:"), che fuori da Windows ha permessi 0600.
+"plain:" è la forma di "file:" scritta dalle versioni precedenti e si legge ancora.
 
 Per ogni vocale si fa una sola richiesta, al primo account dell'elenco; se
 quello fallisce o supera il tempo massimo si passa al successivo. La richiesta
@@ -26,6 +29,7 @@ import json
 import os
 import re
 import secrets
+import sys
 import threading
 import time
 import urllib.error
@@ -148,23 +152,74 @@ def _dpapi(data, protect):
         kernel32.LocalFree(dst.pbData)
 
 
+def key_store():
+    """Dove finiscono le chiavi nuove: "dpapi", "keyring" (portachiavi) o "file"."""
+    if os.name == "nt":
+        return "dpapi"
+    if sys.platform.startswith("linux"):
+        import secret_service
+
+        if secret_service.available():
+            return "keyring"
+    return "file"
+
+
 def seal(secret):
     if not secret:
         return ""
     raw = secret.encode("utf-8")
     if os.name == "nt":
         return "dpapi:" + base64.b64encode(_dpapi(raw, True)).decode("ascii")
-    return "plain:" + base64.b64encode(raw).decode("ascii")
+    if sys.platform.startswith("linux"):
+        import secret_service
+
+        try:
+            return "secret:" + secret_service.store(secret)
+        except secret_service.Unavailable:
+            pass
+    return "file:" + base64.b64encode(raw).decode("ascii")
 
 
 def unseal(sealed):
     if not sealed:
         return ""
     kind, _, data = sealed.partition(":")
+    if kind == "secret":
+        import secret_service
+
+        try:
+            return secret_service.load(data)
+        except (secret_service.Unavailable, KeyError) as e:
+            raise AIError("key", "portachiavi: %s" % e) from e
     raw = base64.b64decode(data)
     if kind == "dpapi":
         return _dpapi(raw, False).decode("utf-8")
     return raw.decode("utf-8")
+
+
+def forget(sealed):
+    """Cancella dal portachiavi la chiave di un account rimosso; le altre forme stanno solo in ai.json."""
+    kind, _, data = (sealed or "").partition(":")
+    if kind != "secret":
+        return
+    import secret_service
+
+    try:
+        secret_service.delete(data)
+    except secret_service.Unavailable:
+        pass
+
+
+def forget_all(store):
+    """Cancella dal portachiavi tutte le chiavi del componente, anche quelle senza account."""
+    if not sys.platform.startswith("linux"):
+        return 0
+    import secret_service
+
+    try:
+        return secret_service.delete_all()
+    except secret_service.Unavailable:
+        return 0
 
 
 # --- archivio degli account -----------------------------------------------------
@@ -191,7 +246,10 @@ class Store:
         with self.lock:
             os.makedirs(os.path.dirname(self.path), exist_ok=True)
             tmp = self.path + ".tmp"
-            with open(tmp, "w", encoding="utf-8") as f:
+            fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_BINARY", 0), 0o600)
+            if os.name != "nt":
+                os.fchmod(fd, 0o600)
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             os.replace(tmp, self.path)
 
@@ -231,6 +289,7 @@ def status(store):
         "providers": public_providers(),
         "accounts": [public_account(a) for a in data["accounts"]],
         "settings": data["settings"],
+        "key_store": key_store(),
     }
 
 
@@ -810,7 +869,15 @@ def update_account(store, account_id, model=None, base_url=None):
 
 
 def remove_account(store, account_id):
-    store.update(lambda data: data.__setitem__("accounts", [a for a in data["accounts"] if a["id"] != account_id]))
+    removed = []
+
+    def fn(data):
+        removed.extend(a for a in data["accounts"] if a["id"] == account_id)
+        data["accounts"] = [a for a in data["accounts"] if a["id"] != account_id]
+
+    store.update(fn)
+    for a in removed:
+        forget(a.get("key"))
 
 
 def move_account(store, account_id, delta):
