@@ -97,10 +97,13 @@ jobs:
 
       - name: Prova dell'installazione
         run: |
+          # Utente simulato in una home vuota: anche le cartelle XDG del runner restano fuori.
           export HOME="$RUNNER_TEMP/home"
+          unset XDG_CONFIG_HOME XDG_DATA_HOME XDG_CACHE_HOME
           mkdir -p "$HOME/.config/google-chrome" "$RUNNER_TEMP/pkg"
           tar xzf build/installer/whisper-for-whatsapp-web-linux-x86_64.tar.gz -C "$RUNNER_TEMP/pkg"
           "$RUNNER_TEMP/pkg/whisper-for-whatsapp-web/install.sh"
+          cat "$HOME/.local/lib/whisper-for-whatsapp-web/manifests.txt"
           manifest="$HOME/.config/google-chrome/NativeMessagingHosts/local.wa_whisper.host.json"
           exe=$(python -c "import json,sys;print(json.load(open(sys.argv[1]))['path'])" "$manifest")
           "$exe" --info
