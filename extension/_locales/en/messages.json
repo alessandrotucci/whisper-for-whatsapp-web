@@ -669,7 +669,7 @@
     "message": "The last written messages before the voice message go to the AI with the transcription: names and terms get fixed better, but the provider receives more of the conversation."
   },
   "ai_keys_note": {
-    "message": "Keys stay on this computer, encrypted with your Windows account, and work in both Chrome and Edge."
+    "message": "Keys stay on this computer, encrypted with your Windows account, and work in every browser."
   },
   "ai_model": {
     "message": "Model"
@@ -753,7 +753,7 @@
     "message": "How to get the key"
   },
   "ai_guide_minutes": {
-    "message": "about $1 minutes"
+    "message": "about $1 min"
   },
   "ai_guide_card": {
     "message": "a credit card is needed"

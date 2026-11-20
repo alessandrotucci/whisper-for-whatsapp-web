@@ -669,7 +669,7 @@
     "message": "Insieme alla trascrizione vanno all'IA gli ultimi messaggi scritti che precedono il vocale: nomi e termini si correggono meglio, ma il fornitore riceve più testo della conversazione."
   },
   "ai_keys_note": {
-    "message": "Le chiavi restano su questo computer, cifrate con l'account di Windows, e valgono sia in Chrome sia in Edge."
+    "message": "Le chiavi restano su questo computer, cifrate con l'account di Windows, e valgono per tutti i browser."
   },
   "ai_model": {
     "message": "Modello"
@@ -753,7 +753,7 @@
     "message": "Come ottenere la chiave"
   },
   "ai_guide_minutes": {
-    "message": "circa $1 minuti"
+    "message": "circa $1 min"
   },
   "ai_guide_card": {
     "message": "serve una carta di credito"
