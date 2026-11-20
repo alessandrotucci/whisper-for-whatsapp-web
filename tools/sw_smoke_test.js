@@ -16,6 +16,7 @@ function makeChrome(preset) {
   const session = {};
   const listeners = { message: [], installed: [], alarm: [], changed: [], native: [], disconnect: [] };
   const posted = [];
+  const toPages = [];
   const ev = (name) => ({ addListener: (fn) => listeners[name].push(fn) });
   const store = (obj) => ({
     get: async (keys) => {
@@ -37,7 +38,7 @@ function makeChrome(preset) {
       getManifest: () => JSON.parse(fs.readFileSync(path.join(extDir, 'manifest.json'), 'utf8')),
       id: 'smoke-test',
       getPlatformInfo: async () => ({ os: 'win' }),
-      sendMessage: async () => {},
+      sendMessage: async (m) => { toPages.push(m); },
       lastError: null,
       connectNative: () => ({ onMessage: ev('native'), onDisconnect: ev('disconnect'), postMessage: (m) => posted.push(m), disconnect() {} }),
       openOptionsPage() {},
@@ -53,11 +54,11 @@ function makeChrome(preset) {
       create: async () => {},
     },
   };
-  return { chrome, listeners, posted };
+  return { chrome, listeners, posted, toPages };
 }
 
 function load(preset) {
-  const { chrome, listeners, posted } = makeChrome(preset);
+  const { chrome, listeners, posted, toPages } = makeChrome(preset);
   const ctx = { chrome, console, setTimeout, clearTimeout, setInterval, clearInterval, atob, URL };
   ctx.fetch = async () => { throw new Error('rete non disponibile nella prova'); };
   ctx.self = ctx;
@@ -81,7 +82,7 @@ function load(preset) {
     fns.forEach((fn) => fn({}));
     chrome.runtime.lastError = null;
   };
-  return { send, fromHost, dropHost, posted };
+  return { send, fromHost, dropHost, posted, toPages };
 }
 
 const tick = (ms = 20) => new Promise((r) => setTimeout(r, ms));
@@ -207,6 +208,7 @@ function check(name, cond, detail) {
     const after = await h.send({ cmd: 'updateInfo' });
     check(kept ? 'componente uscito: la versione salvata resta' : 'componente disinstallato: la versione salvata si cancella',
       pr && pr.ok === false && after.current.host === (kept ? '1.7.1' : null), { pr, current: after.current });
+    check('porta chiusa: le pagine lo sanno (' + reason + ')', h.toPages.some((m) => m.cmd === 'hostDisconnected'), h.toPages);
   }
 
   console.log(failures ? failures + ' controlli falliti' : 'service worker: tutti i controlli passati');

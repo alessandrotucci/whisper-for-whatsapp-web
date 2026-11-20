@@ -144,6 +144,18 @@ function stopPolling() {
   pollTimer = null;
 }
 
+// Con il componente già trovato basta un ping: solo se fallisce si rifà il controllo completo,
+// che riporta la pagina al passo 1.
+async function recheckHost() {
+  if (!hostOk) return checkHost();
+  const r = await send({ cmd: 'ping' });
+  if (!(r && r.ok)) await checkHost();
+}
+
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.cmd === 'hostDisconnected') setTimeout(recheckHost, 1500);
+});
+
 $('installerLink').href = INSTALLER_URL;
 $('tarballLink').href = TARBALL_URL;
 $('linuxCommand').textContent = LINUX_COMMAND;
@@ -528,7 +540,7 @@ $('checkUpdates').addEventListener('click', async () => {
 send({ cmd: 'updateInfo' }).then(showLastCheck);
 
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && !hostOk) checkHost();
+  if (!document.hidden) recheckHost();
 });
 
 $('versionLine').textContent = t('opt_version', chrome.runtime.getManifest().version);

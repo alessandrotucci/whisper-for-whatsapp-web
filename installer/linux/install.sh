@@ -17,8 +17,8 @@
 #      ./install.sh --update   aggiornamento avviato dal componente, senza domande
 #
 # WWT_PREFIX cambia la cartella del programma. WWT_CLEAN_AFTER, se impostata, è una
-# cartella da cancellare alla fine (quella in cui il componente ha estratto il
-# tarball).
+# cartella da cancellare alla fine, anche in caso di errore (quella in cui il
+# componente ha estratto il tarball).
 
 set -eu
 
@@ -54,6 +54,18 @@ fail() {
     say "ERRORE: $1" "ERROR: $2" >&2
     exit 1
 }
+
+# In caso di errore non restano né la copia parziale della versione né, per --update, la
+# cartella estratta: altrimenti occuperebbero spazio finché non riesce un aggiornamento.
+STAGE=
+cleanup_on_error() {
+    status=$?
+    [ "$status" = 0 ] && return
+    [ -n "$STAGE" ] && rm -rf "$STAGE"
+    [ -n "${WWT_CLEAN_AFTER:-}" ] && rm -rf "$WWT_CLEAN_AFTER"
+    exit "$status"
+}
+trap cleanup_on_error EXIT
 
 [ "$UPDATE" = 1 ] && echo "$(date '+%Y-%m-%d %H:%M:%S') install.sh --update $VERSION"
 

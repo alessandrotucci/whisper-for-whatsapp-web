@@ -104,12 +104,12 @@ def work_dir():
     return path
 
 
-def start_update(url, on_progress, data_dir):
+def start_update(url, on_progress, data_dir, log=None):
     """Avvia l'aggiornamento del componente adatto al sistema; restituisce il pid."""
     if os.name == "nt":
         return start_installer(url, on_progress)
     if sys.platform.startswith("linux"):
-        return start_tarball(url, on_progress, data_dir)
+        return start_tarball(url, on_progress, data_dir, log or (lambda _text: None))
     raise RuntimeError("aggiornamento del componente non previsto su %s" % sys.platform)
 
 
@@ -146,8 +146,12 @@ def expected_sha256(sums_path, name):
     raise RuntimeError("%s non è elencato in %s" % (name, CHECKSUMS))
 
 
-def start_tarball(url, on_progress, data_dir):
-    """Scarica e verifica il tarball, avvia staccato il suo install.sh --update; restituisce il pid."""
+def start_tarball(url, on_progress, data_dir, log):
+    """Scarica e verifica il tarball, avvia staccato il suo install.sh --update; restituisce il pid.
+
+    Nella cartella di lavoro non resta nulla: SHA256SUMS e tarball si cancellano dopo l'uso, e
+    install.sh cancella la cartella estratta.
+    """
     import posix_support
 
     work = work_dir()
@@ -155,8 +159,14 @@ def start_tarball(url, on_progress, data_dir):
     tgz = download(url, os.path.join(work, name), on_progress)
     sums = download(url.rsplit("/", 1)[0] + "/" + CHECKSUMS, os.path.join(work, CHECKSUMS))
     actual = sha256_of(tgz)
-    if actual != expected_sha256(sums, name):
+    try:
+        expected = expected_sha256(sums, name)
+    finally:
+        os.remove(sums)
+    if actual != expected:
+        os.remove(tgz)
         raise RuntimeError("impronta di %s diversa da quella della release (%s)" % (name, actual[:16]))
+    log("%s verificato con %s (sha256 %s)" % (name, CHECKSUMS, actual))
     target = os.path.join(work, "unpacked")
     shutil.rmtree(target, ignore_errors=True)
     with tarfile.open(tgz) as t:
@@ -166,8 +176,8 @@ def start_tarball(url, on_progress, data_dir):
     if not os.path.isfile(script):
         raise RuntimeError("install.sh mancante nel tarball")
     os.makedirs(data_dir, exist_ok=True)
-    with open(os.path.join(data_dir, "install.log"), "ab") as log:
-        proc = subprocess.Popen(["/bin/sh", script, "--update"], stdin=subprocess.DEVNULL, stdout=log,
+    with open(os.path.join(data_dir, "install.log"), "ab") as out:
+        proc = subprocess.Popen(["/bin/sh", script, "--update"], stdin=subprocess.DEVNULL, stdout=out,
                                 stderr=subprocess.STDOUT, close_fds=True, start_new_session=True,
                                 cwd=target, env=dict(posix_support.clean_env(), WWT_CLEAN_AFTER=target))
     return proc.pid
@@ -248,4 +258,5 @@ def update_extension(url, ext_id, expect_version, on_progress=None):
                     pass
             shutil.rmtree(staging, ignore_errors=True)
             done.append(root)
+    os.remove(zpath)
     return done, skipped

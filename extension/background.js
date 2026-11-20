@@ -145,6 +145,8 @@ function connect() {
       r.reject(new Error(err));
     }
     requests.clear();
+    // Le pagine aperte ricontrollano il componente: potrebbe essere stato disinstallato.
+    notifyPages({ cmd: 'hostDisconnected' });
   });
   return port;
 }

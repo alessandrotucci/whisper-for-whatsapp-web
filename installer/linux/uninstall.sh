@@ -24,6 +24,19 @@ if [ "$KEEP_DATA" = 0 ] && [ -x "$EXE" ]; then
     "$EXE" --forget-keys || true
 fi
 
+# Prima i manifest: da qui in poi il browser non può più avviare il componente.
+if [ -f "$PREFIX/manifests.txt" ]; then
+    while IFS= read -r manifest; do
+        rm -f "$manifest"
+    done < "$PREFIX/manifests.txt"
+fi
+for dir in "$CONFIG"/*/NativeMessagingHosts "$CONFIG"/*/*/NativeMessagingHosts \
+           "$HOME/.mozilla/native-messaging-hosts" "$CONFIG/mozilla/native-messaging-hosts"; do
+    if [ -f "$dir/$HOST_NAME.json" ] && grep -q "$PREFIX/" "$dir/$HOST_NAME.json"; then
+        rm -f "$dir/$HOST_NAME.json"
+    fi
+done
+
 # Processi del componente: quelli il cui eseguibile sta sotto PREFIX. Un processo già
 # terminato e non ancora raccolto dal padre non ha più eseguibile e non compare.
 component_pids() {
@@ -55,17 +68,8 @@ for dir in ${XDG_RUNTIME_DIR:+"$XDG_RUNTIME_DIR"} "${TMPDIR:-/tmp}/wwt-$(id -u)"
 done
 rmdir "${TMPDIR:-/tmp}/wwt-$(id -u)" 2>/dev/null || true
 
-if [ -f "$PREFIX/manifests.txt" ]; then
-    while IFS= read -r manifest; do
-        rm -f "$manifest"
-    done < "$PREFIX/manifests.txt"
-fi
-for dir in "$CONFIG"/*/NativeMessagingHosts "$CONFIG"/*/*/NativeMessagingHosts \
-           "$HOME/.mozilla/native-messaging-hosts" "$CONFIG/mozilla/native-messaging-hosts"; do
-    if [ -f "$dir/$HOST_NAME.json" ] && grep -q "$PREFIX/" "$dir/$HOST_NAME.json"; then
-        rm -f "$dir/$HOST_NAME.json"
-    fi
-done
+# Cartella di lavoro degli aggiornamenti (updater.work_dir).
+rm -rf "${XDG_CACHE_HOME:-$HOME/.cache}/whisper-for-whatsapp-web-update"
 
 rm -rf "$PREFIX"
 if [ "$KEEP_DATA" = 0 ]; then

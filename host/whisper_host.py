@@ -112,7 +112,7 @@ import cuda_libs
 if os.name != "nt":
     import posix_support
 
-HOST_VERSION = "1.8.0"
+HOST_VERSION = "1.8.1"
 FROZEN = getattr(sys, "frozen", False)
 
 
@@ -1190,7 +1190,7 @@ class Host:
         import updater
 
         self.log("aggiornamento del componente da %s" % msg.get("url"))
-        pid = updater.start_update(msg.get("url"), self.update_progress(msg, "host"), DATA_DIR)
+        pid = updater.start_update(msg.get("url"), self.update_progress(msg, "host"), DATA_DIR, self.log)
         self.log("installazione avviata, pid %s" % pid)
         self.reply(msg, {"type": "update_host_started", "pid": pid})
 
